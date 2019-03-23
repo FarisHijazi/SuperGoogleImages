@@ -105,16 +105,17 @@ const ublSitesSet = new Set(),
 
 /** Contains the ubl data of a single domain name */
 class UBLdata {
-    constructor(url, successful, dataObj) {
-        this.hostname = getHostname(url);
+    constructor(href, successful, dataObj) {
+        const url = new URL(href);
+        this.hostname = url.hostname;
         this.scc_ddgp = 0;
         this.scc_tot = 0;
         /** contains and object with a URL and some data about it
          * @type {Map<Object>} */
         this.resultMap = new Map();
 
-        if (url.length !== this.hostname.length) {
-            this.addURL(url, successful, dataObj);
+        if (href.length !== this.hostname.length) {
+            this.addURL(href, successful, dataObj);
         }
     }
 
@@ -191,7 +192,7 @@ JSZip.prototype.generateIndexHtml = function generateZipIndexHtml() {
     </div>
 </div>`;
         } catch (e) {
-            console.error(e)
+            console.error(e);
         }
     }
     return zip.file('index.html', new Blob([html], { type: 'text/plain' }));
@@ -205,20 +206,14 @@ var searchModeDiv = q('#hdtb-msb-vis');
 var selectedSearchMode = !searchModeDiv ? null : searchModeDiv.querySelector('div.hdtb-msel');
 var onGoogleImages = selectedSearchMode && selectedSearchMode.innerHTML === 'Images';
 var currentDownloadCount = 0;
+var isTryingToClickLastRelImg = false;
 
 class GSaves {
     static get initialItem() {
         return google.pmc.colmob.initial_item.map(item => JSON.parse(item));
     }
     /**
-     * @return {{
-     * imageUrl:{string},
-     * url:{string},
-     * title:{string},
-     * faviconUrl:{string},
-     * redirectUrl:{string},
-     * realUrl:{string}
-     * }}
+     * @return {{ imageUrl:{string}, url:{string}, title:{string}, faviconUrl:{string}, redirectUrl:{string}, realUrl:{string} }}
      */
     static get initialItemObjectList() {
         function item2Obj(item) {
@@ -322,7 +317,7 @@ class GSaves {
     }
 
     static downloadJson() {
-        json = JSON.stringify(Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
+        const json = JSON.stringify(Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
             ({
                 'title': a.getAttribute('aria-label'),
                 'href': a.getAttribute('href'),
@@ -373,21 +368,22 @@ if (Preferences.customUrlArgs && Object.keys(Preferences.customUrlArgs).length) 
     }
     console.debug('new location:', url.toString());
 
+    const areEqual = (
+        function equalUrlSearchParams(url1, url2) {
+            const sp1 = url1.searchParams;
+            const sp2 = url2.searchParams;
+            sp1.sort();
+            sp2.sort();
+            console.log(
+                sp1.toString() + ' === ' + sp2.toString(),
+                '\n ' + sp1.toString() === sp2.toString()
+            );
+            return sp1.toString() === sp2.toString();
+        }
+    )(new URL(location.href), url);
 
-    if (!compareUrlSearchParams(new URL(location.href), url))
+    if (!areEqual)
         location.assign(url.toString());
-
-    function compareUrlSearchParams(url1, url2) {
-        const sp1 = url1.searchParams;
-        const sp2 = url2.searchParams;
-        sp1.sort();
-        sp2.sort();
-        console.log(
-            sp1.toString() + ' === ' + sp2.toString(),
-            '\n ' + sp1.toString() === sp2.toString()
-        );
-        return sp1.toString() === sp2.toString();
-    }
 }
 
 // todo: move GSaves code to another script
@@ -407,7 +403,7 @@ if (/google\..+\/save/.test(location.href)) {
         }
     });
 
-    if (false)
+    if (false) {
         observeAllFrames(function (mutationTarget) {
             console.log('mutationTarget:', mutationTarget);
             if (mutationTarget.querySelector('.str-clip-card-space')) {
@@ -415,6 +411,7 @@ if (/google\..+\/save/.test(location.href)) {
                 GSaves.wrapPanels();
             }
         });
+    }
 }
 
 /**
@@ -423,7 +420,7 @@ if (/google\..+\/save/.test(location.href)) {
  * @param {String} scriptName 
  * @param {Boolean} stopExecution if there are missing
  */
-function checkImports(importNames = [], scriptName = '', stopExecution) {
+function checkImports(importNames = [], scriptName = '', stopExecution = false) {
     const missing = [];
     for (const importName of importNames.filter(i => !!i)) {
         if (!window.hasOwnProperty(importName)) {
@@ -434,9 +431,10 @@ function checkImports(importNames = [], scriptName = '', stopExecution) {
             missing.append(importName);
         }
     }
-    if (missing.length === 0 && stopExecution) {
-        console.error('Stopping execution');
+    if (missing.length !== 0 && stopExecution) {
+        console.error('Stopping execution due to missing imports:', missing);
         void (0);
+        return missing;
     }
     return missing;
 }
@@ -605,6 +603,12 @@ class ImagePanel {  // ImagePanel class
             for (const div of this.ris_Divs)
                 if (div.classList.contains('irc_rist'))
                     return div;
+    }
+    /** @return {NodeListOf<HTMLDivElement>} returns only the last related image div from `ris_Divs()`*/
+    get ris_DivLast() {
+        var c = this.ris_Divs;
+        c = c && Array.from(c);
+        return c && c.pop();
     }
     /** @return {NodeListOf<HTMLDivElement>} returns all related image divs (including the "VIEW MORE" div)*/
     get ris_DivsAll() {
@@ -810,7 +814,7 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
                             }
                             return false;
                         } catch (e) {
-                            console.warn(e)
+                            console.warn(e);
                         }
                     }
                 }
@@ -1275,9 +1279,7 @@ observeDocument(function (mutationTarget, addedNodes) {
     if (mutationTarget.classList.contains('rg_bx') || addedImageBoxes.length) {
         onImagesLoading(addedImageBoxes);
     }
-}, {
-        singleCallbackPerMutation: true
-    });
+}, { singleCallbackPerMutation: true });
 // attach chgMon to document.body
 
 
@@ -1353,9 +1355,8 @@ function go() {
 
         waitForElement('#hdtb-msb', injectGoogleButtons);
     } else {
-        const results = qa('div.srg > div');
-        for (let i = 0; i < results.length; i++) {
-            // bind each result to the corresponding number
+        // bind each result to the corresponding number
+        for (let i = 0, results = qa('div.srg > div'); i < results.length; i++) {
             Mousetrap.bind(`${i + 1}`, () => {
                 results[i].querySelector('a').click();
             });
@@ -1583,7 +1584,7 @@ function injectGoogleButtons() {
         function createGButton(id, innerText, onClick) {
             const button = createElement(`<button class="${Consts.ClassNames.BUTTONS} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
             if (onClick && typeof (onClick) === 'function') button.onclick = function () {
-                onClick()
+                onClick();
             };
             return button;
         }
@@ -1993,6 +1994,7 @@ function getGimgDescription(img) {
 /**
  * @param imageElement image element, either <img class="rg_ic rg_i" ....> in .rg_bx
  * todo: make this function detect if the image is a thumbnail or inside the panel, also make it work by getting the "id" and finding the meta through that
+ * @param minified
  * @return
  * {{
  *   clt: string, id: string,
@@ -2005,7 +2007,7 @@ function getGimgDescription(img) {
  *   src: string
  *  }}
  */
-function getMeta(imageElement, minified) {
+function getMeta(imageElement, minified=false) {
     var metaObj = {};
     if (!imageElement)
         return metaObj;
@@ -2110,7 +2112,8 @@ function getWheelDelta(wheelEvent) {
 
 /* hot-keys*/
 let KeyEvent;
-if (typeof KeyEvent === 'undefined') { /* var str="KeyEvent = {\n"; for(var i=0; i<500; i++){ str+= "DOM_VK_" + String.fromCharCode(i) + ": " + i +",\n"; } str=str.substr(0, str.length-2)+"\n}" */
+if (typeof KeyEvent === 'undefined') {
+    /* var str="KeyEvent = {\n"; for(var i=0; i<500; i++){ str+= "DOM_VK_" + String.fromCharCode(i) + ": " + i +",\n"; } str=str.substr(0, str.length-2)+"\n}" */
     KeyEvent = {
         DOM_VK_BACKSPACE: 8,
         DOM_VK_TAB: 9,
@@ -2230,23 +2233,30 @@ if (typeof KeyEvent === 'undefined') { /* var str="KeyEvent = {\n"; for(var i=0;
  * @param interval  the interval between clicks
  */
 function tryToClickBottom_ris_image(interval = 30) {
+    isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
+    
     var timeout = null;
     const recursivelyClickLastRelImg = function () {
+        console.log('recursivelyClickLastRelImg()');
         timeout = setTimeout(function tryToClick() {
-            const relatedImageDivs = ImagePanel.focP.ris_Divs;
-            if (relatedImageDivs) {
-                const pop = Array.from(relatedImageDivs).pop();
-                if (pop && pop.click) {
-                    pop.click();
-                    clearTimeout(timeout);
-                    return false;
-                }
+            const risLast = ImagePanel.focP.ris_DivLast;
+            if (risLast && risLast.click) {
+                risLast.click();
+                isTryingToClickLastRelImg = false;
+                clearTimeout(timeout);
+                console.log('finally clicked the last related img:', risLast);
             } else {
                 recursivelyClickLastRelImg();
             }
         }, interval);
-    }
+    };
     recursivelyClickLastRelImg();
+
+    while(!isTryingToClickLastRelImg) {
+        // polling
+        console.log('waiting to be done...');
+    }
+    return;
 }
 
 /**
@@ -2268,7 +2278,7 @@ function prevRelImg() {
             endRis.click();
         } else {
             ImagePanel.previousImage();
-            tryToClickBottom_ris_image(10);
+            tryToClickBottom_ris_image(30);
         }
 
 
@@ -2400,9 +2410,6 @@ function onKeyDown(e) { // there will be no event if the target element is of ty
     }
 
     // @info mainImage drop-down panel:    #irc_bg
-
-    // todo: split the switch statement to 2, one of them is panel-specific (panel controls, and a panel must be active for them to work)
-
 
     // keys between 1 and (#buttons-1)
     if (k >= KeyEvent.DOM_VK_ALPHA1 && k <= (KeyEvent.DOM_VK_ALPHA1 + focusedPanel.buttons.length - 1)) {
@@ -2780,8 +2787,9 @@ function gZipImages() {
     console.debug('Original images to be downloaded:', ogs);
     let activeZipThreads = 0;
 
-    for (const qualifiedImgArgs of qualImgs)
+    for (const qualifiedImgArgs of qualImgs) {
         requestAndZipImage(qualifiedImgArgs.fileURL, qualifiedImgArgs.fileName, qualifiedImgArgs.img);
+    }
     /**
      * Takes a name and returns the same name and iterates it if it already exists in the zip
      * @param fname
@@ -2816,6 +2824,7 @@ function gZipImages() {
 
         function onBadResult(res) {
             console.debug('onBadResult:', 'fileURL:', fileUrl, 'response.finalURL:', res.finalUrl);
+
             if (!isDdgUrl(res.finalUrl)) {
                 console.debug(
                     'retrying with ddgproxy',
@@ -2823,6 +2832,7 @@ function gZipImages() {
                     '\nfileURL:', fileUrl,
                     '\nresponse.finalURL:', res.finalUrl
                 );
+
                 if (/<!DOCTYPE/.test(res.responseText)) {
                     console.error('Not image data!', res.responseText);
                     zip.current++;
@@ -2844,6 +2854,7 @@ function gZipImages() {
                     return;
                 }
                 try {
+                    /* 
                     console.debug(
                         `onload:
 readyState: ${res.readyState}
@@ -2852,7 +2863,7 @@ status:     ${res.status}
 statusText: ${res.statusText}
 finalUrl:   ${res.finalUrl}
 respText:   ${res.responseText.slice(0, 100)}...`
-                    );
+                    ); */
                 } catch (e) {
                 }
 
@@ -2918,7 +2929,7 @@ respText:   ${res.responseText.slice(0, 100)}...`
                 activeZipThreads--;
             },
             onreadystatechange: res => {
-                console.debug('Request state changed to: ' + res.readyState);
+                // console.debug('Request state changed to: ' + res.readyState);
                 if (res.readyState === 4) {
                     console.debug('ret.readyState === 4');
                 }
@@ -2927,13 +2938,13 @@ respText:   ${res.responseText.slice(0, 100)}...`
                 if (onBadResult(res)) {
                     return;
                 }
-                console.error('An error occurred.'
-                    + '\nreadyState: ' + res.readyState
-                    + '\nresponseHeaders: ' + res.responseHeaders
-                    + '\nstatus: ' + res.status
-                    + '\nstatusText: ' + res.statusText
-                    + '\nfinalUrl: ' + res.finalUrl
-                    + '\nresponseText: ' + res.responseText
+                console.error('An error occurred.' +
+                    '\nreadyState: ' + res.readyState +
+                    '\nresponseHeaders: ' + res.responseHeaders +
+                    '\nstatus: ' + res.status +
+                    '\nstatusText: ' + res.statusText +
+                    '\nfinalUrl: ' + res.finalUrl +
+                    '\nresponseText: ' + res.responseText
                 );
                 activeZipThreads--;
             },
@@ -2986,13 +2997,7 @@ function unionTitleAndDescr(str1, str2) {
     if (!str2) return str1;
     var regex = new RegExp(str2.match(/[^$-/:-?{-~!"^_`\[\]]+/g).join('|'), 'gi');
     var str1MinusStr2 = str1.replace(regex, ' ');
-    var concat = removeDoubleSpaces(str1MinusStr2 + ' ' + str2);
-    
-    if (false) console.debug('regex:', regex,
-        '\nstr1MinusStr2:', str1MinusStr2,
-        '\nConcat:', concat);
-    
-    return concat;
+    return removeDoubleSpaces(str1MinusStr2 + ' ' + str2);
 }
 function unionStrings(str1, str2) {
     var words1 = str1.split(/\s+/g),
@@ -3173,6 +3178,13 @@ unsafeWindow.getResultsData = getResultsData;
 unsafeWindow.getResultsJSON = getResultsJSON;
 
 
+// give a white border so that we'll have them all the same size
+addCss(
+    `div.rg_bx {	
+    border-radius: 2px;
+    border: 2px #fff solid;
+}`);
+
 // language=CSS
 addCss(`.hover-click:hover,
 .hover-click:focus {
@@ -3274,7 +3286,6 @@ a.download-related {
     1px 1px 0 rgba(255, 255, 255, .03),
     -1px -1px 0 rgba(0, 0, 0, .02),
     inset 1px 1px 0 rgba(255, 255, 255, .05);
-
 }
 
 /**/
@@ -3409,3 +3420,16 @@ function createAndGetNavbar(callback) {
     return navbar;
 }
 
+function addCss(cssStr, id='') {
+    // check if already exists
+    const style = document.getElementById(id) || document.createElement('style');
+
+    if (style.styleSheet) {
+        style.styleSheet.cssText = cssStr;
+    } else {
+        style.innerText = cssStr;
+    }
+    if (!!id) style.id = id;
+    style.classList.add('addCss');
+    return document.getElementsByTagName('head')[0].appendChild(style);
+}
