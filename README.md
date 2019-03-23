@@ -41,36 +41,16 @@ todo: list hotkeys
 
 todo: list the used libraries and link to the sources
 
-## Tasks
+## Todo
 
-### Issues
-todo: move issues to github repo
-
-- [x] New issue with `Google: Bypass Result Page Redirect` after modifying `getImgAnchors()`
-```Uncaught TypeError: Cannot read property 'getAttribute' of null
-    at handler (eval at unsafeEval (userscript.html?id=bf35ec11-4374-4c89-97ab-a84223888460:NaN), <anonymous>:99:61)
-    at Array.forEach (<anonymous>)
-    at checkAttribute (eval at unsafeEval (userscript.html?id=bf35ec11-4374-4c89-97ab-a84223888460:NaN), <anonymous>:121:65)
-    at Array.forEach (<anonymous>)
-    at MutationObserver.checkNewNodes (eval at unsafeEval (userscript.html?id=bf35ec11-4374-4c89-97ab-a84223888460:NaN), <anonymous>:110:52)
-```
-- [ ] issue
-```js
-        Node is null, cannot add attribute.
-        createAndAddAttribute @ userscript.html?id=d0cade57-baec-4045-932b-044f45621f55:728
-        modifyImgsOnLoad @ userscript.html?id=d0cade57-baec-4045-932b-044f45621f55:4103
-```
 - [ ] Fix clickable description, it doesn't change when changing to related images
-
-### Todo
-
-- [ ] DisplayOriginalImages
+- [ ] Fix DisplayOriginalImages
   - [ ] Make a specialized copy for the google script
-  - [ ] see what's the deal with the "loaded" attribute, and fix borders
-  - [ ] Remove all google-specific functionality from DisplayOriginalImages
-- [ ] Use svg icons instead of unicode symbols
+  - [ ] Fix inconsistent "loaded" attribute, and fix borders
+  - [ ] Remove all google-specific functionality from DisplayOriginalImages, make them independant
+- [ ] Use `svg` icons instead of unicode symbols
 - [ ] Add option for auto-expanding the page
-- [ ] download JSON
+- [ ] `download JSON` button
   - [ ] Add the related images
   - [ ] Remove base64 urls
 - [ ] Add option to download already loaded images
@@ -79,7 +59,7 @@ todo: move issues to github repo
 - [ ] Add text at the navbar that contains the highest frequency string
 - [ ] Make `saveUblSites()` save data as JSON (information such as: ddgp, dimensions, #successes, #dgpSuccesses)
 - [ ] put a textfield that indicates the current path of the downloads so the user can change it
-- [ ] clean format of `info.txt`, add a summary part and then put the raw metadata
+- [x] clean format of `info.txt`, add a summary part and then put the raw metadata
 - [ ] Add tooltips to the controls and checkboxes with descriptions and keyboard shortcuts.
 
 ### Completed
@@ -108,6 +88,11 @@ todo: move issues to github repo
 - [x] Make a "Min Image size" slider that will hide images with dimensions smaller than the slider value.
 - [x] Highlight all images that will be downloaded when sliding the downloadLimit bar.
 - [x] Replace the "Remove failed images" button to a checkbox, also put some text like "(n)" {n being the number of images that failed to show up}.
+- [x] Fixed issue with `Google: Bypass Result Page Redirect` after modifying `getImgAnchors()`
+    ```
+    Uncaught TypeError: Cannot read property 'getAttribute' of null
+    at handler (eval at unsafeEval (userscript.html?id=bf35ec11-4374-4c89-97ab-a84223888460:NaN), <anonymous>:99:61)
+    ```
 
 ## Documentation
 
@@ -128,7 +113,7 @@ TODO: Write license
 
 ## Analysis
 todo: move analysis to another readme (make another folder for analysis)
-Here are some breakdowns/teardowns of the HTML
+Here are some breakdowns/tear-downs of the HTML
 
  ### The Image Panel:
  There is one big panel containing 3 sub-panels, you only get to see one sub-panel at a time.
@@ -196,23 +181,23 @@ Sample meta JSON:
 
 ```json
 {
-"id":   "ZR4YfY_inahuKM:",                      
-"isu":  "gifs.cc",                      
-"itg":  0,                      
-"ity":  "gif",                      
-"oh":   322,                        
-"ou":   "http://78.media.tumblr.com/....500.gif",                       
-"ow":   492,                                            // Source	        
-"pt":   "",                                     
-"rid":  "nyyV1PqBnBltYM",                               // PrimaryTitle	
-"rmt":  0,                                      
-"rt":   0,                                      
-"ru":   "",                                     
-"s":    "Photo",                                        // Site            
-"st":   "",                                     
-"th":   182,                                            // SecondTitle	    
-"tu":   "https://encrypted-tbn0.gstatic.com/images?q\\",                     
-"tw":   278                     
+"id":   "ZR4fY_inahuKM:",                               // ID
+"isu":  "gifs.cc",                                      //
+"itg":  0,                                              //
+"ity":  "gif",                                          // Image Type
+"oh":   322,                                            // Original Height
+"ou":   "http://78.media.tumblr.com/....500.gif",       // Original URL
+"ow":   492,                                            // Original Width
+"pt":   "",                                             // PrimaryTitle
+"rid":  "nyyV1PqBnBltYM",                               // Referrer ID
+"rmt":  0,                                              //
+"rt":   0,                                              //
+"ru":   "",                                             //
+"s":    "Photo",                                        // Site
+"st":   "",                                             // Secondary Title
+"th":   182,                                            // Thumbnail Height
+"tu":   "https://encrypted-tbn0.gstatic.com/images?q\\",// Thumbnail URL
+"tw":   278                                             // Thumbnail Width
 }
 ```
 
