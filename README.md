@@ -1,8 +1,10 @@
 # Scripts
+
 TODO: Write a project description
 
 A [UserScript](https://openuserjs.org/about/Userscript-Beginners-HOWTO#what-is-a-user-script-) to enhance Google images pages and add features.
 A summary of features includes:
+
 - Display full resolution images, instead of thumbnails! (will also play all gifs)
 - `vew image` button
 - Download all images on the page, (can also be zipped)
@@ -14,44 +16,51 @@ A summary of features includes:
    1. [Google Bypass Result Page Redirect.user.js](Google%20Bypass%20Result%20Page%20Redirect.user.js), [source](https://greasyfork.org/scripts/14150-google-%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91/code/Google%EF%BC%9A%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91.user.js)
    2. [Google Direct Links for Pages and Images.user.js](Google%20Direct%20Links%20for%20Pages%20and%20Images.user.js), [source](https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js)
    3. [SuperGoogle.user.js](SuperGoogle.user.js)
-3. [Required for downloading only] Go to the Tampermonkey settings and change download mode to `beta`, (see how)[todo: add url].
-4. [Required for downloading only] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow` (details)[todo: add url]. todo: add screenshot
+3. [Required for downloading only] Go to the Tampermonkey settings and change download mode to `beta`, (see how)[TODO: add url].
+4. [Required for downloading only] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow` (details)[TODO: add url]. TODO: add screenshot
 
 ## Usage
+
 Open Google.com/....
-todo: write about usage
+TODO: write about usage
 
 ### Features
 
 #### Image panel added features
-##### Clickable description
-Clicking the description will take you to another search that description
-##### Add `view image` button
-Bring back the old `view image` button! Now you won't have to visit the website just to see the fullres image.
-##### Add `download` button
-Download the fullres image
 
-todo: continue listing features
+- ##### Clickable description
+
+    Clicking the description will take you to another search that description
+
+- ##### Add `view image` button
+
+    Bring back the old `view image` button! Now you won't have to visit the website just to see the fullres image.
+
+- ##### Add `download` button
+
+    Download the fullres image
+
+TODO: continue listing features
 
 ### Hotkeys
 
-todo: list hotkeys
+TODO: list hotkeys
 
 ## External Libraries
 
-todo: list the used libraries and link to the sources
+TODO: list the used libraries and link to the sources
 
 ## Todo
 
 - [ ] change `Display Original Images` button to a checkbox
 - [ ] add checkbox `close tab after download`
 - [ ] fix: dlLimit slider doesn't select anything the first time it's used
-- [ ] wrap the Google functions and constants in a static class. things like `getImageBoxes`, `searchBox`, etc...
+- [ ] Refactoring: Wrap the Google functions and constants in a static class. things like `getImageBoxes`, `searchBox`, etc...
 - [ ] Fix the autoloader (clicking load next page), you can't click anything other menus because of it
 - [ ] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
 - [ ] Add an `Add to favorite` button on the thumbnails (next to the image type tag and the download btn)
 - [ ] Create function: `downloadLoaded()` to just downloaded whatever was loaded and GTFO
-- [ ] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it 
+- [ ] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it
 - [ ] Fix clickable description, it doesn't change when changing to related images
 - [ ] Fix DisplayOriginalImages
   - [ ] Make a specialized copy for the google script
@@ -61,7 +70,7 @@ todo: list the used libraries and link to the sources
 - [ ] Add option for auto-expanding the page
 - [x] `download JSON` button
   - [ ] Add the related images
-  - [ ] Remove base64 urls
+  - [x] Remove base64 urls
 - [ ] Add option to download already loaded images
 - [ ] Add a debug level logger (so that the logs can be disabled to improve performance)
 - [ ] Make filters update when more pages load
@@ -107,7 +116,7 @@ todo: list the used libraries and link to the sources
 
 ## Documentation
 
-todo: Depending on the size of the project, if it is small and simple enough the reference docs can be added to the README.
+TODO: Depending on the size of the project, if it is small and simple enough the reference docs can be added to the README.
 For medium size to larger projects it is important to at least provide a link to where the API reference docs live.
 
 ## Contributing
@@ -121,116 +130,3 @@ For medium size to larger projects it is important to at least provide a link to
 ## License
 
 TODO: Write license
-
-## Analysis
-todo: move analysis to another readme (make another folder for analysis)
-Here are some breakdowns/tear-downs of the HTML
-
- ### The Image Panel:
- There is one big panel containing 3 sub-panels, you only get to see one sub-panel at a time.
- Moving to the next mainImage will rotate the 3 sub-panels, and you will visit each one as they rotate.
- Main panel selector: `#irc_cc`
- Sub-panels contain a `data-ved` attribute, only the active one will have data, the other 2 will be `null`.
- Active sub-panel selector:    `#irc_cc div.irc_t:not([data-ved="null"])`
-
- ### Image Boxes:
- Image boxes are contained in one parent element with the selector: `div#rg_s`.
- Every mainImage box `div.rg_bx` contains an `img.rg_ic.rg_i`, and a `div.rg_meta` containing the data.
-
- | Attributes    | Selector   | Notes |
- | ------------- | ---------- | ----- |
- | a             | **img**    |
- | *ClassName =* | **nicely** |
-
-WITH SCRIPTS ON
-
-```html
-    <div jscontroller="Q7Rsec" data-ri="74" class="rg_bx rg_di rg_el ivg-i" data-ved="" data-row="14">
-    <a jsname="hSRGPd"
-       href="OG URL"
-       jsaction="fire.ivg_o;mouseover:str.hmov;mouseout:str.hmou" class="rg_l" rel="noreferrer"
-       referrerpolicy="no-referrer">
-        <div class="Q98I0e" jsaction="IbE0S"></div>
-        <img class="rg_ic rg_i"
-             data-src="Thumbnail URL"
-             name="The_ID"
-             jsaction="load:str.tbn"
-             onload="typeof google==='object'&amp;&amp;google.aft&amp;&amp;google.aft(this)"
-             src="Thumbnail URL">
-        <div class="rg_ilmbg"><a rel="noreferrer" referrerpolicy="no-referrer" href="The site URL" class="x_source_link">
-            610&nbsp;×&nbsp;340 - gameinformer.com </a></div>
-    </a>
-    <div jsname="ik8THc" class="rg_meta notranslate"> {meta info}</div>
-    </div>
-```
-
-WITH SCRIPTS OF:
-
-```html
-    <div jscontroller="Q7Rsec" data-ri="74" class="rg_bx rg_di rg_el ivg-i" data-ved="" data-row="14">
-    <a jsname="hSRGPd"
-       href="Takes you to some weird google images panel page for a single image"
-       jsaction="fire.ivg_o;mouseover:str.hmov;mouseout:str.hmou" class="rg_l" rel="noopener"
-       referrerpolicy="no-referrer">
-        <div class="Q98I0e" jsaction="IbE0S"></div>
-        <img class="rg_ic rg_i"
-             data-src="Thumbnail URL"
-             name="The_ID:" jsaction="load:str.tbn"
-             onload="typeof google==='object'&amp;&amp;google.aft&amp;&amp;google.aft(this)"
-             src="Thumbnail URL">
-        <div class="rg_ilmbg">
-            610&nbsp;×&nbsp;340 - gameinformer.com
-        </div>
-    </a>
-    <div jsname="ik8THc" class="rg_meta notranslate"> {meta info}</div>
-    </div>
-```
-
-### Meta Data
-
-Sample meta JSON:
-
-```json
-{
-"id":   "ZR4fY_inahuKM:",                               // ID
-"isu":  "gifs.cc",                                      //
-"itg":  0,                                              //
-"ity":  "gif",                                          // Image Type
-"oh":   322,                                            // Original Height
-"ou":   "http://78.media.tumblr.com/....500.gif",       // Original URL
-"ow":   492,                                            // Original Width
-"pt":   "",                                             // PrimaryTitle
-"rid":  "nyyV1PqBnBltYM",                               // Referrer ID
-"rmt":  0,                                              //
-"rt":   0,                                              //
-"ru":   "",                                             //
-"s":    "Photo",                                        // Site
-"st":   "",                                             // Secondary Title
-"th":   182,                                            // Thumbnail Height
-"tu":   "https://encrypted-tbn0.gstatic.com/images?q\\",// Thumbnail URL
-"tw":   278                                             // Thumbnail Width
-}
-```
-
-### Translation table
-
-| Key | Phrase             | Description                                                                    |
-| --- | ------------------ | ------------------------------------------------------------------------------ |
-| cr  |                    |                                                                                |
-| id  | Id                 | Also doubles as the id of the IMG                                              |
-| isu | Hostpage URL       |                                                                                |
-| itg | Image Tag          |                                                                                |
-| ity | Image Type         | Image file extension ("jpg", ...)                                              |
-| oh  | Original Height    |                                                                                |
-| ou  | Original URL       |                                                                                |
-| ow  | Original Width     |                                                                                |
-| pt  | Primary Title      |                                                                                |
-| rid | Response id (?)    | usually a batch of 19 images have the same rid, probably for each batch loaded |
-| rmt |                    |                                                                                |
-| rt  |                    |                                                                                |
-| ru  | Redirect URL       |                                                                                |
-| s   | De<u>s</u>cription |                                                                                |
-| st  | Secondary Title    |                                                                                |
-| th  | Thumbnail Height   |                                                                                |
-| tu  | Thumbnail URL      |                                                                                |
-| tw  | Thumbnail Width    |                                                                                |
