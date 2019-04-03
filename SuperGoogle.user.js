@@ -1188,8 +1188,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     go();
 
-    updateDownloadBtnText();
-
     function cleanSearch() {
         console.log('cleanSearch()');
         const searchBar = q(Consts.Selectors.searchBox);
@@ -2131,35 +2129,35 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     // /** @deprecated
     // * Replaces the mainImage description link text */
-    // function replaceImgData(dataEls) {
-    //     if (typeof dataEls === 'undefined') return;
-    //     dataEls.querySelectorAll('.rg_meta').forEach(function (dataEl) {
-    //         if (dataEl.classList.contains('rg_meta-modified')) return;
-    //         try {
-    //             let dataText = dataEl.innerHTML;
-    //             let siteUrl = extractFromText(dataText, 'ru');
-    //             let description = extractFromText(dataText, 's');
-    //             let subTitle = extractFromText(dataText, 'st');
+    function replaceImgData(dataEls) {
+        if (typeof dataEls === 'undefined') return;
+        dataEls.querySelectorAll('.rg_meta').forEach(function (dataEl) {
+            if (dataEl.classList.contains('rg_meta-modified')) return;
+            try {
+                let dataText = dataEl.innerHTML;
+                let siteUrl = extractFromText(dataText, 'ru');
+                let description = extractFromText(dataText, 's');
+                let subTitle = extractFromText(dataText, 'st');
 
-    //             let imageAnchor = dataEl.previousSibling;
-    //             createAndAddAttribute(imageAnchor, 'rg_meta_st', subTitle);
-    //             createAndAddAttribute(imageAnchor, 'rg_meta_ru', siteUrl);
+                let imageAnchor = dataEl.previousSibling;
+                createAndAddAttribute(imageAnchor, 'rg_meta_st', subTitle);
+                createAndAddAttribute(imageAnchor, 'rg_meta_ru', siteUrl);
 
-    //             let hostname = getHostname(siteUrl).replace('www.', '');
-    //             let siteSearchUrl = GoogleImagesSearchURL + "site:" + encodeURIComponent(hostname);
+                let hostname = getHostname(siteUrl).replace('www.', '');
+                let siteSearchUrl = GoogleImagesSearchURL + "site:" + encodeURIComponent(hostname);
 
-    //             dataEl.innerHTML = dataEl.innerHTML
-    //                 .replace(subTitle, 'site search: ' + hostname) // replace SubTitle text with site HOSTNAME
-    //                 .replace(siteUrl, siteSearchUrl) // replace title lin with site siteSearch link
-    //                 // .replace(description, HOSTNAME)
-    //                 ;
+                dataEl.innerHTML = dataEl.innerHTML
+                    .replace(subTitle, 'site search: ' + hostname) // replace SubTitle text with site HOSTNAME
+                    .replace(siteUrl, siteSearchUrl) // replace title lin with site siteSearch link
+                    // .replace(description, HOSTNAME)
+                    ;
 
-    //             dataEl.classList.add('rg_meta-modified');
-    //         } catch (exception) {
-    //             console.error("Caught exception while changin rg_meta:", exception);
-    //         }
-    //     });
-    // }
+                dataEl.classList.add('rg_meta-modified');
+            } catch (exception) {
+                console.error("Caught exception while changin rg_meta:", exception);
+            }
+        });
+    }
 
 
 
@@ -2777,27 +2775,54 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function downloadJSON() {
-        let text = getResultsJSON(true, true);
+        let text = getResultsJSON({
+            minify: true,
+            stringify: true,
+            base64urls: false
+        });
         let name = 'GImg data_' + document.title;
         anchorClick(makeTextFile(text), name + '.json');
     }
 
-    function getResultsJSON(minified = true, asText = false) {
+    /**
+     * @param options {{ minify: true, stringify: false, base64urls: true }}:
+     * @returns {{ title:str url:str search:str time:str data:Array }}
+     */
+    function getResultsJSON(options) {
+        options = $.extend({
+            minify: true,
+            stringify: false,
+            base64urls: true
+        }, options);
+
+        const metas = getResultsData();
+
+        if (options.base64urls === false) {
+            for (const meta of metas) {
+                for (const prop of ['src', 'imgSrc']) {
+                    if (meta.hasOwnProperty(prop)) {
+                        if (isBase64ImageData(meta[prop]))
+                            meta[prop] = meta[prop].split(',')[0];
+                    }
+                }
+            }
+        }
+
         const o = {
             'title': document.title,
             'url': location.href,
             'search': q(Consts.Selectors.searchBox).value,
             'time': new Date().toJSON(),
-            'data': getResultsData(minified)
+            'data': metas
         };
-        return asText ? JSON.stringify(o, null, 4) : o;
+        return options.stringify ? JSON.stringify(o, null, 4) : o;
     }
 
     function getIndexHtml() {
         return Array.from(getImgBoxes()).map(bx => {
             const meta = getMeta(bx);
             return `<div>
-<img src="${meta.ou}" alt="${meta.pt}">
+<img src="${meta.ou}" class="src-img" alt="${meta.pt}">
 	<div>
     <a href="${meta.ru}" target="_blank">${meta.ru}</a>
     <h3>${meta.pt} ${meta.st}</h3>
@@ -2898,7 +2923,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         zip.current = 0;
         zip.totalSize = 0;
         zip.totalLoaded = 0;
-        zip.file('info.json', new Blob([getResultsJSON(/*minified*/ true, /*asText*/ true)], { type: 'text/plain' }));
+        zip.file('info.json', new Blob([getResultsJSON({ minify: true, stringify: true, base64urls: false })], { type: 'text/plain' }));
 
         window.addEventListener('beforeunload', zipBeforeUnload);
         window.onunload = genZip;
