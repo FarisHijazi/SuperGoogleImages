@@ -1,5 +1,19 @@
 # SuperGoogle for Google Images
 
+- [SuperGoogle for Google Images](#supergoogle-for-google-images)
+  - [Description](#description)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Features](#features)
+      - [Image panel added features](#image-panel-added-features)
+    - [Hotkeys](#hotkeys)
+  - [External Libraries](#external-libraries)
+  - [Documentation](#documentation)
+  - [Contributing](#contributing)
+  - [License](#license)
+
+## Description
+
 A [UserScript](https://openuserjs.org/about/Userscript-Beginners-HOWTO) to add features to Google images, like:  
 display full resolution images, zip+download all images, and more. See a list of [all features here](#Features);
 
@@ -72,6 +86,11 @@ TODO: list hotkeys
 ## External Libraries
 
 TODO: list the used libraries and link to the sources
+
+The script does use several other userscripts
+
+1. [Google Bypass Result Page Redirect.user.js](lib/Google%20Bypass%20Result%20Page%20Redirect.user.js), [source](https://greasyfork.org/scripts/14150-google-%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91/code/Google%EF%BC%9A%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91.user.js)
+2. [Google Direct Links for Pages and Images.user.js](lib/Google%20Direct%20Links%20for%20Pages%20and%20Images.user.js), [source](https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js)
 
 ## Documentation
 
