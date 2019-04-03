@@ -40,7 +40,7 @@ TODO: write about usage
 
 - ##### Enhance the image panels
 
-    ![image panel screenshot](Screenshots\Screenshot_1_ImagePanel_Details.png)
+    ![image panel screenshot](Screenshots/Screenshot_1_ImagePanel_Details.png)
 
   1. Add `view image` button
 
