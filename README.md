@@ -109,4 +109,5 @@ For medium size to larger projects it is important to at least provide a link to
 
 ## License
 
-TODO: Write license
+[Apache License](LICENSE.md)  
+Version 2.0, January 2004
