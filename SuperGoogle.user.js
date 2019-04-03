@@ -53,7 +53,8 @@
             selectedSearchMode: 'div#hdtb-msb-vis' + ' div.hdtb-msel',
             /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
             currentImagePanel: 'a#irc_cb',
-            searchBox: 'input[type="text"][title="Search"]'
+            searchBox: 'input[type="text"][title="Search"]',
+            googleButtonsContainer: '#hdtb-msb'
         },
         ClassNames: {
             DISPLAY_ORIGINAL: 'display-original-' + 'mainThumbnail',
@@ -65,6 +66,8 @@
             belowDiv: 'below-st-div'
         }
     };
+
+    const googleButtonsContainer = document.querySelector(Consts.Selectors.googleButtonsContainer);
 
     // done: make the preferences object be written to the storage, rather than having each element stored, also extend a default object
     // OPTIONS:
@@ -249,8 +252,12 @@
             container.parentNode.appendChild(createElement(container.outerHTML));
             container.remove();
         }
+        static _slipAnchorUnderElement(element, href) {
+            var tempInnerHTML = element.innerHTML;
+            element.innerHTML = '';
+            element.appendChild(createElement(`<a class="mod-anchor" target="_blank" href="${href}">${tempInnerHTML}</a>`));
+        }
         static wrapPanels() {
-
             var iio = this.initialItemObjectList;
 
             for (const container of this.containers) {
@@ -264,13 +271,13 @@
                     continue;
                 }
                 // main card
-                this.slipAnchorUnderElement(container.querySelector('div.str-wide-card-text-holder'), iio[i].realUrl);
+                this._slipAnchorUnderElement(container.querySelector('div.str-wide-card-text-holder'), iio[i].realUrl);
 
                 // title div
                 // this.slipAnchorUnderElement(container.querySelector('div.str-wide-card-title'), iio[i].url);
 
                 // img container
-                this.slipAnchorUnderElement(container.querySelector('div.str-wide-card-image-holder'), iio[i].imageUrl);
+                this._slipAnchorUnderElement(container.querySelector('div.str-wide-card-image-holder'), iio[i].imageUrl);
 
                 i++;
             }
@@ -289,21 +296,48 @@
                     height: 100%;
                 }`);
         }
-        static slipAnchorUnderElement(element, href) {
-            var tempInnerHTML = element.innerHTML;
-            element.innerHTML = '';
-            element.appendChild(createElement(`<a class="mod-anchor" target="_blank" href="${href}">${tempInnerHTML}</a>`));
+        static addDirectUrls(mutationTarget) {
+            addCss('.RggFob .mL2B4d { text-align: center; }', 'gsaves-center-anchors');
+            console.log('GSaves.addDirectUrls();');
+            for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
+                const usp = new URL(a.href, location.href).searchParams;
+                if (usp.get('imgrefurl')) {
+                    const href = usp.get('imgrefurl');
+                    if (!a.parentElement.querySelector('.page-link'))
+                        a.after(createElement('<a class="page-link" target="_blank" href="' + href + '">page</a>'))
+                }
+            }
         }
-        static toDirectUrls(mutationTarget) {
+        /**
+         * adds the option to `downloadJson()` to the dropdown
+         * safe to call multiple times, it checks if the button was already added
+         */
+        static addDLJsonButton() {
+            if (q('#download-json-button')) // button already exists
+                return;
+
+            const threeDots = document.querySelector('#ow21');
+            if (!threeDots) {
+                console.warn('dropdown was not found, unable to addJsonToDropdown()');
+            }
+            const dlj = createElement(`<button id="download-json-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Download JSON {}</span></button>`);
+            threeDots.after(dlj);
+            dlj.onclick = function () {
+                GSaves.downloadJson();
+            };
+        }
+        static replaceWithDirectUrls(mutationTarget) {
             console.log('GSaves.toDirectUrls();');
             for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
                 const usp = new URL(a.href, location.href).searchParams;
-                if (usp.get('imgrefurl'))
+                if (usp.get('imgrefurl')) {
                     a.href = usp.get('imgrefurl');
+                }
             }
         }
         static get directUrls() {
-            return Array.from(document.querySelectorAll('a.Uc6dJc')).map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'))
+            return Array.from(document.querySelectorAll('a.Uc6dJc'))
+                .map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'))
         }
         static get jsonSummary() {
             return Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
@@ -324,7 +358,7 @@
                     'site': a.querySelector('.SQJAwb').innerText,
                     'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
                 })
-            ), null, 4)
+            ), null, 4);
             anchorClick(makeTextFile(json), document.title + '.json')
         }
     }
@@ -527,18 +561,18 @@
                     if (div.classList.contains('irc_rist'))
                         return div;
         }
-        /** @return {NodeListOf<HTMLDivElement>} returns only the last related image div from `ris_Divs()`*/
+        /** @return {HTMLDivElement} returns only the last related image div from `ris_Divs()`*/
         get ris_DivLast() {
             var c = this.ris_Divs;
             c = c && Array.from(c);
             return c && c.pop();
         }
-        /** @return {NodeListOf<HTMLDivElement>} returns all related image divs (including the "VIEW MORE" div)*/
+        /** @return {HTMLDivElement[]} returns all related image divs (including the "VIEW MORE" div)*/
         get ris_DivsAll() {
             var c = this.ris_Container;
             if (c) return Array.from(c.querySelectorAll('div.irc_rimask'));
         }
-        /** @return {NodeListOf<HTMLDivElement>} returns only related image divs (excluding the "VIEW MORE" div)*/
+        /** @return {HTMLDivElement[]} returns only related image divs (excluding the "VIEW MORE" div)*/
         get ris_Divs() {
             var d = this.ris_DivsAll;
             if (d) return d.filter(div => !div.classList.contains('irc_rismo'));
@@ -557,13 +591,13 @@
          * Share:       a.i17628
          */
         get buttons() {
-            const buttonsContaier = this.q('.irc_but_r > tbody > tr');
+            const buttonsContainer = this.q('.irc_but_r > tbody > tr');
             const buttons = this.qa('.irc_but_r > tbody > tr a:first-child');
 
-            buttons.Visit = buttonsContaier.querySelector('a.i3599.irc_vpl.irc_lth');
-            buttons.Save = buttonsContaier.querySelector('a.i15087');
-            buttons.ViewSaved = buttonsContaier.querySelector('a.i18192.r-iXoO2jjyyEGY');
-            buttons.Share = buttonsContaier.querySelector('a.i17628');
+            buttons.Visit = buttonsContainer.querySelector('a.i3599.irc_vpl.irc_lth');
+            buttons.Save = buttonsContainer.querySelector('a.i15087');
+            buttons.ViewSaved = buttonsContainer.querySelector('a.i18192.r-iXoO2jjyyEGY');
+            buttons.Share = buttonsContainer.querySelector('a.i17628');
 
             return buttons;
         }
@@ -586,10 +620,10 @@
 
             console.log(
                 'BestNameFromTitle:',
-                `sTitle: ${sTitle}
-pTitle: ${pTitle}
-description: ${description}
-unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
+                '\nsTitle:', sTitle,
+                '\npTitle:', pTitle,
+                '\ndescription:', description,
+                '\nunionPTitleAndDescrAndSTitle:', unionPTitleAndDescrAndSTitle
             );
 
             return unionPTitleAndDescrAndSTitle;
@@ -637,8 +671,17 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
             return x;
         }
 
+        /**
+         * Should be called only once for each panel
+         * @param panelEl
+         */
         static modifyP(panelEl) {
             console.debug('Modifying panelEl:', panelEl);
+
+            // make the X button on the image panel remove the hash from the address bar
+            // there exists only a single X button common for all 3 image panels
+            document.querySelector('a#irc_cb').addEventListener('click', removeHash);
+
             let p = new ImagePanel(panelEl);
 
             const classList = p.rightPart.classList;
@@ -646,7 +689,8 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
                 classList.add('scroll-nav');
             }
 
-            /// Consts.ClassNames.belowDivClassName
+
+            // adding text-decoration to secondary title
             p.sTitle_Anchor.parentElement.after(createElement(
                 '<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/></div>'
             ));
@@ -670,9 +714,11 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
             }
 
             // remove "Images may be subject to copyright"
-            p.sTitle_Anchor.style = 'padding-right: 5px; text-decoration:none;';
-            const copyrightEl = p.q('span.Af3fH.rn92ee');
-            if (copyrightEl) copyrightEl.remove();
+            (function removeCopyrightElement() {
+                p.sTitle_Anchor.style = 'padding-right: 5px; text-decoration:none;';
+                const copyrightEl = p.q('span.Af3fH.rn92ee');
+                if (copyrightEl) copyrightEl.remove();
+            })();
 
             // injecting rarbg torrent link button
             (function injectRarbgButton() {
@@ -744,22 +790,28 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
                 }
             );
 
-            // Underlining binded keys
-            /* var keymap = new Map([ // Key: selector, Value: character
-             ['.i15087', 's'],
-             ['.i18192', 'v']
-             ]);
-             for (const [selector, char] of keymap) {
-             var bindEl = q(selector);
-             if (!bindEl) continue;
-             bindEl.outerHTML = bindEl.outerHTML.replace(new RegExp(char, 'i'), `<u>${char}</u>`);
-             }*/
-
-            // relocating the image dimensions element
-            var imgDimEl = p.q('.rn92ee.irc_msc');
-            if (!!imgDimEl) {
-                p.sTitle_Anchor.after(imgDimEl);
+            /**
+             *todo: find a library to do this instead, with tooltips as well
+             */
+            function underliningBinded() {
+                // Underlining binded keys
+                var keymap = new Map([ // Key: selector, Value: character
+                    ['.i15087', 's'],
+                    ['.i18192', 'v']
+                ]);
+                for (const [selector, char] of keymap) {
+                    var bindEl = q(selector);
+                    if (!bindEl) continue;
+                    bindEl.outerHTML = bindEl.outerHTML.replace(new RegExp(char, 'i'), `<u>${char}</u>`);
+                }
             }
+
+            (function moveImgDimensionEl() {
+                const imgDimEl = p.q('.rn92ee.irc_msc');
+                if (!!imgDimEl) {
+                    p.sTitle_Anchor.after(imgDimEl);
+                }
+            })();
 
             // ImagePanel.updateP(p);
         }
@@ -799,6 +851,10 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
                 torrentLink.style.display = linkIsTorrent ? 'inline-block' : 'none';
             }
         }
+        /**
+         * fixme: doesn't really work
+         * fetches and goes to the page for the current image (similar to image search but just 'more sizes of the same image')
+         */
         static moreSizes() {
             const panel = ImagePanel.focP;
             const reverseImgSearchUrl = getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
@@ -813,8 +869,7 @@ unionPTitleAndDescrAndSTitle: ${unionPTitleAndDescrAndSTitle}`
                         let doc2 = document.createElement('html');
                         doc2.innerHTML = content2;
                         z.write(content2);
-                    }
-                    )
+                    });
                 } else {
                     z.write(content);
                 }
@@ -1116,9 +1171,24 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
     }
 
-    go();
+    const clearEffectsDelayed = (function () {
+        let timeOut;
+        return function () {
+            clearTimeout(timeOut);
+            timeOut = setTimeout(function () {
+                clearAllEffects();
+                // updateQualifiedImagesLabel();
+            }, 800);
+        };
+    })();
+
+
     var url = new URL(location.href);
     const isGoogleImages = url.searchParams.get('tbm') === 'isch'; // TODO: find a better way of determining whether the page is a Google Image search
+
+    go();
+
+    updateDownloadBtnText();
 
     function cleanSearch() {
         console.log('cleanSearch()');
@@ -1149,13 +1219,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
         }, true);
     } else {
-        observeDocument(GSaves.toDirectUrls);
+        observeDocument(function () {
+            GSaves.addDirectUrls();
+            GSaves.addDLJsonButton();
+        });
     }
 
     observeDocument(function (mutationTarget, addedNodes) {
-        const addedImageBoxes = mutationTarget.querySelectorAll('.rg_bx:not(.rg_bx_listed)');
+        const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
         if (mutationTarget.classList.contains('rg_bx') || addedImageBoxes.length) {
             onImagesLoading(addedImageBoxes);
+            updateDownloadBtnText();
         }
     }, { singleCallbackPerMutation: true });
     // attach chgMon to document.body
@@ -1188,20 +1262,37 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }, function startPanelModifications(panelEl) {
                     ImagePanel.modifyP(panelEl);
                     const mutationObserver = new MutationObserver(function (mutations) { // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
-                        mutations.forEach(function (mutation) {
+                        for (const mutation of mutations) {
                             if (!mutation.addedNodes.length) {
-                                return;
+                                continue;
                             }
                             try {
                                 if (!!ImagePanel.focP) {
                                     ImagePanel.updateP(ImagePanel.focP);
                                 }
+                                // optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
+                                const metaDatas = Array.from(getImgBoxes()).map(getMeta);
+                                const dimensions = metaDatas.map(meta => [meta.ow, meta.oh]);
+                                const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
+                                const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
+                                // todo: get the min dimension and the max dimension, and make the limits of the slider depend on what images exist
+
+                                const minImgSizeSlider = q('#minImgSizeSlider');
+                                if (minImgSizeSlider) {
+                                    minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
+                                    minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
+                                }
+
                                 const dlLimitSlider = q('#dlLimitSlider');
-                                if (dlLimitSlider) dlLimitSlider.setAttribute('max', qa('.rg_bx').length.toString());
+                                if (dlLimitSlider) {
+                                    dlLimitSlider.setAttribute('max', metaDatas.length.toString());
+                                    dlLimitSlider.value = metaDatas.length;
+                                    // TODO: also update the label value
+                                }
                             } catch (e) {
                                 console.warn(e, 'Focused panel:', ImagePanel.focP);
                             }
-                        })
+                        }
                     });
 
                     const target = ImagePanel.mainPanelEl;
@@ -1225,6 +1316,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     Mousetrap.bind(['g'], () => {
                         q('#GIFsOnlyBox').click();
                     });
+                    Mousetrap.bind(['esc', 'escape'], removeHash);
                 })();
                 // adds a toggleEncryptedGoogle button
                 /*q('#ab_ctls').appendChild(createElement(`<i class="ab_ctl">
@@ -1370,9 +1462,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return torrentURL;
     }
 
-    /** @param visibleThumbnailsOnly
-     * @returns {set<HTMLImageElement>} */
-    function getThumbnails(visibleThumbnailsOnly) {
+    /** @param visibleThumbnailsOnly {boolean}: optional: set to true to exclude thumbnails that aren't visible
+     * @returns {NodeListOf<HTMLImageElement>} */
+    function getThumbnails(visibleThumbnailsOnly = false) {
         // language=CSS
         const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
             (visibleThumbnailsOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
@@ -1385,7 +1477,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         value = value != null ? value : Array.from(getQualifiedGImgs()).length;
         const satCondLabel = q('#satCondLabel');
         if (satCondLabel)
-            satCondLabel.innerHTML = `${value} images satisfying conditions`;
+            satCondLabel.innerHTML = value + ' images satisfying conditions';
 
         const dlLimitSlider = q('#dlLimitSlider');
         if (dlLimitSlider && dlLimitSlider.value < value) {
@@ -1399,14 +1491,33 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
             */
     }
+    function highlightSelection() {
+        const sliderValueDlLimit = this.value;
+        q('#dlLimitSliderValue').innerHTML = sliderValueDlLimit;
+
+        // Highlighting images that will be downloaded
+        var i = 0;
+        for (const img of getImgBoxes(' img')) {
+            if (i <= sliderValueDlLimit && img.classList.contains('qualified-dimensions')) {
+                img.classList.add('drop-shadow', 'out');
+                img.classList.remove('in');
+                i++;
+            } else {
+                img.classList.remove('out');
+                img.classList.add('blur', 'in');
+            }
+        }
+
+        updateQualifiedImagesLabel();
+    }
+
     /**Modify the navbar and add custom buttons*/
     function injectGoogleButtons() {
         try {
-            let controlsContainer = createElement(`<div id="${controlsContainerId}"</div>`);
-            const googleButtonsContainer = document.querySelector('#hdtb-msb');
+            const controlsContainer = createElement(`<div id="${controlsContainerId}"</div>`);
             /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
 
-            var navbar = createAndGetNavbar(function (topnavContentDiv) {
+            const navbar = createAndGetNavbar(function (topnavContentDiv) {
                 const gNavbar = q('#rshdr');
                 topnavContentDiv.before(gNavbar, q('#searchform'));
                 topnavContentDiv.appendChild(controlsContainer);
@@ -1422,17 +1533,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
             // var linkAnimated = createElement('<a style="display:" class="hdtb-tl" href="#" onclick="alert("finally"); document.getElementById("itp_animated").firstElementChild.click();">Animated</a>');
-
-            const clearEffectsDelayed = (function () {
-                let timeOut;
-                return function () {
-                    clearTimeout(timeOut);
-                    timeOut = setTimeout(function () {
-                        clearAllEffects();
-                        // updateQualifiedImagesLabel();
-                    }, 800);
-                }
-            })();
 
             // buttons
             const createGButton = (id, innerText, onClick) => {
@@ -1469,8 +1569,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             };
 
             // Check boxes
-            const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Show failed images', _sfi, Preferences.hideFailedImagesOnLoad);
-            const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', _gifsOnly, false);
+            const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
+                const checked = q('#hideFailedImagesBox').checked;
+                setVisibilityForImages(!checked, isFailedImage);
+                Preferences.hideFailedImagesOnLoad = !checked; // remember the preference
+            }, Preferences.hideFailedImagesOnLoad);
+            const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
+                setVisibilityForImages(!q('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
+            }, false);
             const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy',
                 () => {
                     Preferences.useDdgProxy = q('#useDdgProxyBox').checked;
@@ -1488,33 +1594,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             );
             const cbox_ZIP = createGCheckBox('zipInsteadOfDownload', 'ZIP', function changeZIPBtnText() {
                 const checked = cbox_ZIP.checked;
-                const downloadBtn = q('#downloadBtn');
-                downloadBtn.innerHTML = checked ?
-                    (!downloadBtn.classList.contains('genzip-possible') ? 'ZIP&nbsp;images' : 'Download&nbsp;ZIP&nbsp;⇓') :// "zip" or "download zip"
-                    'Download&nbsp;⇓';
+                updateDownloadBtnText();
                 GM_setValue('zipInsteadOfDownload', checked);
             }, GM_getValue('zipInsteadOfDownload', true));
             cbox_ZIP.style.padding = '0px';
 
 
-            /** Hide failed images */
-            function _sfi() {
-                const checked = q('#hideFailedImagesBox').checked;
-                const hideFailedImagesFilter = (el) => el.classList.contains(Consts.ClassNames.FAILED_DDG) || el.classList.contains(Consts.ClassNames.FAILED_DDG);
-                setVisibilityForImages(checked, hideFailedImagesFilter);
+            const isGif = img_bx => getMeta(img_bx).ity === 'gif' || /\.gif($|\?)/.test(getMeta(img_bx).ou);
+            const isFailedImage = (img_bx) => img_bx.classList.contains(Consts.ClassNames.FAILED_DDG) || img_bx.classList.contains(Consts.ClassNames.FAILED_DDG);
 
-                Preferences.hideFailedImagesOnLoad = !checked; // remember the preference
-            }
-            function _gifsOnly() {
-                _sfi();
-                const checked = q('#GIFsOnlyBox').checked;
-                for (const nonGifImg of qa(`.rg_bx a.rg_l img`)) {
-                    if (!/\.gif($|\?)/.test(getMeta(nonGifImg).ou)) {
-                        console.debug('nonGifImg href doesn\'t end with .gif, settings visibility to:', checked, nonGifImg);
-                        setVisible(nonGifImg, checked);
-                    }
-                }
-            }
 
             for (const img of getThumbnails(true)) {
                 img.classList.add('blur');
@@ -1522,9 +1610,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
             const constraintsContainer = (function () {
+                // todo: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
 
                 const default_slider_minImgSize_value = 250;
-                const slider_minImgSize = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="25">`);
+                const slider_minImgSize = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
 
                 var sliderReading_minImgSize = createElement(`<label for="minImgSizeSlider" id="minImgSizeSliderValue">${slider_minImgSize.value}x${slider_minImgSize.value}</label>`);
                 slider_minImgSize.oninput = function () {
@@ -1561,48 +1650,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 const slider_dlLimit = createElement(`<input id="dlLimitSlider" type="range" min="1" max="${1000}" value="20">`);
                 var sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</strong>`);
-                slider_dlLimit.oninput = function () {
-                    sliderReading_dlLimit.innerHTML = this.value;
-
-                    // Highlighting images that will be downloaded
-
-                    // blur all
-
-
-                    var i = 0;
-                    /*
-                    for (const qualifiedImgObj of getQualifiedGImgs(null, null, true)) {
-                        const img = qualifiedImgObj.img;
-                        console.debug('i:', i, 'this.value:', this.value);
-                        if(++i <= this.value) {
-                            img.classList.add('drop-shadow', 'out');
-                            img.classList.remove('in');
-                        }
-                    }
-                    */
-
-                    for (const img of qa('.rg_bx img.qualified-dimensions')) {
-                        if (++i <= this.value) {
-                            img.classList.add('drop-shadow', 'out');
-                            img.classList.remove('in');
-                        } else {
-                            img.classList.remove('out');
-                            img.classList.add('blur', 'in');
-                        }
-                    }
-                    // un-blur the remaining images (even though they may not satisfy img dimensions)
-                    for (const img of qa('.rg_bx img:not(.qualified-dimensions)')) {
-                        if (++i <= this.value) {
-                            img.classList.add('drop-shadow', 'out');
-                            img.classList.remove('in');
-                        } else {
-                            img.classList.remove('out');
-                            img.classList.add('blur', 'in');
-                        }
-                    }
-
-                    updateQualifiedImagesLabel();
-                };
+                slider_dlLimit.oninput = highlightSelection;
                 slider_dlLimit.onchange = clearEffectsDelayed;
 
 
@@ -1648,7 +1696,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             });
             const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
             const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
-            // const btn_trimSiteRight = createGButton('trimSiteRight', ']', null);
 
             const btn_download = createGButton('downloadBtn', 'Download ⇓', downloadImages);
             btn_download.style.margin = '20px';
@@ -1692,8 +1739,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, btn_animated, searchEngineSelect, pathBox, downloadPanel);
             constraintsContainer.after(satCondLabel);
             downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
-
-
 
             // automatically display originals if searching for a site:
             if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
@@ -1831,7 +1876,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 let hostname = getHostname(imgMeta.src);
                 if (/tumblr\.com/.test(hostname)) hostname = hostname.replace(/^\d+?\./, '');
                 if (/google|gstatic/i.test(hostname)) {
-                    hostname = getHostname(imgMeta.closest('a').href);
+                    hostname = getHostname(imgMeta.ru);
                     if (/google|gstatic/i.test(hostname)) {
                         continue;
                     }
@@ -1845,7 +1890,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
     function storeUblSitesSet() {
         collectUblSites();
-        const stored = GM_getValue(Consts.GMValues.UBL_SITES);
+        const stored = GM_getValue(Consts.GMValues.UBL_SITES, []);
         const merged = new Set(
             Array.from(stored)
                 .concat(Array.from(ublSitesSet))
@@ -1865,10 +1910,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @return {Object}
      */
     function cleanMeta(meta) {
-        if(!meta)
+        if (!meta)
             return ({});
 
-        for(const prop of ['clt', 'cl', 'cb', 'cr', 'sc', 'tu', 'th', 'tw', 'rh', 'rid', 'rt', 'itg', 'imgEl'])
+        for (const prop of ['clt', 'cl', 'cb', 'cr', 'sc', 'tu', 'th', 'tw', 'rh', 'rid', 'rt', 'itg', 'imgEl'])
             if (meta.hasOwnProperty(prop))
                 delete meta[prop];
 
@@ -1960,13 +2005,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const dlLimitSlider = q('#dlLimitSlider');
             if (dlLimitSlider) {
                 const tmpValue = dlLimitSlider.getAttribute('value');
-                const numImages = qa('.rg_bx').length;
-                dlLimitSlider.setAttribute('max', numImages);
+                const numImages = getImgBoxes().length;
+                dlLimitSlider.setAttribute('max', numImages.toString());
 
-                const newValue = Math.min(numImages, tmpValue);
-                dlLimitSlider.setAttribute('value', newValue);
+                const newValue = Math.min(numImages, parseFloat(tmpValue));
+                dlLimitSlider.setAttribute('value', newValue.toString());
                 const sliderValueEl = q('#dlLimitSliderValue');
-                if (sliderValueEl) sliderValueEl.setAttribute('value', newValue);
+                if (sliderValueEl) sliderValueEl.setAttribute('value', newValue.toString());
             }
         })();
 
@@ -2021,24 +2066,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         let meta = getMeta(img);
         let title = meta.pt,
             desc = meta.s;
-        return title + '_' + desc; // choosing one of them (prioratizing the description over the title)
+        return title + '_' + desc; // choosing one of them (prioritizing the description over the title)
     }
 
     /**
      * @param imageElement image element, either <img class="rg_ic rg_i" ....> in .rg_bx
      * todo: make this function detect if the image is a thumbnail or inside the panel, also make it work by getting the "id" and finding the meta through that
          * @param minified
-     * @return
-     * {{
-     *   clt: string, id: string,
-     *   isu: string, itg: string, ity: string,
-     *   oh: string, ou: string, ow: string,
-     *   pt: string,
-     *   rid: string, rmt: string, rt: string, ru: string,
-     *   s: string, st: string,
-     *   th: string, tu: string, tw,
-     *   src: string
-     *  }}
+     * @return {{ clt: string, id: string, isu: string, itg: string, ity: string, oh: string, ou: string, ow: string, pt: string, rid: string, rmt: string, rt: string, ru: string, s: string, st: string, th: string, tu: string, tw, src: string }}
      */
     function getMeta(imageElement, minified = false) {
         var metaObj = {};
@@ -2048,13 +2083,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         try {
             metaObj = JSON.parse(getMetaText(imageElement));
 
-            // removing useless properties
-            if (minified)
-                for (const propertyName of ['clt', 'cl', 'cb', 'cr', 'sc', 'tu', 'th', 'tw', 'rh', 'rid', 'rt', 'itg', 'imgEl'])
-                    if (metaObj.hasOwnProperty(propertyName))
-                        delete metaObj[propertyName];
-
             metaObj.src = imageElement.src;
+            metaObj.dim = [metaObj.ow, metaObj.oh];
+
+            if (minified)
+                cleanMeta(metaObj);
         } catch (e) {
             console.warn(e, imageElement);
         }
@@ -2065,8 +2098,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             //[Google.com images]
             /** @param thumbnail
              * @return {HTMLDivElement } */
-            const getMetaEl = thumbnail => thumbnail.closest('div.rg_bx, div.irc_rimask') // nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
-                .querySelector('div.rg_meta'); // look for div.rg_meta, that should have the meta data
+            const getMetaEl = thumbnail => {
+                const div = thumbnail.tagName === 'DIV' ? thumbnail :
+                    thumbnail.closest('div.rg_bx, div.irc_rimask');// nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
+                return div.querySelector('.rg_meta');
+            }; // look for div.rg_meta, that should have the meta data
 
             try {
                 return getMetaEl(img).innerText;
@@ -2075,6 +2111,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
             return '{}';
         }
+
         return metaObj;
     }
 
@@ -2400,7 +2437,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const searchBox = q(Consts.Selectors.searchBox);
 
         const trimmedSiteSearch = (function getTrimmedSiteSearch(value) {
-            const match = value.match(/(site:)([\w.]+)/);
+            const match = value.match(/(site:)(([\w.\/])+|(\/\/\:)+)+/);
             if (match && match.length) {
                 const siteSplit = match[2].split(/\./);
                 const siteTrimmed = siteSplit.slice(1).join('.');
@@ -2416,7 +2453,38 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
         })(searchBox.value);
 
-        if(!trimmedSiteSearch || searchBox.value === trimmedSiteSearch) {// don't change if already the same
+        console.log(`siteSearch_TrimLeft(${searchBox.value}) = ${trimmedSiteSearch}`);
+
+        if (!trimmedSiteSearch || searchBox.value === trimmedSiteSearch) {// don't change if already the same
+            return;
+        }
+
+        searchBox.value = trimmedSiteSearch;
+        searchBox.form.submit();
+    }
+
+    function siteSearch_TrimRight() {
+        const searchBox = q(Consts.Selectors.searchBox);
+
+        const trimmedSiteSearch = (function getTrimmedSiteSearchPath(value) {
+            const match = value.match(/(site:)(([\w.\/])+|(\/\/\:)+)+/);
+            if (match && match.length) {
+                const siteSplit = match[2].split(/\//);
+                siteSplit.pop();
+                const siteTrimmed = siteSplit.join('/');
+                var newSite;
+                if (siteSplit.length > 2) {
+                    newSite = 'site:' + siteTrimmed;
+                } else {
+                    return value;
+                }
+                return match.input.slice(0, match.index) + newSite + match.input.slice(match.index + match[0].length);
+            }
+        })(searchBox.value);
+
+        console.log(`siteSearch_TrimRight(${searchBox.value}) = ${trimmedSiteSearch}`);
+
+        if (!trimmedSiteSearch || searchBox.value === trimmedSiteSearch) {// don't change if already the same
             return;
         }
 
@@ -2491,6 +2559,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if (modKeys.NONE) { // increment minImgSize
                     const minImgSizeSlider = q('#minImgSizeSlider');
                     minImgSizeSlider.value = parseInt(minImgSizeSlider.value) + parseInt(minImgSizeSlider.step);
+                } else if (modKeys.CTRL_ONLY) { // trim right search query
+                    siteSearch_TrimRight();
                 }
                 break;
             case KeyEvent.DOM_VK_OPEN_BRACKET: // [
@@ -2651,13 +2721,30 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return !str ? str : removeDoubleSpaces(
             cleanDates(str)
                 .replace(/[-!$%^&*()_+|~=`{}\[\]";'<>?,.\/]/gim, ' ')
-                .replace(/rarbg|\.com|#|x264|DVDRip|720p|1080p|2160p|MP4|IMAGESET|FuGLi|SD|KLEENEX|BRRip|XviD|MP3|XVID|BluRay|HAAC|WEBRip|DHD|rartv|KTR|YAPG/gi, ' ')
+                .replace(/\.com|#|x264|DVDRip|720p|1080p|2160p|MP4|IMAGESET|FuGLi|SD|KLEENEX|BRRip|XviD|MP3|XVID|BluRay|HAAC|WEBRip|DHD|rartv|KTR|YAPG/gi, ' ')
         ).trim();
     }
-
+    /**
+     * @param selectorExtension {string}: optional: extend the selector (useful for selecting things inside the img box)
+     * example: getImgBoxes(' img') will return the images inside that those image boxes
+     * @return {NodeListOf<HTMLDivElement>}
+     */
+    function getImgBoxes(selectorExtension = '') {
+        return document.querySelectorAll('#rg_s > .rg_bx' + selectorExtension);
+    }
     function getImgAnchors() {
         // return qa('#rg_s > div.rg_bx > a.rg_l[href]');
-        return qa('#rg_s > div > a[href]');
+        return getImgBoxes(' > a[href]');
+    }
+
+    function updateDownloadBtnText() {
+        const downloadBtn = q('#downloadBtn');
+        const zipCbox = q('#zipInsteadOfDownload');
+        if (zipCbox && downloadBtn) {
+            downloadBtn.innerHTML = zipCbox.checked ?
+                (!downloadBtn.classList.contains('genzip-possible') ? 'ZIP' : 'Download&nbsp;ZIP&nbsp;⇓') : // "zip" or "download zip"
+                'Download&nbsp;⇓';
+        }
     }
 
     /**
@@ -2665,14 +2752,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @returns {Array} an array containing the meta objects of the images
      */
     function getResultsData(minified = true) {
-        let anchors = getImgAnchors();
+        let imgBoxes = getImgBoxes();
         let set = new Set();
-        for (let a of anchors) {
+        for (let box of imgBoxes) {
             var img;
             var meta = {};
 
             try {
-                img = a.querySelector('img');
+                img = box.querySelector('img');
                 meta = getMeta(img, minified);
                 meta.loaded = img.getAttribute('loaded');
 
@@ -2680,7 +2767,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     cleanMeta(meta);
                 }
             } catch (e) {
-                console.warn(e, a);
+                console.warn(e, box);
                 continue;
             }
             if (meta == null) continue;
@@ -2707,7 +2794,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function getIndexHtml() {
-        return Array.from(qa('.rg_bx')).map(bx => {
+        return Array.from(getImgBoxes()).map(bx => {
             const meta = getMeta(bx);
             return `<div>
 <img src="${meta.ou}" alt="${meta.pt}">
@@ -2953,11 +3040,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     zip.current++;
 
                     // fixing the download button text
-                    const downloadBtn = q('#downloadBtn');
                     downloadBtn.classList.add('genzip-possible');
-                    downloadBtn.innerHTML = q('#zipInsteadOfDownload').checked ?
-                        (!downloadBtn.classList.contains('genzip-possible') ? 'ZIP' : 'Download&nbsp;ZIP&nbsp;⇓') : // "zip" or "download zip"
-                        'Download&nbsp;⇓';
+                    updateDownloadBtnText();
 
 
                     if (zip.current < zip.zipTotal || zip.zipTotal <= 0) {
@@ -3065,15 +3149,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /**
      * Sets the hides/shows the images that match the filter
      * @param visibility: the new visibility for images matching `filter`
-     * @param filter: {(el) -> bool | string};
+     * @param filter: {(imgBox) -> bool | string};
      *  A function or string (CSS selector) to test the condition for each image.
      *  A function that is passed each image, and should return a boolean.
      *  True to set it to the visibility value, otherwise will be set depending on `invertVisibilityForNegativeMatches`
      * @param invertVisibilityForNegativeMatches: Set the visibility of negative matches to `!visibility`. Default: false
+     * @param negateCondition: set to true to negate the result of the filter
      */
-    function setVisibilityForImages(visibility, filter = (el) => true, invertVisibilityForNegativeMatches = false) {
-        const allImageBoxes = qa('div.rg_bx > a.rg_l > img');
-        if (!allImageBoxes.length) return;
+    function setVisibilityForImages(visibility, filter = (imgBox) => true, invertVisibilityForNegativeMatches = false, negateCondition = false) {
         // let bxs = qa(`div.rg_bx > a.rg_l > img.${Consts.ClassNames.FAILED_DDG}, div.rg_bx > a.rg_l > img.${Consts.ClassNames.FAILED}`);
 
         const _filter = (typeof (filter) === 'string') ?
@@ -3084,8 +3167,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const pm = [];
         const nm = [];
 
-        for (const imageBox of allImageBoxes) {
-            if (_filter(imageBox)) {// match
+        for (const imageBox of getImgBoxes(' > a.rg_l > img')) {
+            if (negateCondition ^ _filter(imageBox)) {// match
                 setVisible(imageBox, visibility);
                 pm.push(imageBox);
             } else if (invertVisibilityForNegativeMatches) {
@@ -3100,16 +3183,19 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             `\nAnd ${nm.length} negative matches to ${visibility}:`, nm
         );
     }
-    function setVisible(node, visible) {
-        if (!node) return;
-        if (onGoogleImages) {
-            node = node.parentNode.parentNode;
-        }
+    /**
+     * @param imageElement {HTMLImageElement|HTMLDivElement}: the image
+     * @param newVisibility
+     */
+    function setVisible(imageElement, newVisibility) {
+        if (!imageElement) return;
+        imageElement = imageElement.tagName === 'DIV' ? imageElement :
+            imageElement.closest('div');
 
-        if (visible) {
-            node.classList.remove('hide-img');
+        if (newVisibility) {
+            imageElement.classList.remove('hide-img');
         } else {
-            node.classList.add('hide-img');
+            imageElement.classList.add('hide-img');
         }
     }
 
@@ -3165,7 +3251,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function getSortedWords() {
         const rx = /[\s\W,.\/\\\\-_]+/g;
         /*this is an array containing all the words of all titles and all images*/
-        const wordList = Array.from(qa('.rg_bx')).map(bx => {
+        const wordList = Array.from(getImgBoxes()).map(bx => {
             const meta = getMeta(bx);
             try {
                 return (meta.pt ? meta.pt.split(rx) : [])
@@ -3174,7 +3260,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             } catch (e) {
                 console.error(e);
             }
-        }).reduce((occumulator, currentValue) => occumulator.concat(currentValue))
+        }).reduce((accumulator, currentValue) => accumulator.concat(currentValue))
             .filter(word => word && word.length > 2);
 
         return sortByFrequency(wordList);
@@ -3229,6 +3315,23 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     unsafeWindow.getResultsData = getResultsData;
     unsafeWindow.getResultsJSON = getResultsJSON;
+    unsafeWindow.getMetaDataSummary = function () {
+        const j = getResultsJSON();
+        const properties = (function () {
+            const ps = new Set();
+            for (const o of j.data) {
+                for (const p in o)
+                    ps.add(p);
+            }
+            return ps;
+        })();
+
+        const summary = {};
+        for (const p of properties) {
+            summary[p] = j.data.map(o => o[p]);
+        }
+        return summary;
+    };
 
 
     // give a white border so that we'll have them all the same size
@@ -3467,6 +3570,11 @@ a.download-related {
             }
         }, 100);
         return navbar;
+    }
+
+    function removeHash() {
+        const withoutHash = location.href.split('#').slice(0, -1).join('#');
+        history.pushState(null, document.title, withoutHash);
     }
 
     function addCss(cssStr, id = '') {
