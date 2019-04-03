@@ -74,9 +74,8 @@ TODO: list the used libraries and link to the sources
 - [ ] Add option to download already loaded images
 - [ ] Add a debug level logger (so that the logs can be disabled to improve performance)
 - [ ] Make filters update when more pages load
-- [ ] Add text at the navbar that contains the highest frequency string
 - [ ] Make `saveUblSites()` save data as JSON (information such as: ddgp, dimensions, #successes, #dgpSuccesses)
-- [ ] Make a `stats panel` which contains info on the number of images, `# loaded`, `% loaded`, `% failed`, `avg size`, `%gifs`, `min size`, etc
+- [ ] Make a `stats panel` which contains info on the number of images, `# loaded`, `highest frequency string`, `% loaded`, `% failed`, `avg size`, `%gifs`, `min size`, etc
 - [ ] put a textfield that indicates the current path of the downloads so the user can change it
 - [x] clean format of `info.txt`, add a summary part and then put the raw metadata
 - [ ] Add tooltips to the controls and checkboxes with descriptions and keyboard shortcuts.
