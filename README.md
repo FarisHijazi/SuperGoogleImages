@@ -43,6 +43,15 @@ todo: list the used libraries and link to the sources
 
 ## Todo
 
+- [ ] change `Display Original Images` button to a checkbox
+- [ ] add checkbox `close tab after download`
+- [ ] fix: dlLimit slider doesn't select anything the first time it's used
+- [ ] wrap the Google functions and constants in a static class. things like `getImageBoxes`, `searchBox`, etc...
+- [ ] Fix the autoloader (clicking load next page), you can't click anything other menus because of it
+- [ ] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
+- [ ] Add an `Add to favorite` button on the thumbnails (next to the image type tag and the download btn)
+- [ ] Create function: `downloadLoaded()` to just downloaded whatever was loaded and GTFO
+- [ ] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it 
 - [ ] Fix clickable description, it doesn't change when changing to related images
 - [ ] Fix DisplayOriginalImages
   - [ ] Make a specialized copy for the google script
@@ -50,7 +59,7 @@ todo: list the used libraries and link to the sources
   - [ ] Remove all google-specific functionality from DisplayOriginalImages, make them independant
 - [ ] Use `svg` icons instead of unicode symbols
 - [ ] Add option for auto-expanding the page
-- [ ] `download JSON` button
+- [x] `download JSON` button
   - [ ] Add the related images
   - [ ] Remove base64 urls
 - [ ] Add option to download already loaded images
@@ -58,9 +67,11 @@ todo: list the used libraries and link to the sources
 - [ ] Make filters update when more pages load
 - [ ] Add text at the navbar that contains the highest frequency string
 - [ ] Make `saveUblSites()` save data as JSON (information such as: ddgp, dimensions, #successes, #dgpSuccesses)
+- [ ] Make a `stats panel` which contains info on the number of images, `# loaded`, `% loaded`, `% failed`, `avg size`, `%gifs`, `min size`, etc
 - [ ] put a textfield that indicates the current path of the downloads so the user can change it
 - [x] clean format of `info.txt`, add a summary part and then put the raw metadata
 - [ ] Add tooltips to the controls and checkboxes with descriptions and keyboard shortcuts.
+- [x] Fix `zip` checkbox not updating
 
 ### Completed
 
