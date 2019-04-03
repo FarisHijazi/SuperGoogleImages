@@ -5,7 +5,9 @@
   - [Installation](#installation)
   - [Usage](#usage)
     - [Features](#features)
-      - [Image panel added features](#image-panel-added-features)
+      - [Display original images](#display-original-images)
+      - [Zip and download all the images](#zip-and-download-all-the-images)
+      - [Enhance the image panels](#enhance-the-image-panels)
     - [Hotkeys](#hotkeys)
   - [External Libraries](#external-libraries)
   - [Documentation](#documentation)
@@ -31,51 +33,51 @@ TODO: write about usage
 
 ### Features
 
-#### Image panel added features
+#### Display original images
 
-- ##### Display original images
+One of the most important features, replaces thumbnails with the original source images, even GIFs!
 
-    One of the most important features, replaces thumbnails with the original source images, EVEN GIFS!
+#### Zip and download all the images
 
-- ##### Zip and download all the images
+You can even specify the minimum allowed dimensions for images
 
-    You can even specify the minimum allowed dimensions for images
+#### Enhance the image panels
 
-- ##### Enhance the image panels
+Adds the following features to the image panel:
 
-    ![image panel screenshot](Screenshots/Screenshot_1_ImagePanel_Details.png)
+![image panel screenshot](Screenshots/Screenshot_1_ImagePanel_Details.png)
 
-  1. Add `view image` button
+- 1 - Add `view image` button
 
-      Bring back the old `view image` button! Now you won't have to visit the website just to see the fullres image.
+    Bring back the old `view image` button! Now you won't have to visit the website just to see the fullres image.
 
-  2. `download` button
+- 2 - `download` button
 
-      Directly download the image
+    Directly download the image
 
-  3. **Clickable description**
+- 3 - **Clickable description**
 
-        Clicking the description will take you to another search that description
+    Lookup the description text, open another Google images page searching for the description text
 
-  4. **Proxy** button
+- 4 - **Proxy** button
 
-        Try to use a proxy if the page is blocked
+    Try to use a proxy if the page is blocked
 
-  5. Click to view images with **similar dimensions**
+- 5 - Click to view images with **similar dimensions**
 
-        I really missed that feature, I wish Google
+    I really missed that feature, I wish Google
 
-  6. Clickable *image host* text
+- 6 - Clickable *image host* text
 
-        Click the *image host* to search google for more images from that site. For example if it was hosted by `example.com`, then clicking it would open a google image search of "`site:example.com`"
+    Click the *image host* to search google for more images from that site. For example if it was hosted by `example.com`, then clicking it would open a google image search of "`site:example.com`"
 
-  7. `Download Related` button
+- 7 - `Download Related` button
 
-        Click to download this image and all the related images (the ones on the bottom right)
+    Click to download this image and all the related images (the ones on the bottom right)
 
-  8. Clickable *page host* text
+- 8 - Clickable *page host* text
 
-        Click the *page host* to search google for more images from that site. For example if it was hosted by `example.com`, then clicking it would open a google image search of "`site:example.com`"
+    Click the *page host* to search google for more images from that site. For example if it was hosted by `example.com`, then clicking it would open a google image search of "`site:example.com`"
 
 TODO: continue listing features
 
