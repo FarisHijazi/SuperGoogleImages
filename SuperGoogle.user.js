@@ -143,19 +143,6 @@
     'use strict';
 
 
-    const GoogleUtils = (function () {
-        const url = {};
-
-        url.isOnEncryptedGoogle = /encrypted.google.com/.test(location.hostname);
-        url.googleBaseURL = `https://${/google\./.test(location.hostname) ? location.hostname :
-            ((url.isOnEncryptedGoogle ? 'encrypted' : 'www') + '.google.com')}`;
-        url.gImgSearchURL = `${url.googleBaseURL}/search?&hl=en&tbm=isch&q=`;
-        url.reverseImageSearchUrl = `${url.googleBaseURL}/searchbyimage?&image_url=`;
-        url.getGImgReverseSearchURL = _url => _url ? url.reverseImageSearchUrl + encodeURIComponent(_url.trim()) : '';
-
-        return {url: url};
-    })();
-
 
     // todo: replace this with importing GM_dummy_functions, and importing a pollyfill
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
@@ -173,9 +160,9 @@
 
     const Consts = {
         GMValues: {
-            UBL_SITES: 'unblocked sites of og images',
-            UBL_URLS: 'unblocked image URLs',
-            UBL_SITES_MAP: 'UBL sites map',
+            ublSites: 'unblocked sites of og images',
+            ublUrls: 'unblocked image URLs',
+            ublSitesMap: 'UBL sites map',
             hideFailedImagesOnLoad: 'HIDE_FAILED_IMAGES_ON_LOAD'
         },
         Selectors: {
@@ -189,13 +176,11 @@
             googleButtonsContainer: '#hdtb-msb'
         },
         ClassNames: {
-            BUTTONS: 'super-button',
+            buttons: 'super-button',
             belowDiv: 'below-st-div'
         }
     };
     Consts.ClassNames = $.extend(ShowImages.ClassNames, Consts.ClassNames);
-
-    const googleButtonsContainer = document.querySelector(Consts.Selectors.googleButtonsContainer);
 
     // done: make the preferences object be written to the storage, rather than having each element stored, also extend a default object
     // OPTIONS:
@@ -215,6 +200,41 @@
         periodicallySaveUnblockedSites: false,
         useDdgProxy: true
     }, GM_getValue('Preferences'));
+
+
+
+    const GoogleUtils = (function () {
+        const url = {};
+
+        url.isOnEncryptedGoogle = /encrypted.google.com/.test(location.hostname);
+        url.googleBaseURL = `https://${/google\./.test(location.hostname) ? location.hostname :
+            ((url.isOnEncryptedGoogle ? 'encrypted' : 'www') + '.google.com')}`;
+        url.gImgSearchURL = `${url.googleBaseURL}/search?&hl=en&tbm=isch&q=`;
+        url.reverseImageSearchUrl = `${url.googleBaseURL}/searchbyimage?&image_url=`;
+        url.getGImgReverseSearchURL = _url => _url ? url.reverseImageSearchUrl + encodeURIComponent(_url.trim()) : '';
+        url.siteSearchUrl = function(query) {
+            if (query) {
+                return GoogleUtils.url.gImgSearchURL + 'site:' + encodeURIComponent(query.trim());
+            }
+        };
+
+
+        const els = {};
+        // copy all the selectors from Consts.Selectors and define getters, now you can access `searchModeDiv` by using `elements.searchModeDiv`
+        // if the selector key ends with 's' (plural), then it gets multiple elements, otherwise just a single element
+        for(const key of Object.keys(Consts.Selectors)) {
+            const v = Consts.Selectors[key];
+            els.__defineGetter__(key, key.slice(-1).toLowerCase() === 's' ?
+                (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
+        }
+
+        return {
+            url: url,
+            elements: els
+        };
+    })();
+    unsafeWindow.GoogleUtils = GoogleUtils;
+    console.log('GoogleUtils', GoogleUtils);
 
     // write back to storage (in case the storage was empty)
     GM_setValue('Preferences', Preferences);
@@ -329,9 +349,7 @@
 
     var controlsContainerId = 'google-controls-container';
     var progressBar;
-    var searchModeDiv = q('#hdtb-msb-vis');
-    var selectedSearchMode = !searchModeDiv ? null : searchModeDiv.querySelector('div.hdtb-msel');
-    var onGoogleImages = selectedSearchMode && selectedSearchMode.innerHTML === 'Images';
+    var onGoogleImages = GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
     var currentDownloadCount = 0;
     var isTryingToClickLastRelImg = false;
 
@@ -548,17 +566,10 @@
     // if on google.com/saves, add keyboard shortcuts
     if (/google\..+\/save/.test(location.href)) {
         console.log('beginning of google.com/save site...');
-        window.addEventListener('keydown', function keyDown(e) {
-            const k = (window.event) ? e.keyCode : e.which;
-            const modKeys = getModKeys(e);
-            switch (k) {
-                case KeyEvent.DOM_VK_GRAVE_ACCENT: // `
-                    if (modKeys.NONE) {
-                        console.log('wrapGSavesPanelsWithAnchors');
-                        GSaves.wrapPanels();
-                    }
-                    break;
-            }
+
+        Mousetrap.bind('`', function() {
+            console.log('wrapGSavesPanelsWithAnchors');
+            GSaves.wrapPanels();
         });
 
         if (false) {
@@ -1181,7 +1192,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             try {
                 const hostname = getHostname(this.sTitle_Anchor.href);
                 console.log('Site search:', hostname);
-                openInTab(siteSearchUrl(getHostname(this.sTitle_Anchor.href)));
+                openInTab(GoogleUtils.url.siteSearchUrl(getHostname(this.sTitle_Anchor.href)));
             } catch (e) {
                 console.warn(e);
             }
@@ -1208,7 +1219,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const hostname = getHostname(this.sTitle_Anchor.href);
             if (siteSearchAnchor) {
                 siteSearchAnchor.innerText = hostname;
-                siteSearchAnchor.href = (siteSearchUrl(getHostname(ImagePanel.focP.q('span a.irc_lth.irc_hol').href)));
+                siteSearchAnchor.href = (GoogleUtils.url.siteSearchUrl(getHostname(ImagePanel.focP.q('span a.irc_lth.irc_hol').href)));
             } else {
                 console.warn('Site Search element not found:', siteSearchAnchor);
             }
@@ -1321,6 +1332,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
     }
 
+    // observe new image boxes that load
     observeDocument(function (mutationTarget, addedNodes) {
         const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
         if (mutationTarget.classList.contains('rg_bx') || addedImageBoxes.length) {
@@ -1333,13 +1345,45 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     // === start of function definitions ===
 
+    /**
+     * Called every time a panel mutation is observed
+     */
+    function onPanelMutation(mutations) {
+        if (ImagePanel.focP) {
+            ImagePanel.updateP(ImagePanel.focP);
+        }
+
+        (function updateSliderLimits() {
+            // optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
+            const metaDatas = Array.from(getImgBoxes()).map(getMeta);
+            const dimensions = metaDatas.map(meta => [meta.ow, meta.oh]);
+            const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
+            const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
+            // todo: get the min dimension and the max dimension, and make the limits of the slider depend on what images exist
+
+            const minImgSizeSlider = q('#minImgSizeSlider');
+            if (minImgSizeSlider) {
+                minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
+                minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
+            }
+
+            const dlLimitSlider = q('#dlLimitSlider');
+            if (dlLimitSlider) {
+                dlLimitSlider.setAttribute('max', metaDatas.length.toString());
+                dlLimitSlider.value = metaDatas.length;
+                // TODO: also update the label value
+            }
+        })();
+    }
+
     function go() {
         if (onGoogleImages) {
             try {
+
                 // iterating over the stored ubl sites
-                for (const ublHostname of GM_getValue(Consts.GMValues.UBL_SITES, new Set())) ublSitesSet.add(ublHostname);
-                for (const ublURL of GM_getValue(Consts.GMValues.UBL_URLS, new Set())) ublMetas.add(ublURL);
-                for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.UBL_SITES_MAP, new Map()))) ublMap.set(ublHostname, data);
+                for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
+                for (const ublURL of GM_getValue(Consts.GMValues.ublUrls, new Set())) ublMetas.add(ublURL);
+                for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
                 if (Preferences.periodicallySaveUnblockedSites)
                     setInterval(storeUblSitesSet, 5000);
 
@@ -1348,55 +1392,40 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     var showAllSizesAnchor = q(Consts.Selectors.showAllSizes);
                     if (!!showAllSizesAnchor) showAllSizesAnchor.click();
                 }
-                const conditionSelector = '#irc_cc > div';
 
-                waitForElement(() => {
-                    if (ImagePanel.mainPanelEl && ImagePanel.focP && ImagePanel.focP.mainImage && ImagePanel.focP.buttons) {
-                        return qa(conditionSelector);
-                    }
-                }, function startPanelModifications(panelEl) {
-                    ImagePanel.modifyP(panelEl);
-                    const mutationObserver = new MutationObserver(function (mutations) { // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
-                        for (const mutation of mutations) {
-                            if (!mutation.addedNodes.length) {
-                                continue;
-                            }
-                            try {
-                                if (!!ImagePanel.focP) {
-                                    ImagePanel.updateP(ImagePanel.focP);
-                                }
-                                // optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
-                                const metaDatas = Array.from(getImgBoxes()).map(getMeta);
-                                const dimensions = metaDatas.map(meta => [meta.ow, meta.oh]);
-                                const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
-                                const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
-                                // todo: get the min dimension and the max dimension, and make the limits of the slider depend on what images exist
 
-                                const minImgSizeSlider = q('#minImgSizeSlider');
-                                if (minImgSizeSlider) {
-                                    minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
-                                    minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
-                                }
+                let elementGetter = () => (ImagePanel.mainPanelEl && ImagePanel.focP && ImagePanel.focP.mainImage && ImagePanel.focP.buttons) ? qa('#irc_cc > div') : undefined;
 
-                                const dlLimitSlider = q('#dlLimitSlider');
-                                if (dlLimitSlider) {
-                                    dlLimitSlider.setAttribute('max', metaDatas.length.toString());
-                                    dlLimitSlider.value = metaDatas.length;
-                                    // TODO: also update the label value
-                                }
-                            } catch (e) {
-                                console.warn(e, 'Focused panel:', ImagePanel.focP);
-                            }
+                const startPanelModifications = function startPanelModifications(panelEl) {
+                    // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
+                    const mutationObserver = new MutationObserver(function (mutations, observer) {
+                        observer.disconnect();
+                        console.log('panelMutationCallback()');
+
+                        try {
+                            onPanelMutation(mutations);
+                        } catch (e) {
+                            console.warn(e, 'Focused panel:', ImagePanel.focP);
                         }
+
+                        observePanels();
                     });
 
-                    const target = ImagePanel.mainPanelEl;
-                    // console.debug('Target element to be observed:', target, 'type:', typeof target);
-                    mutationObserver.observe(target, {
-                        childList: true, subtree: true,
-                        attributes: false, characterData: true
-                    });
-                });
+                    ImagePanel.modifyP(panelEl);
+
+                    function observePanels() {
+                        mutationObserver.observe(ImagePanel.mainPanelEl, {
+                            childList: true,
+                            subtree: true,
+                            attributes: true,
+                            attributeFilter: ['data-ved']
+                            // characterData: true
+                        });
+                    }
+
+                    observePanels();
+                };
+                waitForElement(elementGetter, startPanelModifications);
 
                 // adds a toggleEncryptedGoogle button
                 /*q('#ab_ctls').appendChild(createElement(`<i class="ab_ctl">
@@ -1625,6 +1654,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     /**Modify the navbar and add custom buttons*/
     function injectGoogleButtons() {
+        console.log('injectGoogleButtons()');
         try {
             const controlsContainer = createElement(`<div id="${controlsContainerId}"</div>`);
             /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
@@ -1648,7 +1678,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // buttons
             const createGButton = (id, innerText, onClick) => {
-                const button = createElement(`<button class="${Consts.ClassNames.BUTTONS} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
+                const button = createElement(`<button class="${Consts.ClassNames.buttons} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
                 if (onClick && typeof (onClick) === 'function') {
                     button.onclick = function () {
                         onClick();
@@ -2002,7 +2032,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
     function storeUblSitesSet() {
         collectUblSites();
-        const stored = GM_getValue(Consts.GMValues.UBL_SITES, []);
+        const stored = GM_getValue(Consts.GMValues.ublSites, []);
         const merged = new Set(
             [].slice.call(stored)
                 .concat(Array.from(ublSitesSet))
@@ -2010,7 +2040,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         const diff = Array.from(ublSitesSet).filter(x => Array.from(stored).indexOf(x) < 0);
-        GM_setValue(Consts.GMValues.UBL_SITES, Array.from(merged));
+        GM_setValue(Consts.GMValues.ublSites, Array.from(merged));
 
         console.log('Found new unblocked sites:', diff);
         return ublSitesSet;
@@ -2038,7 +2068,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             ublMetas.add(imgMeta);
         }
 
-        const stored = new Set(GM_getValue(Consts.GMValues.UBL_URLS, new Set()));
+        const stored = new Set(GM_getValue(Consts.GMValues.ublUrls, new Set()));
         for (const meta of stored) {
             ublMetas.add(meta);
         }
@@ -2047,7 +2077,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             '\nnew ublURLs:', ublMetas
         );
 
-        GM_setValue(Consts.GMValues.UBL_URLS, Array.from(ublMetas).map(ublMeta => {
+        GM_setValue(Consts.GMValues.ublUrls, Array.from(ublMetas).map(ublMeta => {
             if (!ublMeta || Array.isArray(ublMeta)) {
                 ublMetas.delete(ublMeta);
                 return;
@@ -2066,7 +2096,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             });
         }
 
-        const stored = new Map(GM_getValue(Consts.GMValues.UBL_SITES_MAP, new Map()));
+        const stored = new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()));
         for (const [k, v] of stored) {
             ublMap.addURL(k, v);
         }
@@ -2075,7 +2105,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             '\nnew ublMap:', ublMap
         );
 
-        GM_setValue(Consts.GMValues.UBL_SITES_MAP, Array.from(ublMap.entries()));
+        GM_setValue(Consts.GMValues.ublSitesMap, Array.from(ublMap.entries()));
         return ublMap;
     }
 
@@ -3230,7 +3260,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function unionTitleAndDescr(str1, str2) {
         if (!str1) return str2;
         if (!str2) return str1;
-        var regex = new RegExp(str2.match(RegExp("[^$-/:-?{-~!\"^_\\`\\[\\]]+", "g")).join('|'), 'gi');
+        var regex = new RegExp(str2.match(RegExp('[^$-/:-?{-~!"^_\\`\\[\\]]+', 'g')).join('|'), 'gi');
         var str1MinusStr2 = str1.replace(regex, ' ');
         return removeDoubleSpaces(str1MinusStr2 + ' ' + str2);
     }
@@ -3722,11 +3752,11 @@ function anchorClick(href, downloadValue, target) {
 }
 
 function removeDoubleSpaces(str) {
-    return !!str ? str.replace(/(\s{2,})/g, " ") : str;
+    return !!str ? str.replace(/(\s{2,})/g, ' ') : str;
 }
 
 function getHostname(href) {
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = href;
     return a.hostname;
 }
@@ -3747,7 +3777,7 @@ function makeTextFile(text) {
 function cleanGibberish(str, minWgr, debug = false) {
     if (str) {
         const gibberishRegex = /(\W{2,})|(\d{3,})|(\d+\w{1,5}\d+){2,}/g;
-        let noGibberish = removeDoubleSpaces(str.replace(gibberishRegex, " ")),
+        let noGibberish = removeDoubleSpaces(str.replace(gibberishRegex, ' ')),
             /**
              * The minimum word2gibberish ratio to exit the loop
              * @type {number|*}
@@ -3770,52 +3800,47 @@ function cleanGibberish(str, minWgr, debug = false) {
 
         return wgr > minWgr ?
             cleanGibberish(noGibberish, minWgr) :
-            (str.length > 3 ? str : "");
+            (str.length > 3 ? str : '');
     }
-    return "";
+    return '';
 }
 
-function siteSearchUrl(query) {
-    if (query) {
-        return GoogleUtils.url.gImgSearchURL + "site:" + encodeURIComponent(query.trim());
-    }
-}
 
 /**@WIP
  * @param {function|string} elementGetter - a function to get the wanted element (or event a condition function)
  * that will be called to test if the element has appeared yet. (should return true only when the element appears)
- * @param callback  the elementGetter will be passed as the first argument
+ * @param callback - the result of elementGetter will be passed as the first argument
  * @return {MutationObserver|null}
  */
 function waitForElement(elementGetter, callback) {
     const hasElementAppeared = function (mutations, me) {
-        function handleSuccess(node) {
-            callback(node);
-            me.disconnect();
+        function handleSuccess(el) {
+            callback(el);
+            if(me) me.disconnect();
         }
 
         var element = (typeof (elementGetter) === 'function') ? elementGetter() :
-            (typeof (elementGetter) === "string") ? document.querySelector(elementGetter) :
+            (typeof (elementGetter) === 'string') ? document.querySelectorAll(elementGetter) :
                 elementGetter;
 
-        if(!element)
-            return;
-
         try {
-            if (element instanceof Element) {
+            if (element instanceof Element || element === true) {
                 handleSuccess(element);
-                return true;
-            } else if (element.hasOwnProperty('forEach')) {
-                element.forEach(handleSuccess);
-                return true;
+            } else if (element && element.length) {
+                for (const el of element) {
+                    handleSuccess(el);
+                }
+            } else {
+                console.warn('element is not an instance of Element, neither is it iterable :( ', element);
             }
         } catch (e) {
             console.warn('element:', element, e);
         }
+        return element;
     };
 
-    const observer = new MutationObserver(hasElementAppeared);
-    if (true||!hasElementAppeared(null, observer)) { // if element didn't already appear
+    if (!hasElementAppeared(null)) { // if element didn't already appear
+        const observer = new MutationObserver(hasElementAppeared);
         observer.observe(document.body, {
             childList: true,
             subtree: true,
