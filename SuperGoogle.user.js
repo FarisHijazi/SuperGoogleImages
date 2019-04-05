@@ -7,6 +7,8 @@
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
 // @include      /https?://(www|encrypted)\.google\..*/
+// @grant        GM_xmlhttpRequest
+// @grant        GM_download
 // @grant        GM.getValue
 // @grant        GM.setValue
 // @grant        GM_setValue
@@ -53,6 +55,7 @@
  * @property {number[]} dim:  dimensions [width, height]
  */
 
+
 (function createAndAddCSS() {
         // language=CSS
         addCss(
@@ -65,7 +68,7 @@
  
     img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="false"], 
     img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
-        border: 2px #F00 solid; 
+        border: 3px #F00 solid; 
     } 
  
     img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="false"], 
@@ -91,7 +94,7 @@
     } 
  
     div.${ShowImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
-        border: 2px #FFA500 solid; 
+        border: 3px #FFA500 solid; 
     }`);
 
 
@@ -138,6 +141,21 @@
 
 (function () {
     'use strict';
+
+
+    const GoogleUtils = (function () {
+        const url = {};
+
+        url.isOnEncryptedGoogle = /encrypted.google.com/.test(location.hostname);
+        url.googleBaseURL = `https://${/google\./.test(location.hostname) ? location.hostname :
+            ((url.isOnEncryptedGoogle ? 'encrypted' : 'www') + '.google.com')}`;
+        url.gImgSearchURL = `${url.googleBaseURL}/search?&hl=en&tbm=isch&q=`;
+        url.reverseImageSearchUrl = `${url.googleBaseURL}/searchbyimage?&image_url=`;
+        url.getGImgReverseSearchURL = _url => _url ? url.reverseImageSearchUrl + encodeURIComponent(_url.trim()) : '';
+
+        return {url: url};
+    })();
+
 
     // todo: replace this with importing GM_dummy_functions, and importing a pollyfill
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
@@ -201,10 +219,6 @@
     // write back to storage (in case the storage was empty)
     GM_setValue('Preferences', Preferences);
 
-
-    var googleBaseURL = location.protocol + '//' + location.hostname;
-    var gImgSearchURL = googleBaseURL + '/search?&hl=en&tbm=isch&q=';
-
     // GM_setValue(Constants.GMValues.UBL_SITES, "");
     // GM_setValue(Constants.GMValues.UBL_URLS, "");
     // GM_setValue(Constants.GMValues.UBL_SITES_MAP, "");
@@ -254,7 +268,7 @@
          */
         addURL(url, successful, o) {
             if (successful && !this.resultMap.has(url)) {
-                if (isDdgUrl(url)) {
+                if (PProxy.ddg.isDdgUrl(url)) {
                     this.scc_ddgp++;
                 } else {
                     this.scc_tot++;
@@ -370,12 +384,12 @@
         static wrapPanels() {
             var iio = this.initialItemObjectList;
 
-            for (const container of this.containers) {
-                this.removeClickListeners(container);
-            }
-
             var i = 0;
             for (const container of this.containers) {
+
+                this.removeClickListeners(container);
+
+
                 if (container.querySelector(['.str-tag-card-images-holder', 'a.wrapper-anchor', 'a.mod-anchor'].join(', '))) {
                     console.warn('element will not be wrapped by anchor:', container);
                     continue;
@@ -548,7 +562,7 @@
         });
 
         if (false) {
-            observeAllFrames(function (mutationTarget) {
+            observeDocument(function (mutationTarget) {
                 console.log('mutationTarget:', mutationTarget);
                 if (mutationTarget.querySelector('.str-clip-card-space')) {
                     console.log('mutationTarget invoked wrapGSavesPanelsWithAnchors()');
@@ -745,7 +759,7 @@
             var reverseImgSearchUrl = '#';
             if (!!risFcDiv) {
                 const imgURL = this.mainImage.src || risFcDiv.querySelector('a').href;
-                const reverseSearchURL = getGImgReverseSearchURL(imgURL),
+                const reverseSearchURL = GoogleUtils.url.getGImgReverseSearchURL(imgURL),
                     url = new URL(reverseSearchURL);
                 url.searchParams.append('allsizes', '1');
                 reverseImgSearchUrl = url.toString();
@@ -958,7 +972,7 @@
          */
         static moreSizes() {
             const panel = ImagePanel.focP;
-            const reverseImgSearchUrl = getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
+            const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
             let z = open().document;
             fetchUsingProxy(reverseImgSearchUrl, function (content) {
                 console.log('content:', content);
@@ -1032,7 +1046,7 @@
         makeDescriptionClickable() {
             const descriptionEl = this.descriptionEl;
             function openDescription() {
-                window.open(gImgSearchURL + encodeURIComponent(cleanSymbols(this.innerHTML)), '_blank');
+                window.open(GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(this.innerHTML)), '_blank');
             }
             if (descriptionEl && !descriptionEl.classList.contains('hover-click')) {
                 descriptionEl.classList.add(`hover-click`);
@@ -1079,7 +1093,7 @@
         /** Inject the SearchByImage anchor
          * @return {Node} */
         inject_sbi() {
-            const href = '#'; //getGImgReverseSearchURL(this.imageUrl);
+            const href = '#'; //GoogleUtils.url.getGImgReverseSearchURL(this.imageUrl);
             const dataVed = ''; //()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const className = 'search-by-image';
             var html = `<a class="o5rIVb ${className}" target="${Preferences.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;">Search&nbsp;by&nbsp;image</span></a>`;
@@ -1148,12 +1162,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const focusedImageDiv = ImagePanel.focP.ris_fc_Div;
             if (focusedImageDiv) {
                 const url = focusedImageDiv.querySelector('a').href;
-                const hostname = getHostname(isDdgUrl(url) ? reverseDdgProxy(url) : url);
+                const hostname = getHostname(PProxy.ddg.isDdgUrl(url) ? PProxy.ddg.reverseDdgProxy(url) : url);
                 // updating ImageHost
                 const ih = this.q('a.image-host');
                 if (ih) {
                     ih.innerText = hostname;
-                    ih.href = gImgSearchURL + 'site:' + hostname;
+                    ih.href = GoogleUtils.url.gImgSearchURL + 'site:' + hostname;
 
                     if (ublSitesSet.has(hostname))
                         setStyleInHTML(ih, 'color', `${Preferences.successColor} !important`);
@@ -1174,7 +1188,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
 
         inject_SiteSearch() {
-            const href = '#'; //getGImgReverseSearchURL(this.imageUrl);
+            const href = '#'; //GoogleUtils.url.getGImgReverseSearchURL(this.imageUrl);
             const dataVed = '';//()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const hostname = getHostname(this.sTitle_Anchor.href);
             const spanClass = 'site-search';
@@ -1201,7 +1215,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             const ddgAnchor = this.q('#ddgSearch');
             if (ddgAnchor) {
-                ddgAnchor.href = ddgProxy(this.pTitle_Anchor.href);
+                ddgAnchor.href = PProxy.ddg.ddgProxy(this.pTitle_Anchor.href);
             }
 
             if (ublSitesSet.has(hostname))
@@ -1216,14 +1230,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             console.log('anchor.href', anchor.href);
         }
         addImageAttributes() {
-            createAndAddAttribute(this.mainImage, 'img-title', this.pTitle_Text);
-            createAndAddAttribute(this.mainImage, 'img-subtitle', this.sTitle_Text);
-            createAndAddAttribute(this.mainImage, 'description', this.descriptionText);
-            createAndAddAttribute(this.mainImage, 'download-name', this.sTitle_Text);
+            this.mainImage.setAttribute('img-title', this.pTitle_Text);
+            this.mainImage.setAttribute('img-subtitle', this.sTitle_Text);
+            this.mainImage.setAttribute('description', this.descriptionText);
+            this.mainImage.setAttribute('download-name', this.sTitle_Text);
         }
         lookupTitle() {
             console.log('lookup title:', this.bestNameFromTitle);
-            openInTab(gImgSearchURL + encodeURIComponent(cleanSymbols(this.bestNameFromTitle)));
+            openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(this.bestNameFromTitle)));
         }
 
         /**
@@ -1296,7 +1310,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             for (const a of getImgAnchors()) {
                 let img = a.querySelector('img');
                 if (!img) continue;
-                createAndAddAttribute(img, 'download-name', getGimgDescription(img));
+                img.setAttribute('download-name', getGimgDescription(img));
                 markImageOnLoad(img, a.href);
             }
         }, true);
@@ -1786,7 +1800,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     const img = a.querySelector('img');
                     const dlName = cleanGibberish(getMeta(img)['pt']);
 
-                    createAndAddAttribute(img, 'download-name', dlName);
+                    img.setAttribute('download-name', dlName);
                     img.alt = dlName;
                     // ImageManager.markImageOnLoad(img, a.getAttribute('href'));
                     console.log('Preloading image:', `"${dlName}"`, !isBase64ImageData(img.src) ? img.src : 'Base64ImageData');
@@ -1990,7 +2004,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         collectUblSites();
         const stored = GM_getValue(Consts.GMValues.UBL_SITES, []);
         const merged = new Set(
-            Array.from(stored)
+            [].slice.call(stored)
                 .concat(Array.from(ublSitesSet))
         );
 
@@ -2225,41 +2239,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // For Safari
         return message;
     };*/
-
-
-    // /** @deprecated
-    // * Replaces the mainImage description link text */
-    function replaceImgData(dataEls) {
-        if (typeof dataEls === 'undefined') return;
-        dataEls.querySelectorAll('.rg_meta').forEach(function (dataEl) {
-            if (dataEl.classList.contains('rg_meta-modified')) return;
-            try {
-                let dataText = dataEl.innerHTML;
-                let siteUrl = extractFromText(dataText, 'ru');
-                let description = extractFromText(dataText, 's');
-                let subTitle = extractFromText(dataText, 'st');
-
-                let imageAnchor = dataEl.previousSibling;
-                createAndAddAttribute(imageAnchor, 'rg_meta_st', subTitle);
-                createAndAddAttribute(imageAnchor, 'rg_meta_ru', siteUrl);
-
-                let hostname = getHostname(siteUrl).replace('www.', '');
-                let siteSearchUrl = GoogleImagesSearchURL + "site:" + encodeURIComponent(hostname);
-
-                dataEl.innerHTML = dataEl.innerHTML
-                    .replace(subTitle, 'site search: ' + hostname) // replace SubTitle text with site HOSTNAME
-                    .replace(siteUrl, siteSearchUrl) // replace title lin with site siteSearch link
-                    // .replace(description, HOSTNAME)
-                    ;
-
-                dataEl.classList.add('rg_meta-modified');
-            } catch (exception) {
-                console.error("Caught exception while changin rg_meta:", exception);
-            }
-        });
-    }
-
-
 
     function saveUblSites() {
         storeUblSitesSet();
@@ -2678,7 +2657,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 break;
             case KeyEvent.DOM_VK_T: // T (for torrent)
                 console.debug('Torrent search');
-                openInTab(gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(focusedPanel.bestNameFromTitle)));
+                openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(focusedPanel.bestNameFromTitle)));
                 break;
             case KeyEvent.DOM_VK_S: // S
                 if (modKeys.NONE) { // Save
@@ -2889,7 +2868,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @param {boolean} [options.minify=true]
      * @param {boolean} [options.stringify=false]
      * @param {boolean} [options.base64urls=true]
-     * @returns {{ title:{string} url:{string} search:{string} time:{string} data:Array }}
+     * @returns {{ title:{string}, url:{string}, search:{string}, time:{string}, data:Array }}
      */
     function getResultsJSON(options) {
         options = $.extend({
@@ -2950,7 +2929,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             return;
         }
         var imgObj = new Image();
-        createAndAddAttribute(imgEl, 'loaded', false);
+        imgEl.setAttribute('loaded', false);
         imgObj.onerror = function () {
             imgEl.setAttribute('loaded', 'error');
         };
@@ -3084,10 +3063,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             function onBadResult(res) {
                 console.debug('onBadResult:', 'fileURL:', fileUrl, 'response.finalURL:', res.finalUrl);
 
-                if (!isDdgUrl(res.finalUrl)) {
+                if (!PProxy.ddg.isDdgUrl(res.finalUrl)) {
                     console.debug(
                         'retrying with ddgproxy',
-                        '\nddgpURL:', ddgProxy(fileUrl),
+                        '\nddgpURL:', PProxy.ddg.ddgProxy(fileUrl),
                         '\nfileURL:', fileUrl,
                         '\nresponse.finalURL:', res.finalUrl
                     );
@@ -3097,7 +3076,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         zip.current++;
                         return;
                     }
-                    requestAndZipImage(ddgProxy(fileUrl), fileName, img);
+                    requestAndZipImage(PProxy.ddg.ddgProxy(fileUrl), fileName, img);
                 } else {
                     return true;
                 }
@@ -3312,7 +3291,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         );
     }
     /**
-     * @param imageElement {HTMLImageElement|HTMLDivElement}: the image
+     * @param imageElement {HTMLImageElement|HTMLDivElement|HTMLElement}: the image
      * @param newVisibility
      */
     function setVisible(imageElement, newVisibility) {
@@ -3705,19 +3684,195 @@ a.download-related {
         const withoutHash = location.href.split('#').slice(0, -1).join('#');
         history.pushState(null, document.title, withoutHash);
     }
+})();
 
-    function addCss(cssStr, id = '') {
-        // check if already exists
-        const style = document.getElementById(id) || document.createElement('style');
 
-        if (style.styleSheet) {
-            style.styleSheet.cssText = cssStr;
-        } else {
-            style.innerText = cssStr;
+function addCss(cssStr, id = '') {
+    // check if already exists
+    const style = document.getElementById(id) || document.createElement('style');
+
+    if (style.styleSheet) {
+        style.styleSheet.cssText = cssStr;
+    } else {
+        style.innerText = cssStr;
+    }
+    if (!!id) style.id = id;
+    style.classList.add('addCss');
+    return document.getElementsByTagName('head')[0].appendChild(style);
+}
+
+function isBase64ImageData(str) {
+    return /^data:image\/.{1,5};base64/.test(str);
+}
+function urlToAnchor(href) {
+    var a = document.createElement('a');
+    a.setAttribute('href', href);
+    a.target = target;
+    document.body.appendChild(a);
+    return a;
+}
+function anchorClick(href, downloadValue, target) {
+    var a = document.createElement('a');
+    a.setAttribute('href', href);
+    a.setAttribute('download', downloadValue);
+    a.target = target;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+}
+
+function removeDoubleSpaces(str) {
+    return !!str ? str.replace(/(\s{2,})/g, " ") : str;
+}
+
+function getHostname(href) {
+    const a = document.createElement("a");
+    a.href = href;
+    return a.hostname;
+}
+
+function elementUnderMouse(wheelEvent) {
+    return document.elementFromPoint(wheelEvent.clientX, wheelEvent.clientY);
+}
+
+function makeTextFile(text) {
+    var data = new Blob([text], { type: 'text/plain' });
+    var textFile = null;
+    // If we are replacing a previously generated file we need to manually revoke the object URL to avoid memory leaks.
+    if (textFile !== null) window.URL.revokeObjectURL(textFile);
+    textFile = window.URL.createObjectURL(data);
+    return textFile;
+}
+
+function cleanGibberish(str, minWgr, debug = false) {
+    if (str) {
+        const gibberishRegex = /(\W{2,})|(\d{3,})|(\d+\w{1,5}\d+){2,}/g;
+        let noGibberish = removeDoubleSpaces(str.replace(gibberishRegex, " ")),
+            /**
+             * The minimum word2gibberish ratio to exit the loop
+             * @type {number|*}
+             */
+            minWgr = 0.4 || minWgr;
+        if (noGibberish.length < 3) return str;
+        /**
+         * WGR: Word to Gibberish Ratio (between 0 and 1)
+         * 0:   No gibberish    (Good)
+         * 1:   100% Gibberish  (Bad)
+         * @type {number}
+         */
+        let wgr = (str.length - noGibberish.length) / str.length;
+        if (debug) console.debug(
+            'cleanGibberish(' + str + ')' +
+            '\nOriginal:', str,
+            '\nNoGibberish:', noGibberish,
+            '\nRatio:', wgr
+        );
+
+        return wgr > minWgr ?
+            cleanGibberish(noGibberish, minWgr) :
+            (str.length > 3 ? str : "");
+    }
+    return "";
+}
+
+function siteSearchUrl(query) {
+    if (query) {
+        return GoogleUtils.url.gImgSearchURL + "site:" + encodeURIComponent(query.trim());
+    }
+}
+
+/**@WIP
+ * @param {function|string} elementGetter - a function to get the wanted element (or event a condition function)
+ * that will be called to test if the element has appeared yet. (should return true only when the element appears)
+ * @param callback  the elementGetter will be passed as the first argument
+ * @return {MutationObserver|null}
+ */
+function waitForElement(elementGetter, callback) {
+    const hasElementAppeared = function (mutations, me) {
+        function handleSuccess(node) {
+            callback(node);
+            me.disconnect();
         }
-        if (!!id) style.id = id;
-        style.classList.add('addCss');
-        return document.getElementsByTagName('head')[0].appendChild(style);
+
+        var element = (typeof (elementGetter) === 'function') ? elementGetter() :
+            (typeof (elementGetter) === "string") ? document.querySelector(elementGetter) :
+                elementGetter;
+
+        if(!element)
+            return;
+
+        try {
+            if (element instanceof Element) {
+                handleSuccess(element);
+                return true;
+            } else if (element.hasOwnProperty('forEach')) {
+                element.forEach(handleSuccess);
+                return true;
+            }
+        } catch (e) {
+            console.warn('element:', element, e);
+        }
+    };
+
+    const observer = new MutationObserver(hasElementAppeared);
+    if (true||!hasElementAppeared(null, observer)) { // if element didn't already appear
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true,
+            attributes: false,
+            characterData: false
+        });
+        return observer;
+    }
+}
+
+/**
+ * @param {function} callback -
+ * @param {Object} options
+ * @param {boolean} [options.singleCallbackPerMutation=false]
+ *
+ * @param {string[]} [options.attributeFilter=[]] Optional - An array of specific attribute names to be monitored. If this property isn't included, changes to all attributes cause mutation notifications. No default value.
+ * @param {boolean} [options.attributeOldValue=false] Optional - Set to true to record the previous value of any attribute that changes when monitoring the node or nodes for attribute changes; see Monitoring attribute values in MutationObserver for details on watching for attribute changes and value recording. No default value.
+ * @param {boolean} [options.attributes=false] Optional - Set to true to watch for changes to the value of attributes on the node or nodes being monitored. The default value is false.
+ * @param {boolean} [options.characterData=false] Optional - Set to true to monitor the specified target node or subtree for changes to the character data contained within the node or nodes. No default value.
+ * @param {boolean} [options.characterDataOldValue=false] Optional - Set to true to record the previous value of a node's text whenever the text changes on nodes being monitored. For details and an example, see Monitoring text content changes in MutationObserver. No default value.
+ * @param {boolean} [options.childList=false] Optional - Set to true to monitor the target node (and, if subtree is true, its descendants) for the addition or removal of new child nodes. The default is false.
+ * @param {boolean} [options.subtree=false] Optional -
+ */
+function observeDocument(callback, options) {
+    callback(document.body);
+    if ($ && typeof ($.extend) === 'function') {
+        options = $.extend({
+            singleCallbackPerMutation: false,
+
+            attributeFilter: [],
+            attributeOldValue: true,
+            attributes: true,
+            characterData: false,
+            characterDataOldValue: false,
+            childList: true,
+            subtree: true,
+        }, options);
     }
 
-})();
+    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+    if (MutationObserver) {
+        var observer = new MutationObserver(
+            function mutationCallback(mutations) {
+                for (const mutation of mutations) {
+                    if (!mutation.addedNodes.length)
+                        continue;
+                    callback(mutation.target);
+                    if (options.singleCallbackPerMutation === true) {
+                        break;
+                    }
+                }
+            }
+        );
+        return observer.observe(document.body, options);
+    } else {
+        document.addEventListener('DOMAttrModified', callback, false);
+        document.addEventListener('DOMNodeInserted', callback, false);
+    }
+}
+
