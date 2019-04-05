@@ -53,6 +53,89 @@
  * @property {number[]} dim:  dimensions [width, height]
  */
 
+(function createAndAddCSS() {
+        // language=CSS
+        addCss(
+            ` 
+    .tooltip { 
+        position: relative; 
+        display: inline-block; 
+        border-bottom: 1px dotted black; 
+    } 
+ 
+    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="false"], 
+    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
+        border: 2px #F00 solid; 
+    } 
+ 
+    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="false"], 
+    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
+        -webkit-filter: grayscale(1) !important; /* Webkit */ 
+        filter: gray !important; /* IE6-9 */ 
+        filter: grayscale(1) !important; /* W3C */ 
+ 
+        opacity: 0.5 !important; 
+        filter: alpha(opacity=50) !important; /* For IE8 and earlier */ 
+    }`);
+
+        // language=CSS
+        addCss(
+                ` /*set borders*/ 
+    div.${ShowImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {	 
+        border-radius: 5px; 
+        border: 3px #0F0 solid; 
+    } 
+ 
+    div.${ShowImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) { 
+        border: 3px #6800FF solid; 
+    } 
+ 
+    div.${ShowImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
+        border: 2px #FFA500 solid; 
+    }`);
+
+
+        /* Overlay CSS for highlighting selected images */
+        // language=CSS
+        addCss(`.highlight, .drop-shadow { 
+        filter: drop-shadow(8px 8px 10px gray) !important; 
+    } 
+ 
+    .blur.in { 
+        -webkit-transition: all 0.1s ease-in !important; 
+        /*-webkit-filter: blur(6px) !important;*/ 
+        transform: scale(0.7) !important; 
+        opacity: 0.3 !important; 
+    } 
+ 
+    .blur.out:not(.in) { 
+        -webkit-filter: blur(0px) !important; 
+        /*filter: blur(0px) !important;*/ 
+        transform: scale(1) !important; 
+        opacity: 1 !important; 
+        -webkit-transition: all 0.25s ease-out !important; 
+        transition: all 0.25s ease-out !important; 
+    } 
+ 
+    .transparent { 
+        opacity: 0.4 !important; 
+    } 
+ 
+    .sg-too-small { 
+ 
+    } 
+ 
+    .sg-too-small-hide { 
+        display: none !important; 
+    } 
+ 
+    .hide-img { 
+        display: none !important; 
+    }`, 'filters-style');
+        /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
+    }
+ )();
+
 (function () {
     'use strict';
 
@@ -88,15 +171,11 @@
             googleButtonsContainer: '#hdtb-msb'
         },
         ClassNames: {
-            DISPLAY_ORIGINAL: 'display-original-' + 'mainThumbnail',
-            DISPLAY_ORIGINAL_GIF: 'display-original-' + '-gif',
-            FAILED: 'display-original-' + '-failed',
-            FAILED_DDG: 'display-original-' + '-ddg-failed',
-
             BUTTONS: 'super-button',
             belowDiv: 'below-st-div'
         }
     };
+    Consts.ClassNames = $.extend(ShowImages.ClassNames, Consts.ClassNames);
 
     const googleButtonsContainer = document.querySelector(Consts.Selectors.googleButtonsContainer);
 
@@ -142,7 +221,7 @@
                 } catch (e) {
                     return urlToAnchor(href);
                 }
-            });
+            })();
             this.hostname = url.hostname;
             this.scc_ddgp = 0;
             this.scc_tot = 0;
@@ -368,7 +447,7 @@
         }
         static get directUrls() {
             return Array.from(document.querySelectorAll('a.Uc6dJc'))
-                .map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'))
+                .map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'));
         }
         static get jsonSummary() {
             return Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
@@ -378,7 +457,7 @@
                     'site': a.querySelector('.SQJAwb').innerText,
                     'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
                 })
-            )
+            );
         }
 
         static downloadJson() {
@@ -516,15 +595,6 @@
         }
         /**
          @return {Meta}
-         { clt: string, id: string,
-                     isu: string, itg: string, ity: string,
-                     oh: string, ou: string, ow: string,
-                     pt: string,
-                     rid: string, rmt: string, rt: string, ru: string,
-                     s: string, st: string,
-                     th: string, tu: string, tw
-                     }
-                     }
          */
         get imageData() {
             return getMeta(this.mainImage);
@@ -1219,26 +1289,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     go();
 
-    function cleanSearch() {
-        console.log('cleanSearch()');
-        const searchBar = q(Consts.Selectors.searchBox);
-        searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
-    }
-
     if (isGoogleImages) {
-        Mousetrap.bind(['c c'], cleanSearch);
-        Mousetrap.bind(['u'], () => {
-            location.assign(safeSearchOffUrl());
-        });
-        // to https://yandex.com/images/search?text=
-        Mousetrap.bind('y d x', () => {
-            var x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
-            console.log('Yandex url = ', x);
-            location.assign(x);
-        });
+        bindKeys();
 
-        window.addEventListener('keydown', onKeyDown, true);
-        console.log('added super google key listener');
         window.addEventListener('load', function modifyImgsOnLoad() {
             for (const a of getImgAnchors()) {
                 let img = a.querySelector('img');
@@ -1261,7 +1314,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             updateDownloadBtnText();
         }
     }, { singleCallbackPerMutation: true });
-    // attach chgMon to document.body
 
     setInterval(clickLoadMoreImages, 400);
 
@@ -1308,8 +1360,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                                 const minImgSizeSlider = q('#minImgSizeSlider');
                                 if (minImgSizeSlider) {
-                                    minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
                                     minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
+                                    minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
                                 }
 
                                 const dlLimitSlider = q('#dlLimitSlider');
@@ -1332,21 +1384,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     });
                 });
 
-                (function bindKeys() {
-                    Mousetrap.bind(['alt+a'], () => {
-                        (!q('#itp_animated').firstElementChild ? q('#itp_').firstElementChild : q('#itp_animated').firstElementChild).click();
-                    });
-                    Mousetrap.bind(['D'], () => {
-                        q('#downloadBtn').click();
-                    });
-                    Mousetrap.bind(['h'], () => {
-                        q('#hideFailedImagesBox').click();
-                    });
-                    Mousetrap.bind(['g'], () => {
-                        q('#GIFsOnlyBox').click();
-                    });
-                    Mousetrap.bind(['esc', 'escape'], removeHash);
-                })();
                 // adds a toggleEncryptedGoogle button
                 /*q('#ab_ctls').appendChild(createElement(`<i class="ab_ctl">
             <a id="toggleEngrypted" href="${toggleEncryptedGoogle(true)}"> ${/www\.google/.test(location.hostname) ? "engrypted.google&nbsp;⇌" : "www.google.com"}</a>
@@ -1367,10 +1404,48 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
     }
 
+    function bindKeys() {
+        Mousetrap.bind(['c c'], cleanSearch);
+        Mousetrap.bind(['u'], () => {
+            location.assign(safeSearchOffUrl());
+        });
+        // to https://yandex.com/images/search?text=
+        Mousetrap.bind('y d x', () => {
+            var x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
+            console.log('Yandex url = ', x);
+            location.assign(x);
+        });
+
+
+        Mousetrap.bind(['alt+a'], () => {
+            (!q('#itp_animated').firstElementChild ? q('#itp_').firstElementChild : q('#itp_animated').firstElementChild).click();
+        });
+        Mousetrap.bind(['D'], () => {
+            q('#downloadBtn').click();
+        });
+        Mousetrap.bind(['h'], () => {
+            q('#hideFailedImagesBox').click();
+        });
+        Mousetrap.bind(['g'], () => {
+            q('#GIFsOnlyBox').click();
+        });
+        Mousetrap.bind(['esc', 'escape'], removeHash);
+
+        window.addEventListener('keydown', onKeyDown, true);
+        console.log('added super google key listener');
+    }
+
+    // attach chgMon to document.body
+    function cleanSearch() {
+        console.log('cleanSearch()');
+        const searchBar = q(Consts.Selectors.searchBox);
+        searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
+    }
+
 
     /**
      * Add small text box containing image extension
-     * @param imgBox
+     * @param {HTMLDivElement} imgBox
      */
     function addImgExtensionBox(imgBox) {
         if (imgBox.querySelector('.text-block')) return;
@@ -1407,12 +1482,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         img.after(downloadButton);
         img.classList.add('has-dl');
     }
-    /**
-     * @param meta
-     */
-    function downloadImageFromMeta(meta) {
-        download(meta.ou);
-    }
 
     /**
      * Checks that the `window` object contains the properties in `importNames`
@@ -1428,7 +1497,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     '[' + scriptName + '] script has a is missing an import:', importName,
                     '\nPlease make sure that it is included in the "//@require" field in the userscript metadata block'
                 );
-                missing.append(importName);
+                missing.push(importName);
             }
         }
         if (missing.length !== 0 && stopExecution) {
@@ -1705,7 +1774,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // == creating buttons ==
 
-            const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', displayImages);
+            const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', ShowImages.displayImages);
             const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
                 q('#itp_animated').firstElementChild.click();
             });
@@ -1771,7 +1840,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // automatically display originals if searching for a site:
             if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
-                displayImages();
+                ShowImages.displayImages();
             }
 
         } catch (r) {
@@ -2062,7 +2131,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 };
                 const replaceWithOriginal = (e) => {
                     checkAndResetTimer(e);
-                    replaceImgSrc(bx.querySelector('img'), bx.querySelector('a'));
+                    ShowImages.replaceImgSrc(bx.querySelector('img'), bx.querySelector('a'));
                 };
 
                 const onMouseUpdate = (e) => {
@@ -2697,7 +2766,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         const img = div.querySelector('img');
                         var anchor = img.closest('a[href]');
                         console.log('Replacing with original:', img, 'Anchor:', anchor);
-                        replaceImgSrc(img, anchor);
+                        ShowImages.replaceImgSrc(img, anchor);
                     }
                 }
                 break;
@@ -2816,8 +2885,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     /**
-     * @param options {{ minify: true, stringify: false, base64urls: true }}:
-     * @returns {{ title:str url:str search:str time:str data:Array }}
+     * @param {Object} options
+     * @param {boolean} [options.minify=true]
+     * @param {boolean} [options.stringify=false]
+     * @param {boolean} [options.base64urls=true]
+     * @returns {{ title:{string} url:{string} search:{string} time:{string} data:Array }}
      */
     function getResultsJSON(options) {
         options = $.extend({
@@ -3376,8 +3448,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const properties = (function () {
             const ps = new Set();
             for (const o of j.data) {
-                for (const p in o)
+                for (const p in o) {
                     ps.add(p);
+                }
             }
             return ps;
         })();
@@ -3573,7 +3646,7 @@ a.download-related {
     /**
      * Creates a static navbar at the top of the page.
      * Useful for adding buttons and controls to it
-     * @param callback  this callback should be used when instantly adding content to the navbar,
+     * @param callback - this callback should be used when instantly adding content to the navbar,
      *  do NOT just take the returned value and start adding elements.
      *  @return {HTMLDivElement} returns the parent navbar element
      */
