@@ -22,6 +22,37 @@
 // @connect      *
 // ==/UserScript==
 
+/**
+ * Metadata object containing info for each image
+ * @typedef {Object} Meta
+ *
+ * @property {string} id:  Id               - example: "ZR4fY_inahuKM:",
+ * @property {string} isu: Hostpage URL     - example: "gifs.cc",
+ * @property {number} itg: Image Tag        - example: 0,
+ * @property {string} ity: Image Type       - example: "gif",
+ *
+ * @property {number} oh:  Original Height  - example: 322,
+ * @property {string} ou:  Original URL     - example: "http://78.media.tumblr.com/....500.gif",
+ * @property {number} ow:  Original Width   - example: 492,
+ *
+ * @property {string} rh:  Referrer Host     - example: "",
+ * @property {string} rid: Referrer id      - example: "nyyV1PqBnBltYM",
+ * @property {number} rmt: Referrer ? ?     - example: 0,
+ * @property {number} rt:  Referrer ? ?     - example: 0,
+ * @property {string} ru:  Referrer URL     - example: "",
+ *
+ * @property {string} pt:  Primary Title    - example: "",
+ * @property {string} s:   Description      - example: "Photo",
+ * @property {string} st:  Secondary Title  - example: "",
+ * @property {number} th:  Thumbnail Height - example: 182,
+ * @property {string} tu:  Thumbnail URL    - example: "https://encrypted-tbn0.gstatic.com/images?q",
+ * @property {number} tw:  Thumbnail Width  - example: 278
+ *
+ * my added properties:
+ * @property {string} src:  src of the IMG element
+ * @property {number[]} dim:  dimensions [width, height]
+ */
+
 (function () {
     'use strict';
 
@@ -484,7 +515,7 @@
             return q('#irc_bg').style.display !== 'none';
         }
         /**
-         @return {
+         @return {Meta}
          { clt: string, id: string,
                      isu: string, itg: string, ity: string,
                      oh: string, ou: string, ow: string,
@@ -2071,7 +2102,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @param imageElement image element, either <img class="rg_ic rg_i" ....> in .rg_bx
      * todo: make this function detect if the image is a thumbnail or inside the panel, also make it work by getting the "id" and finding the meta through that
          * @param minified
-     * @return {{ clt: string, id: string, isu: string, itg: string, ity: string, oh: string, ou: string, ow: string, pt: string, rid: string, rmt: string, rt: string, ru: string, s: string, st: string, th: string, tu: string, tw, src: string }}
+     * @return {Meta}
      */
     function getMeta(imageElement, minified = false) {
         var metaObj = {};
