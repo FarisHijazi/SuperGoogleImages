@@ -839,11 +839,11 @@
                 dimensionsEl.classList.add('hover-click');
             }
 
-            // remove "Images may be subject to copyright"
+            // remove "Images may be subject to copyright" text
             (function removeCopyrightElement() {
                 p.sTitle_Anchor.style = 'padding-right: 5px; text-decoration:none;';
-                const copyrightEl = p.q('span.Af3fH.rn92ee');
-                if (copyrightEl) copyrightEl.remove();
+                for (const copyrightEl of getElementsByXPath('//span[contains(text(),\'Images may be subject to copyright\')]', p.el))
+                    copyrightEl.remove();
             })();
 
             // injecting rarbg torrent link button
@@ -3901,3 +3901,13 @@ function observeDocument(callback, options) {
     }
 }
 
+function getElementsByXPath(xpath, parent) {
+    let results = [];
+    let query = document.evaluate(xpath,
+        parent || document,
+        null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+    for (let i = 0, length = query.snapshotLength; i < length; ++i) {
+        results.push(query.snapshotItem(i));
+    }
+    return results;
+};
