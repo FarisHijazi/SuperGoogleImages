@@ -4,11 +4,11 @@
   - [Description](#description)
   - [Installation](#installation)
   - [Usage](#usage)
-    - [Features](#features)
-      - [Display original images](#display-original-images)
-      - [Zip and download all the images](#zip-and-download-all-the-images)
-      - [Enhance the image panels](#enhance-the-image-panels)
     - [Hotkeys](#hotkeys)
+  - [Features](#features)
+    - [Display original images](#display-original-images)
+    - [Zip and download all the images](#zip-and-download-all-the-images)
+    - [Enhance the image panels](#enhance-the-image-panels)
   - [External Libraries](#external-libraries)
   - [Documentation](#documentation)
   - [Contributing](#contributing)
@@ -23,7 +23,8 @@ display full resolution images, zip+download all images, and more. See a list of
 
 1. make sure you have a UserScript client like Tampermonkey.
 2. [Download](https://github.com/FarisHijazi/SuperGoogle/raw/master/SuperGoogle.user.js) or visit the RAW file url.
-3. [Required only for downloading] Go to the Tampermonkey settings and change download mode to `beta`, (see how)[TODO: add url].
+3. [Required only for downloading] Go to the Tampermonkey settings and change download mode to `Browser API`, (see how)[TODO: add url].
+    > Tampermonkey dashboard (by clicking the icon) > Downloads BETA > Download Mode: > Browser API > Save
 4. [Required only for downloading] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow` (details)[TODO: add url]. TODO: add screenshot
 
 ## Usage
@@ -31,17 +32,21 @@ display full resolution images, zip+download all images, and more. See a list of
 Open Google.com/....
 TODO: write about usage
 
-### Features
+### Hotkeys
 
-#### Display original images
+TODO: list hotkeys
+
+## Features
+
+### Display original images
 
 One of the most important features, replaces thumbnails with the original source images, even GIFs!
 
-#### Zip and download all the images
+### Zip and download all the images
 
 You can even specify the minimum allowed dimensions for images
 
-#### Enhance the image panels
+### Enhance the image panels
 
 Adds the following features to the image panel:
 
@@ -65,7 +70,7 @@ Adds the following features to the image panel:
 
 - 5 - Click to view images with **similar dimensions**
 
-    I really missed that feature, I wish Google
+    I really missed this feature when Google removed it
 
 - 6 - Clickable *image host* text
 
@@ -80,10 +85,6 @@ Adds the following features to the image panel:
     Click the *page host* to search google for more images from that site. For example if it was hosted by `example.com`, then clicking it would open a google image search of "`site:example.com`"
 
 TODO: continue listing features
-
-### Hotkeys
-
-TODO: list hotkeys
 
 ## External Libraries
 
