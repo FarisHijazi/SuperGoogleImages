@@ -2410,123 +2410,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
     }
 
-    /* hot-keys*/
-    let KeyEvent;
-    if (typeof KeyEvent === 'undefined') {
-        /* var str="KeyEvent = {\n"; for(var i=0; i<500; i++){ str+= "DOM_VK_" + String.fromCharCode(i) + ": " + i +",\n"; } str=str.substr(0, str.length-2)+"\n}" */
-        KeyEvent = {
-            DOM_VK_BACKSPACE: 8,
-            DOM_VK_TAB: 9,
-            DOM_VK_ENTER: 13,
-            DOM_VK_SHIFT: 16,
-            DOM_VK_CTRL: 17,
-            DOM_VK_ALT: 18,
-            DOM_VK_PAUSE_BREAK: 19,
-            DOM_VK_CAPS_LOCK: 20,
-            DOM_VK_ESCAPE: 27,
-            DOM_VK_PGUP: 33,
-            DOM_VK_PAGE_UP: 33,
-            DOM_VK_PGDN: 34,
-            DOM_VK_PAGE_DOWN: 34,
-            DOM_VK_END: 35,
-            DOM_VK_HOME: 36,
-            DOM_VK_LEFT: 37,
-            DOM_VK_LEFT_ARROW: 37,
-            DOM_VK_UP: 38,
-            DOM_VK_UP_ARROW: 38,
-            DOM_VK_RIGHT: 39,
-            DOM_VK_RIGHT_ARROW: 39,
-            DOM_VK_DOWN: 40,
-            DOM_VK_DOWN_ARROW: 40,
-            DOM_VK_INSERT: 45,
-            DOM_VK_DEL: 46,
-            DOM_VK_DELETE: 46,
-            DOM_VK_0: 48, DOM_VK_ALPHA0: 48,
-            DOM_VK_1: 49, DOM_VK_ALPHA1: 49,
-            DOM_VK_2: 50, DOM_VK_ALPHA2: 50,
-            DOM_VK_3: 51, DOM_VK_ALPHA3: 51,
-            DOM_VK_4: 52, DOM_VK_ALPHA4: 52,
-            DOM_VK_5: 53, DOM_VK_ALPHA5: 53,
-            DOM_VK_6: 54, DOM_VK_ALPHA6: 54,
-            DOM_VK_7: 55, DOM_VK_ALPHA7: 55,
-            DOM_VK_8: 56, DOM_VK_ALPHA8: 56,
-            DOM_VK_9: 57, DOM_VK_ALPHA9: 57,
-            DOM_VK_A: 65,
-            DOM_VK_B: 66,
-            DOM_VK_C: 67,
-            DOM_VK_D: 68,
-            DOM_VK_E: 69,
-            DOM_VK_F: 70,
-            DOM_VK_G: 71,
-            DOM_VK_H: 72,
-            DOM_VK_I: 73,
-            DOM_VK_J: 74,
-            DOM_VK_K: 75,
-            DOM_VK_L: 76,
-            DOM_VK_M: 77,
-            DOM_VK_N: 78,
-            DOM_VK_O: 79,
-            DOM_VK_P: 80,
-            DOM_VK_Q: 81,
-            DOM_VK_R: 82,
-            DOM_VK_S: 83,
-            DOM_VK_T: 84,
-            DOM_VK_U: 85,
-            DOM_VK_V: 86,
-            DOM_VK_W: 87,
-            DOM_VK_X: 88,
-            DOM_VK_Y: 89,
-            DOM_VK_Z: 90,
-            DOM_VK_LWIN: 91,
-            DOM_VK_LEFT_WINDOW: 91,
-            DOM_VK_RWIN: 92,
-            DOM_VK_RIGHT_WINDOW: 92,
-            DOM_VK_SELECT: 93,
-            DOM_VK_NUMPAD0: 96,
-            DOM_VK_NUMPAD1: 97,
-            DOM_VK_NUMPAD2: 98,
-            DOM_VK_NUMPAD3: 99,
-            DOM_VK_NUMPAD4: 100,
-            DOM_VK_NUMPAD5: 101,
-            DOM_VK_NUMPAD6: 102,
-            DOM_VK_NUMPAD7: 103,
-            DOM_VK_NUMPAD8: 104,
-            DOM_VK_NUMPAD9: 105,
-            DOM_VK_MULTIPLY: 106,
-            DOM_VK_ADD: 107,
-            DOM_VK_SUBTRACT: 109,
-            DOM_VK_DECIMAL_POINT: 110,
-            DOM_VK_DIVIDE: 111,
-            DOM_VK_F1: 112,
-            DOM_VK_F2: 113,
-            DOM_VK_F3: 114,
-            DOM_VK_F4: 115,
-            DOM_VK_F5: 116,
-            DOM_VK_F6: 117,
-            DOM_VK_F7: 118,
-            DOM_VK_F8: 119,
-            DOM_VK_F9: 120,
-            DOM_VK_F10: 121,
-            DOM_VK_F11: 122,
-            DOM_VK_F12: 123,
-            DOM_VK_NUM_LOCK: 144,
-            DOM_VK_SCROLL_LOCK: 145,
-            DOM_VK_SEMICOLON: 186,
-            DOM_VK_EQUALS: 187,
-            DOM_VK_EQUAL_SIGN: 187,
-            DOM_VK_COMMA: 188,
-            DOM_VK_DASH: 189,
-            DOM_VK_PERIOD: 190,
-            DOM_VK_FORWARD_SLASH: 191,
-            DOM_VK_GRAVE_ACCENT: 192,
-            DOM_VK_OPEN_BRACKET: 219,
-            DOM_VK_BACK_SLASH: 220,
-            DOM_VK_CLOSE_BRACKET: 221,
-            DOM_VK_SINGLE_QUOTE: 222
-        };
-    }
-
-
     //todo: rather than clicking the image when it loads, just set the className to make it selected: ".irc_rist"
     /**
      * keeps on trying to press the bottom related image (the last one to the bottom right) until it does.
@@ -2638,28 +2521,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return targetURL;
     }
 
-    /**
-     * Order of key strokes in naming convention:   Ctrl > Shift > Alt >  Meta
-     * @param keyEvent
-     * @returns {{CTRL_ONLY: boolean, SHIFT_ONLY: boolean, ALT_ONLY: boolean, META_ONLY: boolean, NONE: boolean}}
-     */
-    function getKeyEventModifiers(keyEvent) {
-        /** @type {{CTRL_ONLY: boolean, SHIFT_ONLY: boolean, ALT_ONLY: boolean, NONE: boolean}} */
-        return {
-            CTRL_SHIFT: keyEvent.ctrlKey && !keyEvent.altKey && keyEvent.shiftKey && !keyEvent.metaKey,
-            CTRL_ALT: keyEvent.ctrlKey && keyEvent.altKey && !keyEvent.shiftKey && !keyEvent.metaKey,
-            ALT_SHIFT: !keyEvent.ctrlKey && keyEvent.altKey && keyEvent.shiftKey && !keyEvent.metaKey,
-            CTRL_ONLY: keyEvent.ctrlKey && !keyEvent.altKey && !keyEvent.shiftKey && !keyEvent.metaKey,
-            CTRL_ALT_SHIFT: keyEvent.ctrlKey && keyEvent.altKey && keyEvent.shiftKey && !keyEvent.metaKey,
-
-            SHIFT_ONLY: !keyEvent.ctrlKey && !keyEvent.altKey && keyEvent.shiftKey && !keyEvent.metaKey,
-            ALT_ONLY: !keyEvent.ctrlKey && keyEvent.altKey && !keyEvent.shiftKey && !keyEvent.metaKey,
-            META_ONLY: !keyEvent.ctrlKey && !keyEvent.altKey && !keyEvent.shiftKey && keyEvent.metaKey,
-
-            NONE: !keyEvent.ctrlKey && !keyEvent.shiftKey && !keyEvent.altKey && !keyEvent.metaKey
-        };
-    }
-
     function parseSearchBarString(str) {
         if (!str)
             str = document.querySelector('input[type="text"][title="Search"]').value;
@@ -2686,17 +2547,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             prs.urlParams = m[7] || '';
             prs.rightQuery = m[8] || '';
         }
-
-        // prs.trimPathLeft = () => {
-        //     prs.path = prs.pathSplit.slice(1).join('/');
-        //     return prs;
-        // };
-        // prs.trimHostRight = () => {
-        //     if (prs.hostnameSplit.length > 2) {
-        //         prs.hostname = prs.hostnameSplit.slice(0, -1).join('.');
-        //         return prs;
-        //     }
-        // };
 
         prs.trimPathRight = () => {
             prs.path = prs.pathSplit.slice(0, -1).join('/');
@@ -3747,7 +3597,7 @@ function cleanGibberish(str, minWgr, debug = false) {
              * The minimum word2gibberish ratio to exit the loop
              * @type {number|*}
              */
-            minWgr = 0.4 || minWgr;
+            minWgr = minWgr||0.4;
         if (noGibberish.length < 3) return str;
         /**
          * WGR: Word to Gibberish Ratio (between 0 and 1)
