@@ -441,6 +441,9 @@
         static addDirectUrls(mutationTarget) {
             addCss('.RggFob .mL2B4d { text-align: center; }', 'gsaves-center-anchors');
             console.log('GSaves.addDirectUrls();');
+            if(!mutationTarget)
+                return;
+            
             for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
                 const usp = new URL(a.href, location.href).searchParams;
                 if (usp.get('imgrefurl')) {
@@ -461,12 +464,13 @@
             const threeDots = document.querySelector('#ow21');
             if (!threeDots) {
                 console.warn('dropdown was not found, unable to addJsonToDropdown()');
+            } else {
+                const dlj = createElement(`<button id="download-json-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Download JSON {}</span></button>`);
+                threeDots.after(dlj);
+                dlj.onclick = function () {
+                    GSaves.downloadJson();
+                };
             }
-            const dlj = createElement(`<button id="download-json-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Download JSON {}</span></button>`);
-            threeDots.after(dlj);
-            dlj.onclick = function () {
-                GSaves.downloadJson();
-            };
         }
         static replaceWithDirectUrls(mutationTarget) {
             console.log('GSaves.toDirectUrls();');
@@ -1335,8 +1339,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     // observe new image boxes that load
     observeDocument(function (mutationTarget, addedNodes) {
         const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
-        if (mutationTarget.classList.contains('rg_bx') || addedImageBoxes.length) {
-            onImagesLoading(addedImageBoxes);
+        if (addedImageBoxes.length) {
+            onImageBatchLoading(addedImageBoxes);
             updateDownloadBtnText();
         }
     }, { singleCallbackPerMutation: true });
@@ -1419,7 +1423,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                             subtree: true,
                             attributes: true,
                             attributeFilter: ['data-ved']
-                            // characterData: true
                         });
                     }
 
@@ -2132,8 +2135,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             el.click();
         }
     }
-    function onImagesLoading(addedImageBoxes) {
-        console.log('onImagesLoading()');
+    /**
+     * Called every 20 or so images, the image boxes are passed
+     * @param addedImageBoxes
+     */
+    function onImageBatchLoading(addedImageBoxes) {
+        console.log('onImageBatchLoading()');
         // if (imageSet.contains(addedImageBoxes)) return;
         // else imageSet.add(addedImageBoxes);
 
@@ -2141,6 +2148,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             imageBox.classList.add('rg_bx_listed');
             addImgExtensionBox(imageBox);
             addImgDownloadButton(imageBox);
+
+            const img = imageBox.querySelector('img.rg_i');
+
+            img.setAttribute('download-name', getGimgDescription(img));
         }
 
         (function updateDlLimitSliderMax() {
@@ -2834,14 +2845,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /**
      * @param selectorExtension {string}: optional: extend the selector (useful for selecting things inside the img box)
      * example: getImgBoxes(' img') will return the images inside that those image boxes
-     * @return {NodeListOf<HTMLDivElement>}
+     * @return {NodeListOf<HTMLDivElement>|NodeListOf<*>}
      */
     function getImgBoxes(selectorExtension = '') {
         return document.querySelectorAll('#rg_s > .rg_bx' + selectorExtension);
     }
-    function getImgAnchors() {
+    function getImgAnchors(selectorExtension = '') {
         // return qa('#rg_s > div.rg_bx > a.rg_l[href]');
-        return getImgBoxes(' > a[href]');
+        return getImgBoxes(' > a[href]', selectorExtension);
     }
 
     function updateDownloadBtnText() {
