@@ -2,37 +2,62 @@
 
 ## Todo
 
-- [ ] change `Display Original Images` button to a checkbox
-- [ ] add checkbox `close tab after download`
-- [ ] fix: dlLimit slider doesn't select anything the first time it's used
+notes and observations:
+- some imgs at the top don't react to showing original images, this is probably from the Google Bypass scripts
+- it seems that the part in charge of telling when an image loads is not working, all images get greyed out and they still play
+- you should reset the `loaded` attribute when changing the href
+
+### Refactor
+
+Moving scripts, collecting functions into a library or an object, renaming..
+
+- [ ] make `GoogleUtils` module. Remaining: just deploy it and make it importable, and make it complete.
+- [ ] Add a debug level logger (so that the logs can be disabled to improve performance)
 - [ ] Refactoring: Wrap the Google functions and constants in a static class. things like `getImageBoxes`, `searchBox`, etc...
-- [ ] Fix the autoloader (clicking load next page), you can't click anything other menus because of it
-- [ ] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
-- [ ] Add an `Add to favorite` button on the thumbnails (next to the image type tag and the download btn)
-- [ ] Create function: `downloadLoaded()` to just downloaded whatever was loaded and GTFO
+- [x] Use `Mousetrap.js` instead of keyup listener
+
+### Fixes
+
+- [ ] `ShowImages.displayImages()` doesn't show some images, many images are being ignored
 - [ ] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it
 - [ ] Fix clickable description, it doesn't change when changing to related images
-- [ ] Fix DisplayOriginalImages
-  - [ ] Make a specialized copy for the google script
+- [ ] Fix `DisplayOriginalImages`
+  - [x] Make a specialized copy for the google script
+  - [x] Remove all google-specific functionality from DisplayOriginalImages, make them independent
   - [ ] Fix inconsistent "loaded" attribute, and fix borders
-  - [ ] Remove all google-specific functionality from DisplayOriginalImages, make them independant
-- [ ] Use `svg` icons instead of unicode symbols
-- [ ] Add option for auto-expanding the page
+  - [ ] Make it so that `ShowImages.js` can be instantiated and you can choose the callbacks and how it modifies the borders and etc
+- [ ] Fix the auto-loader (clicking load next page), you can't click anything other menus because of it
+- [ ] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
+- [ ] Fix: dlLimit slider doesn't select anything the first time it's used
+
+### New features
+
+- [ ] put a textfield that indicates the current path of the downloads so the user can change it
+- [ ] Add an `Add to favorite` button on the thumbnails (next to the image type tag and the download btn)
+- [ ] Create function: `downloadLoaded()` to just downloaded whatever was loaded and GTFO
+- [ ] Make a `stats panel` which contains info on the number of images, `# loaded`, `highest frequency string`, `% loaded`, `% failed`, `avg size`, `%gifs`, `min size`, etc
+- [ ] Add option to download already loaded images
 - [x] `download JSON` button
   - [ ] Add the related images
   - [x] Remove base64 urls
-- [ ] Add option to download already loaded images
-- [ ] Add a debug level logger (so that the logs can be disabled to improve performance)
+
+### Polishing
+
+Not urgent and not important
+
+- [ ] change `Display Original Images` button to a checkbox
+- [ ] add checkbox `close tab after download`
+- [ ] Use `svg` icons instead of unicode symbols
+- [ ] Add option for auto-expanding the page
 - [ ] Make filters update when more pages load
 - [ ] Make `saveUblSites()` save data as JSON (information such as: ddgp, dimensions, #successes, #dgpSuccesses)
-- [ ] Make a `stats panel` which contains info on the number of images, `# loaded`, `highest frequency string`, `% loaded`, `% failed`, `avg size`, `%gifs`, `min size`, etc
-- [ ] put a textfield that indicates the current path of the downloads so the user can change it
-- [x] clean format of `info.txt`, add a summary part and then put the raw metadata
-- [ ] Add tooltips to the controls and checkboxes with descriptions and keyboard shortcuts.
 - [x] Fix `zip` checkbox not updating
+- [ ] Add tooltips to the controls and checkboxes with descriptions and keyboard shortcuts.
+
 
 ## Completed
 
+- [x] clean format of `info.txt`, add a summary part and then put the raw metadata
 - [x] Fix `info.json` in zip (not being stringified)
 - [x] Merge/combine the 3 Google mainImage scripts to make this script work independantly.
 - [x] 2-5-2019 fix `DownloadRelatedImages` ```SuperGoogle.user.js:5009 Error while getting metaText TypeError: Cannot read property 'querySelector' of null
