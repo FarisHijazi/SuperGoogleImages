@@ -83,7 +83,7 @@
 
         // language=CSS
         addCss(
-                ` /*set borders*/ 
+            ` /*set borders*/ 
     div.${ShowImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {	 
         border-radius: 5px; 
         border: 3px #0F0 solid; 
@@ -100,48 +100,47 @@
 
         /* Overlay CSS for highlighting selected images */
         // language=CSS
-        addCss(`.highlight, .drop-shadow { 
-        filter: drop-shadow(8px 8px 10px gray) !important; 
-    } 
- 
-    .blur.in { 
-        -webkit-transition: all 0.1s ease-in !important; 
-        /*-webkit-filter: blur(6px) !important;*/ 
-        transform: scale(0.7) !important; 
-        opacity: 0.3 !important; 
-    } 
- 
-    .blur.out:not(.in) { 
-        -webkit-filter: blur(0px) !important; 
-        /*filter: blur(0px) !important;*/ 
-        transform: scale(1) !important; 
-        opacity: 1 !important; 
-        -webkit-transition: all 0.25s ease-out !important; 
-        transition: all 0.25s ease-out !important; 
-    } 
- 
-    .transparent { 
-        opacity: 0.4 !important; 
-    } 
- 
-    .sg-too-small { 
- 
-    } 
- 
-    .sg-too-small-hide { 
-        display: none !important; 
-    } 
- 
-    .hide-img { 
-        display: none !important; 
-    }`, 'filters-style');
+        addCss(`.highlight, .drop-shadow {
+            filter: drop-shadow(8px 8px 10px gray) !important;
+        }
+
+        .blur.in {
+            -webkit-transition: all 0.1s ease-in !important;
+            /*-webkit-filter: blur(6px) !important;*/
+            transform: scale(0.7) !important;
+            opacity: 0.3 !important;
+        }
+
+        .blur.out:not(.in) {
+            -webkit-filter: blur(0px) !important;
+            /*filter: blur(0px) !important;*/
+            transform: scale(1) !important;
+            opacity: 1 !important;
+            -webkit-transition: all 0.25s ease-out !important;
+            transition: all 0.25s ease-out !important;
+        }
+
+        .transparent {
+            opacity: 0.4 !important;
+        }
+
+        .sg-too-small {
+
+        }
+
+        .sg-too-small-hide {
+            display: none !important;
+        }
+
+        .hide-img {
+            display: none !important;
+        }`, 'filters-style');
         /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
     }
- )();
+)();
 
 (function () {
     'use strict';
-
 
 
     // todo: replace this with importing GM_dummy_functions, and importing a pollyfill
@@ -202,7 +201,6 @@
     }, GM_getValue('Preferences'));
 
 
-
     const GoogleUtils = (function () {
         const url = {};
 
@@ -212,7 +210,7 @@
         url.gImgSearchURL = `${url.googleBaseURL}/search?&hl=en&tbm=isch&q=`;
         url.reverseImageSearchUrl = `${url.googleBaseURL}/searchbyimage?&image_url=`;
         url.getGImgReverseSearchURL = _url => _url ? url.reverseImageSearchUrl + encodeURIComponent(_url.trim()) : '';
-        url.siteSearchUrl = function(query) {
+        url.siteSearchUrl = function (query) {
             if (query) {
                 return GoogleUtils.url.gImgSearchURL + 'site:' + encodeURIComponent(query.trim());
             }
@@ -222,7 +220,7 @@
         const els = {};
         // copy all the selectors from Consts.Selectors and define getters, now you can access `searchModeDiv` by using `elements.searchModeDiv`
         // if the selector key ends with 's' (plural), then it gets multiple elements, otherwise just a single element
-        for(const key of Object.keys(Consts.Selectors)) {
+        for (const key of Object.keys(Consts.Selectors)) {
             const v = Consts.Selectors[key];
             els.__defineGetter__(key, key.slice(-1).toLowerCase() === 's' ?
                 (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
@@ -344,7 +342,7 @@
                 console.error(e);
             }
         }
-        return zip.file('index.html', new Blob([html], { type: 'text/plain' }));
+        return zip.file('index.html', new Blob([html], {type: 'text/plain'}));
     };
 
     var controlsContainerId = 'google-controls-container';
@@ -426,24 +424,24 @@
 
             // language=CSS
             addCss(
-                `.str-wide-card {
-                    cursor: default !important;
-                }
+                    `.str-wide-card {
+                        cursor: default !important;
+                    }
 
-                .str-wide-card-title, .str-wide-card-text-holder {
-                    display: -webkit-inline-box !important;
-                }
+                    .str-wide-card-title, .str-wide-card-text-holder {
+                        display: -webkit-inline-box !important;
+                    }
 
-                .str-wide-card.expandable:not(.expanded) {
-                    height: 100%;
-                }`);
+                    .str-wide-card.expandable:not(.expanded) {
+                        height: 100%;
+                    }`);
         }
         static addDirectUrls(mutationTarget) {
             addCss('.RggFob .mL2B4d { text-align: center; }', 'gsaves-center-anchors');
             console.log('GSaves.addDirectUrls();');
-            if(!mutationTarget)
+            if (!mutationTarget)
                 return;
-            
+
             for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
                 const usp = new URL(a.href, location.href).searchParams;
                 if (usp.get('imgrefurl')) {
@@ -571,7 +569,7 @@
     if (/google\..+\/save/.test(location.href)) {
         console.log('beginning of google.com/save site...');
 
-        Mousetrap.bind('`', function() {
+        Mousetrap.bind('`', function () {
             console.log('wrapGSavesPanelsWithAnchors');
             GSaves.wrapPanels();
         });
@@ -1334,7 +1332,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             onImageBatchLoading(addedImageBoxes);
             updateDownloadBtnText();
         }
-    }, { singleCallbackPerMutation: true });
+    }, {singleCallbackPerMutation: true});
 
     setInterval(clickLoadMoreImages, 400);
 
@@ -1693,17 +1691,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function genZip(thisZip = zip) {
-        thisZip.file('index (online).html', new Blob([getIndexHtml()], { type: 'text/plain' }));
+        thisZip.file('index (online).html', new Blob([getIndexHtml()], {type: 'text/plain'}));
         thisZip.generateIndexHtml();
-        thisZip.generateAsync({ type: 'blob' }).then(function (content) {
-            var zipName = (document.title).replace(/site:|( - Google Search)/gi, '');
+        thisZip.generateAsync({type: 'blob'}).then(function (content) {
+                var zipName = (document.title).replace(/site:|( - Google Search)/gi, '');
 
-            saveAs(content, `${zipName} [${Object.keys(thisZip.files).length}].zip`);
-            unsafeWindow.zipGenerated = true;
+                saveAs(content, `${zipName} [${Object.keys(thisZip.files).length}].zip`);
+                unsafeWindow.zipGenerated = true;
 
-            window.removeEventListener('beforeunload', zipBeforeUnload);
-            window.onunload = null;
-        }
+                window.removeEventListener('beforeunload', zipBeforeUnload);
+                window.onunload = null;
+            }
         );
     }
 
@@ -1725,7 +1723,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // language=CSS
         const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
             (visibleThumbnailsOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
-            ;
+        ;
         return qa(selector);
     }
     // done:    Make a navbar that drops down containing all the buttons and controls
@@ -2339,7 +2337,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /**
      * @param imageElement image element, either <img class="rg_ic rg_i" ....> in .rg_bx
      * todo: make this function detect if the image is a thumbnail or inside the panel, also make it work by getting the "id" and finding the meta through that
-         * @param minified
+     * @param minified
      * @return {Meta}
      */
     function getMeta(imageElement, minified = false) {
@@ -2854,13 +2852,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     /**
-     * @param {Object} options
+     * @param {Object} [options={}]
      * @param {boolean} [options.minify=true]
      * @param {boolean} [options.stringify=false]
      * @param {boolean} [options.base64urls=true]
      * @returns {{ title:{string}, url:{string}, search:{string}, time:{string}, data:Array }}
      */
-    function getResultsJSON(options) {
+    function getResultsJSON(options = {}) {
         options = $.extend({
             minify: true,
             stringify: false,
@@ -2883,7 +2881,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const o = {
             'title': document.title,
             'url': location.href,
-            'search': q(Consts.Selectors.searchBox).value,
+            'search': GoogleUtils.elements.searchBox.value,
             'time': new Date().toJSON(),
             'data': metas
         };
@@ -2966,19 +2964,19 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // noinspection JSUnresolvedVariable
         // noinspection ES6ModulesDependencies
         var progressBar = new ProgressBar.Line('#progressbar-container', {
-            easing: 'easeInOut',
-            color: '#FCB03C',
-            strokeWidth: 1,
-            trailWidth: 1,
-            text: {
-                value: '0',
-                alignToBottom: false
-            },
+                easing: 'easeInOut',
+                color: '#FCB03C',
+                strokeWidth: 1,
+                trailWidth: 1,
+                text: {
+                    value: '0',
+                    alignToBottom: false
+                },
 
-            trailColor: '#eee',
-            duration: 1400,
-            svgStyle: null
-        }
+                trailColor: '#eee',
+                duration: 1400,
+                svgStyle: null
+            }
         );
         console.log('progressBar:', progressBar);
         progressBar.set(0);
@@ -2998,14 +2996,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         zip.current = 0;
         zip.totalSize = 0;
         zip.totalLoaded = 0;
-        zip.file('info.json', new Blob([getResultsJSON({ minify: true, stringify: true, base64urls: false })], { type: 'text/plain' }));
+        zip.file('info.json', new Blob([getResultsJSON({
+            minify: true,
+            stringify: true,
+            base64urls: false
+        })], {type: 'text/plain'}));
 
         window.addEventListener('beforeunload', zipBeforeUnload);
         window.onunload = genZip;
         const selector = 'img.rg_ic.rg_i'
             // `.${TOKEN_DISPLAY}[loaded^="true"], .img-big`
             // '.rg_ic.rg_i.display-original-mainImage:not(.display-original-mainImage-failed)'
-            ;
+        ;
         /** type {HTMLAnchorElement} */
         const ogs = qa(selector);
 
@@ -3047,7 +3049,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         function requestAndZipImage(fileUrl, fileName, img) {
             let fileSize = 0,
                 loadedLast = 0
-                ;
+            ;
             activeZipThreads++;
             const meta = getMeta(img);
 
@@ -3125,16 +3127,16 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                             return;
                         }
                     }
-                    var blob = new Blob([res.response], { type: contentType });
+                    var blob = new Blob([res.response], {type: contentType});
 
                     responseBlobs.add(blob);
                     zip.file(`${fileName}.${ext || 'image/gif'}`, blob, {
-                        comment: JSON.stringify({
-                            url: fileUrl,
-                            name: `${meta.pt} ${meta.st}`,
-                            page: meta.ru
-                        }, null, 4)
-                    }
+                            comment: JSON.stringify({
+                                url: fileUrl,
+                                name: `${meta.pt} ${meta.st}`,
+                                page: meta.ru
+                            }, null, 4)
+                        }
                     );
                     console.log('Added file to zip:', fileName, fileUrl);
                     zip.current++;
@@ -3284,7 +3286,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         );
     }
     /**
-     * @param imageElement {HTMLImageElement|HTMLDivElement|HTMLElement}: the image
+     * @param {HTMLImageElement|HTMLDivElement|HTMLElement} imageElement - the image element, either the IMG itself or the imageBox (DIV element)
      * @param newVisibility
      */
     function setVisible(imageElement, newVisibility) {
@@ -3420,7 +3422,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const properties = (function () {
             const ps = new Set();
             for (const o of j.data) {
-                for (const p in o) {
+                for (const p of Object.keys(o)) {
                     ps.add(p);
                 }
             }
@@ -3626,22 +3628,22 @@ a.download-related {
         // Settings up the navbar
         // language=CSS
         addCss(`div#topnav {
-        position: fixed;
-        z-index: 1000;
-        min-height: 50px;
-        top: 0;
-        right: 0;
-        left: 0;
-        background: #525252;
-    }
+            position: fixed;
+            z-index: 1000;
+            min-height: 50px;
+            top: 0;
+            right: 0;
+            left: 0;
+            background: #525252;
+        }
 
-    div#topnav-content {
-        margin: 5px;
-        padding: 10px;
-        font-family: inherit;
-        /*font-stretch: extra-condensed;
-        font-size: 20px;*/
-    }`, 'navbar-css');
+        div#topnav-content {
+            margin: 5px;
+            padding: 10px;
+            font-family: inherit;
+            /*font-stretch: extra-condensed;
+            font-size: 20px;*/
+        }`, 'navbar-css');
 
         function adjustTopMargin() {
             document.body.style.top = `${q('#topnav').offsetHeight}px`;
@@ -3729,7 +3731,7 @@ function elementUnderMouse(wheelEvent) {
 }
 
 function makeTextFile(text) {
-    var data = new Blob([text], { type: 'text/plain' });
+    var data = new Blob([text], {type: 'text/plain'});
     var textFile = null;
     // If we are replacing a previously generated file we need to manually revoke the object URL to avoid memory leaks.
     if (textFile !== null) window.URL.revokeObjectURL(textFile);
@@ -3779,7 +3781,7 @@ function waitForElement(elementGetter, callback) {
     const hasElementAppeared = function (mutations, me) {
         function handleSuccess(el) {
             callback(el);
-            if(me) me.disconnect();
+            if (me) me.disconnect();
         }
 
         var element = (typeof (elementGetter) === 'function') ? elementGetter() :
