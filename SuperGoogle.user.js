@@ -66,12 +66,12 @@
         border-bottom: 1px dotted black; 
     } 
  
-    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="false"], 
+    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
     img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
         border: 3px #F00 solid; 
     } 
  
-    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="false"], 
+    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
     img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
         -webkit-filter: grayscale(1) !important; /* Webkit */ 
         filter: gray !important; /* IE6-9 */ 
@@ -523,7 +523,7 @@
      }
     
      img[loaded="error"],
-     img[loaded="false"] {
+     img[loaded="loading"] {
      opacity: 0.5;
      filter: alpha(opacity=50); /!* For IE8 and earlier *!/
      }
@@ -2152,6 +2152,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const img = imageBox.querySelector('img.rg_i');
 
             img.setAttribute('download-name', getGimgDescription(img));
+            // markImageOnLoad(img, img.closest('a').href);
         }
 
         (function updateDlLimitSliderMax() {
@@ -2958,7 +2959,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /**
      * adds an attribute "load" indicating the load status
      *  load = "true":      image loaded successfully
-     *  load = "false":     image still loading
+     *  load = "loading":     image still loading
      *  load = "error":     image failed to load
      * @param imgUrl
      * @param imgEl
@@ -2966,16 +2967,19 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function markImageOnLoad(imgEl, imgUrl) {
         if (!imgEl) return;
         imgUrl = !!imgUrl ? imgUrl : imgEl.src;
-        if (imgEl.hasAttribute('loaded')) {
+        if (imgEl.getAttribute('loaded') === 'loading') {
             return;
         }
+
         var imgObj = new Image();
-        imgEl.setAttribute('loaded', false);
+        imgEl.setAttribute('loaded', 'loading');
         imgObj.onerror = function () {
             imgEl.setAttribute('loaded', 'error');
+            console.debug('onerror:', imgEl);
         };
         imgObj.onload = function () {
-            imgEl.setAttribute('loaded', true);
+            console.debug('onload:', imgEl);
+            imgEl.setAttribute('loaded', 'true');
         };
         imgObj.src = imgUrl;
     }
