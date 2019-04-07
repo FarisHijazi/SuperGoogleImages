@@ -2661,6 +2661,90 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             NONE: !keyEvent.ctrlKey && !keyEvent.shiftKey && !keyEvent.altKey && !keyEvent.metaKey
         };
     }
+
+    function parseSearchBarString(str) {
+        if (!str)
+            str = document.querySelector('input[type="text"][title="Search"]').value;
+
+        const regex = /(\w*)(\s|^)(site:)?(\w+:\/\/)*([\w.]+)([\w.\/]*)([^\s]*)\s?(.*)/;
+        let m;
+        let prs = {};
+
+        prs.leftQuery = '';
+        prs.siteStr = '';
+        prs.protocol = '';
+        prs.hostname = '';
+        prs.path = '';
+        prs.urlParams = '';
+        prs.rightQuery = '';
+
+        if ((m = regex.exec(str)) !== null) {
+            prs.match = m;
+            prs.leftQuery = m[1] || '';
+            prs.siteStr = m[3] || '';
+            prs.protocol = m[4] || '';
+            prs.hostname = m[5] || '';
+            prs.path = m[6] || '';
+            prs.urlParams = m[7] || '';
+            prs.rightQuery = m[8] || '';
+        }
+
+        // prs.trimPathLeft = () => {
+        //     prs.path = prs.pathSplit.slice(1).join('/');
+        //     return prs;
+        // };
+        // prs.trimHostRight = () => {
+        //     if (prs.hostnameSplit.length > 2) {
+        //         prs.hostname = prs.hostnameSplit.slice(0, -1).join('.');
+        //         return prs;
+        //     }
+        // };
+
+        prs.trimPathRight = () => {
+            prs.path = prs.pathSplit.slice(0, -1).join('/');
+            return prs;
+        };
+
+        prs.trimHostLeft = () => {
+            if (prs.hostnameSplit.length > 2) {
+                prs.hostname = prs.hostnameSplit.slice(1).join('.');
+                return prs;
+            }
+        };
+
+        prs.trimRight = () => {
+            if (prs.urlParams) {
+                prs.urlParams = '';
+            } else if (prs.path) {
+                prs.trimPathRight();
+            } else if (prs.hostname && prs.hostnameSplit.length > 2) {
+                prs.trimHostRight();
+            }
+            return prs;
+        };
+
+        prs.trimLeft = () => {
+            if (prs.protocol) {
+                prs.protocol = '';
+            } else if (prs.hostnameSplit.length > 2) {
+                prs.trimHostLeft();
+            } else if (prs.siteStr) {
+                prs.siteStr = '';
+            }
+            return prs;
+        };
+
+        prs.toString = () => [
+            !prs.leftQuery ? '' : prs.leftQuery + ' ',
+            prs.siteStr, prs.protocol, prs.hostname, prs.path, prs.urlParams,
+            !prs.rightQuery ? '' : ' ' + prs.rightQuery,
+        ].join('');
+
+        prs.__defineGetter__('hostnameSplit', () => prs.hostname.split('.'));
+        prs.__defineGetter__('pathSplit', () => prs.path.split('/'));
+
+        return prs;
+    }
     /**
      * if there's a 'site:' keyword in the search, this will trim it to a larger domain:
      * thumbnails.example.com -> .example.com
@@ -2668,26 +2752,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function siteSearch_TrimLeft() {
         const searchBox = q(Consts.Selectors.searchBox);
 
-        const trimmedSiteSearch = (function getTrimmedSiteSearch(value) {
-            const match = value.match(/(site:)(([\w.\/])+|(\/\/\:)+)+/);
-            if (match && match.length) {
-                const siteSplit = match[2].split(/\./);
-                const siteTrimmed = siteSplit.slice(1).join('.');
-                var newSite;
-                if (siteSplit.length > 2) {
-                    newSite = 'site:' + siteTrimmed;
-                } else if (siteSplit.length === 2) { // if site:example.com, remove "site:"
-                    newSite = siteSplit.join('.');
-                } else {
-                    return value;
-                }
-                return match.input.slice(0, match.index) + newSite + match.input.slice(match.index + match[0].length);
-            }
-        })(searchBox.value);
+        const trimmedSiteSearch = parseSearchBarString(searchBox.value).trimLeft();
 
-        console.log(`siteSearch_TrimLeft(${searchBox.value}) = ${trimmedSiteSearch}`);
+        console.log(`siteSearch_TrimLeft("${searchBox.value}") = "${trimmedSiteSearch}"`);
 
-        if (!trimmedSiteSearch || searchBox.value === trimmedSiteSearch) {// don't change if already the same
+        if (searchBox.value === trimmedSiteSearch) {// don't change if already the same
             return;
         }
 
@@ -2698,28 +2767,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function siteSearch_TrimRight() {
         const searchBox = q(Consts.Selectors.searchBox);
 
-        const trimmedSiteSearch = (function getTrimmedSiteSearchPath(value) {
-            const match = value.match(/(site:)(([\w.\/])+|(\/\/\:)+)+/);
-            if (match && match.length) {
-                const siteSplit = match[2].split(/\//);
-                siteSplit.pop();
-                const siteTrimmed = siteSplit.join('/');
-                var newSite;
-                if (siteSplit.length > 2) {
-                    newSite = 'site:' + siteTrimmed;
-                } else {
-                    return value;
-                }
-                return match.input.slice(0, match.index) + newSite + match.input.slice(match.index + match[0].length);
-            }
-        })(searchBox.value);
+        // for regex breakdown, see https://regex101.com/r/gq9In1/1
+        const trimmedSiteSearch = parseSearchBarString(searchBox.value).trimRight();
+        console.log(`siteSearch_TrimRight("${searchBox.value}") = "${trimmedSiteSearch}"`);
 
-        console.log(`siteSearch_TrimRight(${searchBox.value}) = ${trimmedSiteSearch}`);
-
-        if (!trimmedSiteSearch || searchBox.value === trimmedSiteSearch) {// don't change if already the same
+        if (searchBox.value === trimmedSiteSearch) {// don't change if already the same
             return;
         }
-
         searchBox.value = trimmedSiteSearch;
         searchBox.form.submit();
     }
