@@ -1320,15 +1320,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     if (isGoogleImages) {
         bindKeys();
-
-        window.addEventListener('load', function modifyImgsOnLoad() {
-            for (const a of getImgAnchors()) {
-                let img = a.querySelector('img');
-                if (!img) continue;
-                img.setAttribute('download-name', getGimgDescription(img));
-                markImageOnLoad(img, a.href);
-            }
-        }, true);
     } else {
         observeDocument(function () {
             GSaves.addDirectUrls();
@@ -1477,7 +1468,129 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
         Mousetrap.bind(['esc', 'escape'], removeHash);
 
-        window.addEventListener('keydown', onKeyDown, true);
+
+        // keys that don't need a focusedPanel and all those other variables
+        Mousetrap.bind(['ctrl+alt+r'], toggleEncryptedGoogle);
+        Mousetrap.bind(['i'], function (e) {
+            var mi = getMenuItems();
+            mi.images.firstElementChild && mi.images.firstElementChild.click();
+        });
+        Mousetrap.bind(['/'], function (e) { // focus search box
+            const searchBar = q(Consts.Selectors.searchBox);
+            if (!$(searchBar).is(':focus')) {
+                searchBar.focus();
+                searchBar.scrollIntoView();
+                searchBar.select();
+                searchBar.setSelectionRange(0, searchBar.value.length); // this one is for compatibility
+                e.preventDefault();
+            }
+        });
+        // beep
+
+        // @info mainImage drop-down panel:    #irc_bg
+
+        // keys between 1 and (#buttons-1)
+        for (let i = 1; i <= 5; i++) { /*it should have around 5 buttons, not sure how many it actually has*/
+            Mousetrap.bind(i.toString(), function (e) {
+                ImagePanel.focP && ImagePanel.focP.buttons && i <= ImagePanel.focP.buttons.length && ImagePanel.focP.buttons[i - 1].click();
+            });
+        }
+
+        Mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
+        Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
+
+        Mousetrap.bind(['['], function (e) {
+            q('#minImgSizeSlider').value -= q('#minImgSizeSlider').step;
+        });
+        Mousetrap.bind([']'], function (e) {
+            q('#minImgSizeSlider').value += q('#minImgSizeSlider').step;
+        });
+
+
+        Mousetrap.bind([`'`], function (e) {
+            Preferences.loopbackWhenCyclingRelatedImages = !Preferences.loopbackWhenCyclingRelatedImages;
+            GM_setValue('LOOP_RELATED_IMAGES', Preferences.loopbackWhenCyclingRelatedImages);
+            console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.loopbackWhenCyclingRelatedImages);
+        });
+        Mousetrap.bind(['t'], function (e) {
+            console.debug('Torrent search');
+            openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(ImagePanel.focP.bestNameFromTitle)));
+        });
+        Mousetrap.bind(['s'], function (e) {
+            var btn_Save = ImagePanel.focP.q('.i15087');
+            console.debug('btn_Save', btn_Save);
+            if (!!btn_Save) btn_Save.click();
+        });
+        Mousetrap.bind(['v'], function (e) {
+            var btn_ViewSaves = ImagePanel.focP.q('.i18192');
+            console.debug('btn_ViewSaves', btn_ViewSaves);
+            if (!!btn_ViewSaves) btn_ViewSaves.click();
+        });
+        Mousetrap.bind(['b', 'numpad1'], function (e) {// ⬋ Search by image
+            const focusedRelatedImageUrl = ImagePanel.focP.ris_fc_Url;
+            if (typeof ImagePanel.focP.mainImage !== 'undefined') {
+                ImagePanel.focP.q('a.search-by-image').click();
+                console.debug('focusedRelatedImageUrl:', focusedRelatedImageUrl);
+            } else {
+                console.error('Image not found', focusedRelatedImageUrl);
+            }
+        });
+        Mousetrap.bind(['numpad4'], function (e) {// ◀
+            ImagePanel.previousImage();
+        });
+        Mousetrap.bind(['numpad6'], function (e) { // ▶
+            ImagePanel.nextImage();
+        });
+        Mousetrap.bind(['numpad3'], function (e) {// ⬊ Open related images in new tab
+            const moreRelatedImagesLink = ImagePanel.focP.q('.irc_rismo.irc_rimask a');
+            if (moreRelatedImagesLink != null) {
+                openInTab(moreRelatedImagesLink.href);
+            }
+        });
+        Mousetrap.bind(['d', 'numpad5'], ImagePanel.downloadCurrentImage);
+
+
+        Mousetrap.bind(['enter'], function (e) {
+            const currentImgUrl = ImagePanel.focP.ris_fc_Url;
+            console.log('currentImgUrl:', currentImgUrl);
+            openInTab(currentImgUrl);
+        });
+        Mousetrap.bind([',', 'up', 'numpad8'], function (e) { // ▲ Prev/Left relImage
+            prevRelImg();
+            e.preventDefault();
+        });
+        Mousetrap.bind(['.', 'down', 'numpad2'], function (e) {// Next related mainImage
+            nextRelImg();
+            e.preventDefault();
+        });
+        Mousetrap.bind(['o'], function (e) {
+            for (var div of ImagePanel.focP.ris_Divs) {
+                const img = div.querySelector('img');
+                var anchor = img.closest('a[href]');
+                console.log('Replacing with original:', img, 'Anchor:', anchor);
+                ShowImages.replaceImgSrc(img, anchor);
+            }
+        });
+        Mousetrap.bind(['h'], function (e) {
+            q('#rcnt').style.visibility = (/hidden/i).test(q('#rcnt').style.visibility) ? 'visible' : 'hidden';
+            e.preventDefault();
+        });
+        Mousetrap.bind(['m'], ImagePanel.download_ris);
+        Mousetrap.bind(['numpad7'], function (e) {// ⬉ lookup the images title.
+            const visitUrl = ImagePanel.focP.buttons[0].href;
+            // const visitTitleUrl = subtitleEl.href;
+
+            console.log('Visit:', visitUrl);
+            openInTab(visitUrl);
+        });
+        // Search using title
+        Mousetrap.bind(['numpad9'], () => ImagePanel.focP.lookupTitle());
+        Mousetrap.bind([';'], () => ImagePanel.focP.siteSearch());
+
+        // TODO: find a hotkey for this function
+        /*openInTab(`${gImgSearchURL}${encodeURIComponent(cleanSymbols(focusedPanel.descriptionText).trim())}`);
+        e.preventDefault();*/
+
         console.log('added super google key listener');
     }
 
@@ -2609,225 +2722,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         searchBox.value = trimmedSiteSearch;
         searchBox.form.submit();
-    }
-
-    // todo: replace this with Mousetrap.js
-    function onKeyDown(e) { // there will be no event if the target element is of type input (example: typing in the search bar, no hotkey will activate)
-        const targetElIsInput = targetIsInput(e);
-        const k = (window.event) ? e.keyCode : e.which;
-        const modKeys = getModKeys(e);
-
-        // keys that don't need a focusedPanel and all those other variables
-        switch (k) {
-            case KeyEvent.DOM_VK_R:
-                if (targetElIsInput) break;
-                if (modKeys.CTRL_ONLY || modKeys.ALT_ONLY) {
-                    e.preventDefault();
-                    toggleEncryptedGoogle();
-                    break;
-                }
-            // noinspection FallThroughInSwitchStatementJS
-            case KeyEvent.DOM_VK_I:
-                if (targetElIsInput) break;
-                var mi = getMenuItems();
-                if (mi.images.firstElementChild) {
-                    mi.images.firstElementChild.click();
-                }
-                break;
-            case KeyEvent.DOM_VK_FORWARD_SLASH: // focus search box
-                const searchBar = q(Consts.Selectors.searchBox);
-                if (!$(searchBar).is(':focus')) {
-                    searchBar.focus();
-                    searchBar.scrollIntoView();
-                    searchBar.select();
-                    searchBar.setSelectionRange(0, searchBar.value.length); // this one is for compatability
-                    e.preventDefault();
-                }
-                break;
-        }
-
-        if (targetElIsInput) {
-            return false;
-        }
-
-        if (!ImagePanel.mainPanelEl || typeof ImagePanel.mainPanelEl === 'undefined') {
-            console.debug('Main mainImage panel not found!!');
-            return;
-        }
-        const focusedPanel = ImagePanel.focP; //getFocusedPanel(); //ImagePanel.focusedPanel; // the active panel
-        if (!focusedPanel) {
-            console.warn('PANEL NOT FOUND!');
-            return false;
-        }
-
-        // @info mainImage drop-down panel:    #irc_bg
-
-        // keys between 1 and (#buttons-1)
-        if (k >= KeyEvent.DOM_VK_ALPHA1 && k <= (KeyEvent.DOM_VK_ALPHA1 + focusedPanel.buttons.length - 1)) {
-            if (focusedPanel.buttons) {
-                focusedPanel.buttons[e.key - 1].click();
-            } else {
-                console.warn('Panel buttons not found');
-            }
-        }
-
-        switch (k) {
-            // case KeyEvent.DOM_VK_ESCAPE:
-            //     break;
-            case KeyEvent.DOM_VK_CLOSE_BRACKET: // ]
-                if (modKeys.NONE) { // increment minImgSize
-                    const minImgSizeSlider = q('#minImgSizeSlider');
-                    minImgSizeSlider.value = parseInt(minImgSizeSlider.value) + parseInt(minImgSizeSlider.step);
-                } else if (modKeys.CTRL_ONLY) { // trim right search query
-                    siteSearch_TrimRight();
-                }
-                break;
-            case KeyEvent.DOM_VK_OPEN_BRACKET: // [
-                if (modKeys.NONE) { // decrement minImgSize
-                    const minImgSizeSlider = q('#minImgSizeSlider');
-                    minImgSizeSlider.value = parseInt(minImgSizeSlider.value) - parseInt(minImgSizeSlider.step);
-                } else if (modKeys.CTRL_ONLY) { // trim left search query
-                    siteSearch_TrimLeft();
-                }
-                break;
-            case KeyEvent.DOM_VK_SINGLE_QUOTE: // '
-                if (!modKeys.NONE) { //    toggle "loop-relImgs" option on/off
-                    Preferences.loopbackWhenCyclingRelatedImages = !Preferences.loopbackWhenCyclingRelatedImages;
-                    GM_setValue('LOOP_RELATED_IMAGES', Preferences.loopbackWhenCyclingRelatedImages);
-                    console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.loopbackWhenCyclingRelatedImages);
-                }
-                break;
-            case KeyEvent.DOM_VK_T: // T (for torrent)
-                console.debug('Torrent search');
-                openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(focusedPanel.bestNameFromTitle)));
-                break;
-            case KeyEvent.DOM_VK_S: // S
-                if (modKeys.NONE) { // Save
-                    var btn_Save = focusedPanel.q('.i15087');
-                    console.debug('btn_Save', btn_Save);
-                    if (!!btn_Save) btn_Save.click();
-                }
-                break;
-            case KeyEvent.DOM_VK_V: // View saves
-                if (modKeys.NONE) {
-                    var btn_ViewSaves = focusedPanel.q('.i18192');
-                    console.debug('btn_ViewSaves', btn_ViewSaves);
-                    if (!!btn_ViewSaves) btn_ViewSaves.click();
-                }
-                break;
-            case KeyEvent.DOM_VK_B: // Search By image
-            case KeyEvent.DOM_VK_NUMPAD1:// ⬋
-                if (modKeys.NONE) { // Search by image
-                    const focusedRelatedImageUrl = focusedPanel.ris_fc_Url;
-                    if (typeof focusedPanel.mainImage !== 'undefined') {
-                        focusedPanel.q('a.search-by-image').click();
-                        console.debug('focusedRelatedImageUrl:', focusedRelatedImageUrl);
-                    } else {
-                        console.error('Image not found', focusedRelatedImageUrl);
-                    }
-                }
-                break;
-            case KeyEvent.DOM_VK_NUMPAD4:// ◀
-                if (modKeys.NONE) {
-                    ImagePanel.previousImage();
-                }
-                break;
-            case KeyEvent.DOM_VK_NUMPAD6: // ▶
-                if (modKeys.NONE) {
-                    ImagePanel.nextImage();
-                }
-                break;
-            // Open related images (press the bottom right square in the corner) in new tab
-            case KeyEvent.DOM_VK_NUMPAD3:// ⬊
-                if (modKeys.NONE) {
-                    const moreRelatedImagesLink = focusedPanel.q('.irc_rismo.irc_rimask a');
-                    if (moreRelatedImagesLink != null) {
-                        openInTab(moreRelatedImagesLink.href);
-                    }
-                }
-                break;
-            case KeyEvent.DOM_VK_D:
-                if (modKeys.NONE) {
-                    ImagePanel.downloadCurrentImage();
-                }
-                break;
-            case KeyEvent.DOM_VK_ENTER:
-                console.log('Numpad5 pressed', e);
-                if (modKeys.NONE) {
-                    const currentImgUrl = focusedPanel.ris_fc_Url;
-                    console.log('currentImgUrl:', currentImgUrl);
-                    openInTab(currentImgUrl);
-                } else if (modKeys.SHIFT_ONLY) {    // NOT WORKING!!
-                    ImagePanel.downloadCurrentImage();
-                    // e.preventDefault();
-                }
-                break;
-            // Previous related mainImage
-            case KeyEvent.DOM_VK_COMMA:
-            case KeyEvent.DOM_VK_UP:
-            case KeyEvent.DOM_VK_NUMPAD8: // ▲
-                // Prev/Left relImage
-                if (modKeys.NONE) {
-                    prevRelImg();
-                    e.preventDefault();
-                    break;
-                }
-            // Next related mainImage
-            case KeyEvent.DOM_VK_PERIOD: //fall-through
-            case KeyEvent.DOM_VK_DOWN:
-            case KeyEvent.DOM_VK_NUMPAD2:// ▼
-                if (modKeys.NONE) {// Next/Right relImage
-                    nextRelImg();
-                    e.preventDefault();
-                }
-                break;
-            case KeyEvent.DOM_VK_O:
-                if (modKeys.NONE) {
-                    for (var div of focusedPanel.ris_Divs) {
-                        const img = div.querySelector('img');
-                        var anchor = img.closest('a[href]');
-                        console.log('Replacing with original:', img, 'Anchor:', anchor);
-                        ShowImages.replaceImgSrc(img, anchor);
-                    }
-                }
-                break;
-            case KeyEvent.DOM_VK_H:
-                if (modKeys.ALT_ONLY) {
-                    q('#rcnt').style.visibility = (/hidden/i).test(q('#rcnt').style.visibility) ? 'visible' : 'hidden';
-                    e.preventDefault();
-                }
-                break;
-            case KeyEvent.DOM_VK_M:
-                ImagePanel.download_ris();
-                break;
-            // I have options, I'll choose the best later
-            case KeyEvent.DOM_VK_NUMPAD7:// ⬉
-                if (modKeys.NONE) { // lookup the images title.
-                    const visitUrl = focusedPanel.buttons[0].href;
-                    // const visitTitleUrl = subtitleEl.href;
-
-                    console.log('Visit:', visitUrl);
-                    openInTab(visitUrl);
-                }
-                break;
-            // Search using title
-            case KeyEvent.DOM_VK_NUMPAD9:// ⬈
-                if (modKeys.NONE) {
-                    focusedPanel.lookupTitle();
-                }
-                break;
-            case KeyEvent.DOM_VK_NUMPAD5: //downloadCurrentImage
-                ImagePanel.downloadCurrentImage();
-                break;
-            case KeyEvent.DOM_VK_SEMICOLON:
-                if (modKeys.SHIFT_ONLY) {
-                    focusedPanel.siteSearch();
-                }
-                break;
-            // TODO: find a hotkey for this function
-            /*openInTab(`${gImgSearchURL}${encodeURIComponent(cleanSymbols(focusedPanel.descriptionText).trim())}`);
-            e.preventDefault();*/
-        }
     }
 
     function openInTab(url, target) {
