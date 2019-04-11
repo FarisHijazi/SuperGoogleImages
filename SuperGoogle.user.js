@@ -55,6 +55,11 @@
  * @property {number[]} dim:  dimensions [width, height]
  */
 
+var showImages = new ShowImages({
+
+});
+console.log('SuperGoogle showImages:', showImages);
+
 
 (function createAndAddCSS() {
         // language=CSS
@@ -66,34 +71,30 @@
         border-bottom: 1px dotted black; 
     } 
  
-    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
-    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
+    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
+    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
         border: 3px #F00 solid; 
     } 
  
-    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
-    img.${ShowImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
+    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
+    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
         -webkit-filter: grayscale(1) !important; /* Webkit */ 
-        filter: gray !important; /* IE6-9 */ 
-        filter: grayscale(1) !important; /* W3C */ 
- 
-        opacity: 0.5 !important; 
-        filter: alpha(opacity=50) !important; /* For IE8 and earlier */ 
+         opacity: 0.5 !important; 
     }`);
 
         // language=CSS
         addCss(
             ` /*set borders*/ 
-    div.${ShowImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {	 
+    div.${showImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {	 
         border-radius: 5px; 
         border: 3px #0F0 solid; 
     } 
  
-    div.${ShowImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) { 
+    div.${showImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) { 
         border: 3px #6800FF solid; 
     } 
  
-    div.${ShowImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
+    div.${showImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
         border: 3px #FFA500 solid; 
     }`);
 
@@ -138,6 +139,7 @@
         /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
     }
 )();
+
 
 (function () {
     'use strict';
@@ -188,7 +190,7 @@
             belowDiv: 'below-st-div'
         }
     };
-    Consts.ClassNames = $.extend(ShowImages.ClassNames, Consts.ClassNames);
+    Consts.ClassNames = $.extend(showImages.ClassNames, Consts.ClassNames);
 
     // done: make the preferences object be written to the storage, rather than having each element stored, also extend a default object
     // OPTIONS:
@@ -231,7 +233,7 @@
         // if the selector key ends with 's' (plural), then it gets multiple elements, otherwise just a single element
         for (const key of Object.keys(Consts.Selectors)) {
             const v = Consts.Selectors[key];
-            els.__defineGetter__(key, key.slice(-1).toLowerCase() === 's' ?
+            els.__defineGetter__(key, key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
                 (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
         }
 
@@ -240,6 +242,8 @@
             elements: els
         };
     })();
+
+
     unsafeWindow.GoogleUtils = GoogleUtils;
     console.log('GoogleUtils', GoogleUtils);
 
@@ -1449,6 +1453,20 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function bindKeys() {
+
+        Mousetrap.addKeycodes({
+            96: 'numpad0',
+            97: 'numpad1',
+            98: 'numpad2',
+            99: 'numpad3',
+            100: 'numpad4',
+            101: 'numpad5',
+            102: 'numpad6',
+            103: 'numpad7',
+            104: 'numpad8',
+            105: 'numpad9'
+        });
+
         Mousetrap.bind(['c c'], cleanSearch);
         Mousetrap.bind(['u'], () => {
             location.assign(safeSearchOffUrl());
@@ -1496,21 +1514,21 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         // @info mainImage drop-down panel:    #irc_bg
 
-        // keys between 1 and (#buttons-1)
-        for (let i = 1; i <= 5; i++) { /*it should have around 5 buttons, not sure how many it actually has*/
-            Mousetrap.bind(i.toString(), function (e) {
-                ImagePanel.focP && ImagePanel.focP.buttons && i <= ImagePanel.focP.buttons.length && ImagePanel.focP.buttons[i - 1].click();
-            });
-        }
+        // // keys between 1 and (#buttons-1)
+        // for (let i = 1; i <= 5; i++) { /*it should have around 5 buttons, not sure how many it actually has*/
+        //     Mousetrap.bind(i.toString(), function (e) {
+        //         ImagePanel.focP && ImagePanel.focP.buttons && i <= ImagePanel.focP.buttons.length && ImagePanel.focP.buttons[i - 1].click();
+        //     });
+        // }
 
         Mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
         Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
         Mousetrap.bind(['['], function (e) {
-            q('#minImgSizeSlider').value -= q('#minImgSizeSlider').step;
+            q('#minImgSizeSlider').stepDown()
         });
         Mousetrap.bind([']'], function (e) {
-            q('#minImgSizeSlider').value += q('#minImgSizeSlider').step;
+            q('#minImgSizeSlider').stepUp();
         });
 
 
@@ -1575,7 +1593,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 const img = div.querySelector('img');
                 var anchor = img.closest('a[href]');
                 console.log('Replacing with original:', img, 'Anchor:', anchor);
-                ShowImages.replaceImgSrc(img, anchor);
+                showImages.replaceImgSrc(img, anchor);
             }
         });
         Mousetrap.bind(['h'], function (e) {
@@ -1941,7 +1959,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // == creating buttons ==
 
-            const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', ShowImages.displayImages);
+            const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
+                    showImages.displayImages();
+            });
             const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
                 q('#itp_animated').firstElementChild.click();
             });
@@ -2007,7 +2027,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // automatically display originals if searching for a site:
             if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
-                ShowImages.displayImages();
+                showImages.displayImages();
             }
 
         } catch (r) {
@@ -2028,19 +2048,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
     }
 
+    /**
+     * Returns a list of qualified image metas
+     * @return {Meta[]}
+     */
     function getQualifiedUblImgMetas() {
-        let qualifiedUblImgMetas = new Set();
-        for (const img of qa(`.${Consts.ClassNames.DISPLAY_ORIGINAL}, img[loaded="true"]`)) {
-            if (img.classList.contains(Consts.ClassNames.FAILED) || img.classList.contains(Consts.ClassNames.FAILED_DDG))
-                continue;
-            let meta = getMeta(img);
-            if (meta && Math.max(meta.ow, meta.oh) < 120) continue;
-            meta.imgEl = img;
+        const condition = meta => !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_DDG) // not marked as failed
+            && meta && Math.max(meta.ow, meta.oh) >= 120); // not too small;
 
-            qualifiedUblImgMetas.add(meta);
-            console.log('Ubl URLs:', isBase64ImageData(img.src) ? 'base64 image data...' : img.src);
-        }
-        return qualifiedUblImgMetas;
+        return Array.from(getImgBoxes(' a.rg_l img[loaded="true"], a.rg_l img[loaded="true"]'))
+            .map(getMeta)
+            .filter(condition);
     }
 
     function downloadImages() {
@@ -2112,8 +2130,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 const meta = getMeta(img);
                 const fileURL = meta.ou;
-                const w = parseInt(meta.ow);
-                const h = parseInt(meta.oh);
+                const w = meta.ow;
+                const h = meta.oh;
 
                 // adding new property names to the img object
                 img['fileURL'] = fileURL;
@@ -2135,23 +2153,28 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
 
+    /**
+     * occumulates the unblocked site hostnames to the global `ublSitesSet`
+     * @return {Meta[]} the added sites
+     */
     function collectUblSites() {
-        for (const imgMeta of getQualifiedUblImgMetas()) {
-            try {
-                let hostname = getHostname(imgMeta.src);
-                if (/tumblr\.com/.test(hostname)) hostname = hostname.replace(/^\d+?\./, '');
-                if (/google|gstatic/i.test(hostname)) {
-                    hostname = getHostname(imgMeta.ru);
-                    if (/google|gstatic/i.test(hostname)) {
-                        continue;
-                    }
-                }
-                ublSitesSet.add(hostname);
-            } catch (e) {
-                console.error(e);
+
+        function extractUblHostname(imgMeta) {
+            let hostname = getHostname(imgMeta.src);
+
+            if (/tumblr\.com/.test(hostname))
+                hostname = hostname.replace(/^\d+?\./, '');
+
+            if (/google|gstatic/i.test(hostname)) {
+                hostname = getHostname(imgMeta.ru);
             }
+
+            return hostname;
         }
-        return ublSitesSet;
+
+        const added = Array.from(getQualifiedUblImgMetas()).map(extractUblHostname).filter(x => !!x);
+        ublSitesSet.addAll(added);
+        return added;
     }
     function storeUblSitesSet() {
         collectUblSites();
@@ -2171,8 +2194,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     /**
      * Deletes unwanted properties of the meta object (the object containing)
-     * @param meta
-     * @return {Object}
+     * @param {Meta} meta - the meta is mutated
+     * @return {Meta|Object} the same object is returned for convenience
      */
     function cleanMeta(meta) {
         if (!meta)
@@ -2196,6 +2219,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             '\nnew ublURLs:', ublMetas
         );
 
+        // store
         GM_setValue(Consts.GMValues.ublUrls, Array.from(ublMetas).map(cleanMeta));
 
         return ublMetas;
@@ -2296,7 +2320,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 };
                 const replaceWithOriginal = (e) => {
                     checkAndResetTimer(e);
-                    ShowImages.replaceImgSrc(bx.querySelector('img'), bx.querySelector('a'));
+                    showImages.replaceImgSrc(bx.querySelector('img'), bx.querySelector('a'));
                 };
 
                 const onMouseUpdate = (e) => {
@@ -2348,6 +2372,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             metaObj.src = imageElement.src;
             metaObj.dim = [metaObj.ow, metaObj.oh];
+            metaObj.imgEl = imageElement;
 
             if (minified)
                 cleanMeta(metaObj);
@@ -2990,7 +3015,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     zip.current++;
 
                     // fixing the download button text
-                    downloadBtn.classList.add('genzip-possible');
+                    q('#downloadBtn') && q('#downloadBtn').classList.add('genzip-possible');
                     updateDownloadBtnText();
 
 
@@ -3590,12 +3615,12 @@ function makeTextFile(text) {
 function cleanGibberish(str, minWgr, debug = false) {
     if (str) {
         const gibberishRegex = /(\W{2,})|(\d{3,})|(\d+\w{1,5}\d+){2,}/g;
-        let noGibberish = removeDoubleSpaces(str.replace(gibberishRegex, ' ')),
-            /**
-             * The minimum word2gibberish ratio to exit the loop
-             * @type {number|*}
-             */
-            minWgr = minWgr||0.4;
+        let noGibberish = removeDoubleSpaces(str.replace(gibberishRegex, ' '));
+        /**
+         * The minimum word2gibberish ratio to exit the loop
+         * @type {number|*}
+         */
+        minWgr = minWgr || 0.4;
         if (noGibberish.length < 3) return str;
         /**
          * WGR: Word to Gibberish Ratio (between 0 and 1)
@@ -3723,4 +3748,4 @@ function getElementsByXPath(xpath, parent) {
         results.push(query.snapshotItem(i));
     }
     return results;
-};
+}
