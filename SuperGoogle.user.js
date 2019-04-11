@@ -152,6 +152,15 @@
         void (0);
     }
 
+    Set.prototype.addAll = function (range) {
+        if (range) {
+            for (const x of range) {
+                this.add(x);
+            }
+        }
+        return this;
+    };
+
     // === end of basic checks and imports ===
 
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
@@ -2177,29 +2186,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function storeUblMetas() {
-        for (const imgMeta of getQualifiedUblImgMetas()) {
-            imgMeta.imgEl = undefined;
-            ublMetas.add(imgMeta);
-        }
+        ublMetas.addAll(getQualifiedUblImgMetas());
 
         const stored = new Set(GM_getValue(Consts.GMValues.ublUrls, new Set()));
-        for (const meta of stored) {
-            ublMetas.add(meta);
-        }
+        ublMetas.addAll(stored);
+
         console.debug(
             'stored ublURLs:', stored,
             '\nnew ublURLs:', ublMetas
         );
 
-        GM_setValue(Consts.GMValues.ublUrls, Array.from(ublMetas).map(ublMeta => {
-            if (!ublMeta || Array.isArray(ublMeta)) {
-                ublMetas.delete(ublMeta);
-                return;
-            }
-            cleanMeta(ublMeta);
+        GM_setValue(Consts.GMValues.ublUrls, Array.from(ublMetas).map(cleanMeta));
 
-            return ublMeta;
-        }));
         return ublMetas;
     }
     function storeUblMap() {
