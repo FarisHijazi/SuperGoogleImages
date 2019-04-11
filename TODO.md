@@ -87,3 +87,8 @@ Not urgent and not important
     Uncaught TypeError: Cannot read property 'getAttribute' of null
     at handler (eval at unsafeEval (userscript.html?id=bf35ec11-4374-4c89-97ab-a84223888460:NaN), <anonymous>:99:61)
     ```
+    
+## Lessons learned
+
+- I learned that when you pass a method as a callback function, the `this` will be null (at least in strict mode)
+- 
