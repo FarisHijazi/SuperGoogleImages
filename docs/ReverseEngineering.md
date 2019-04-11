@@ -80,6 +80,7 @@ Sample meta JSON:
 "ou":   "http://78.media.tumblr.com/....500.gif",       // Original URL
 "ow":   492,                                            // Original Width
 "pt":   "",                                             // PrimaryTitle
+"rh":  "gifs.cc",
 "rid":  "nyyV1PqBnBltYM",                               // Referrer ID
 "rmt":  0,                                              //
 "rt":   0,                                              //
@@ -96,7 +97,6 @@ Sample meta JSON:
 
 | Key | Phrase             | Description                                                                    |
 | --- | ------------------ | ------------------------------------------------------------------------------ |
-| cr  |                    |                                                                                |
 | id  | Id                 | Also doubles as the id of the IMG                                              |
 | isu | Hostpage URL       |                                                                                |
 | itg | Image Tag          |                                                                                |
@@ -105,7 +105,8 @@ Sample meta JSON:
 | ou  | Original URL       |                                                                                |
 | ow  | Original Width     |                                                                                |
 | pt  | Primary Title      |                                                                                |
-| rid | Response id (?)    | usually a batch of 19 images have the same rid, probably for each batch loaded |
+| rh  | Referrer Host ~    |                                                                                |
+| rid | Response id ~      | usually a batch of 19 images have the same rid, probably for each batch loaded |
 | rmt |                    |                                                                                |
 | rt  |                    |                                                                                |
 | ru  | Redirect URL       |                                                                                |
@@ -114,3 +115,4 @@ Sample meta JSON:
 | th  | Thumbnail Height   |                                                                                |
 | tu  | Thumbnail URL      |                                                                                |
 | tw  | Thumbnail Width    |                                                                                |
+| cr  |                    |                                                                                |
