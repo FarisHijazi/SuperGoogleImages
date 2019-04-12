@@ -24,6 +24,9 @@
 // @connect      *
 // ==/UserScript==
 
+// TODO: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
+
+
 /**
  * Metadata object containing info for each image
  * @typedef {Object} Meta
@@ -59,6 +62,7 @@ var showImages = new ShowImages({
 
 });
 console.log('SuperGoogle showImages:', showImages);
+unsafeWindow.showImagesSuperGoogle = showImages;
 
 
 (function createAndAddCSS() {
@@ -666,8 +670,7 @@ console.log('SuperGoogle showImages:', showImages);
         get descriptionText() {
             const descr = this.titleAndDescriptionDiv.querySelector('div.irc_asc');
 
-            descr.innerText = (descr.innerText.length < 2) ? this.pTitle_Text : descr.innerText;
-            return cleanGibberish(descr.innerText);
+            return cleanGibberish((descr.innerText.length < 2) ? this.pTitle_Text : descr.innerText);
         }
         /** @return {HTMLAnchorElement} */
         get pTitle_Anchor() {
@@ -830,6 +833,11 @@ console.log('SuperGoogle showImages:', showImages);
                 classList.add('scroll-nav');
             }
 
+            // add onerror listener to the mainimage
+            // this.mainImage.addEventListener('error', function(e) {
+            //     console.log('OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this!', e);
+            // });
+
 
             // adding text-decoration to secondary title
             p.sTitle_Anchor.parentElement.after(createElement(
@@ -869,8 +877,10 @@ console.log('SuperGoogle showImages:', showImages);
          style=" width: 25px; height: 25px; ">
     <label style=" display: list-item; ">Torrent link</label></a>`);
                 rarbg_tl.onclick = () => {
-                    if (/\/torrent\/|rarbg/i.test(p.pTitle_Anchor.href))
+                    if (/\/torrent\/|rarbg/i.test(p.pTitle_Anchor.href)) {
+                        p.pTitle_Anchor.hostname = 'www.rarbgaccess.org'; // choosing a specific mirror
                         anchorClick(extractRarbgTorrentURL(p.pTitle_Anchor.innerText, p.pTitle_Anchor.href), '_blank');
+                    }
                 };
                 p.pTitle_Anchor.before(rarbg_tl);
             })();
@@ -973,6 +983,7 @@ console.log('SuperGoogle showImages:', showImages);
             // p.removeLink();
             // p.injectSearchByImage();
             // p.addDownloadRelatedImages();
+
             p.makeDescriptionClickable();
             p.addImageAttributes();
             p.update_SiteSearch();
@@ -986,9 +997,9 @@ console.log('SuperGoogle showImages:', showImages);
             }
 
             // rarbg torrent link
-            let torrentLink = p.q('.torrent-link'),
-                linkIsTorrent = /\/torrent\//gi.test(p.pTitle_Anchor.href);
-            if (!!torrentLink) {
+            let torrentLink = p.q('.torrent-link');
+            let linkIsTorrent = /\/torrent\//gi.test(p.pTitle_Anchor.href);
+            if (torrentLink) {
                 torrentLink.style.display = linkIsTorrent ? 'inline-block' : 'none';
             }
         }
@@ -1071,9 +1082,11 @@ console.log('SuperGoogle showImages:', showImages);
 
         makeDescriptionClickable() {
             const descriptionEl = this.descriptionEl;
+
             function openDescription() {
-                window.open(GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(this.innerHTML)), '_blank');
+                window.open(GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(descriptionEl.innerText)), '_blank');
             }
+
             if (descriptionEl && !descriptionEl.classList.contains('hover-click')) {
                 descriptionEl.classList.add(`hover-click`);
                 descriptionEl.addEventListener('click', openDescription);
@@ -1552,12 +1565,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (!!btn_ViewSaves) btn_ViewSaves.click();
         });
         Mousetrap.bind(['b', 'numpad1'], function (e) {// ⬋ Search by image
-            const focusedRelatedImageUrl = ImagePanel.focP.ris_fc_Url;
-            if (typeof ImagePanel.focP.mainImage !== 'undefined') {
+            if (ImagePanel.focP.mainImage) {
                 ImagePanel.focP.q('a.search-by-image').click();
-                console.debug('focusedRelatedImageUrl:', focusedRelatedImageUrl);
             } else {
-                console.error('Image not found', focusedRelatedImageUrl);
+                console.error('Image not found', ImagePanel.focP.ris_fc_Url);
             }
         });
         Mousetrap.bind(['numpad4'], function (e) {// ◀
@@ -1736,10 +1747,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @param {string} torrentName
      * @param {string} torrentPageURL
      * @returns {string}
-     * https://rarbgprx.org/download.php?id= kmvf126 &f= <TorrentName>-[rarbg.to].torrent
+     * https://rarbgaccess.org/download.php?id= kmvf126 &f= <TorrentName>-[rarbg.to].torrent
      */
     function extractRarbgTorrentURL(torrentName, torrentPageURL) {
-        const torrentURL = torrentPageURL.replace(/torrent\//i, 'download.php?id=') + '&f=' + torrentName.split(/\s+/)[0].torrent;
+        const torrentURL = torrentPageURL.replace(/torrent\//i, 'download.php?id=') + '&f=' + torrentName.split(/\s+/)[0];
         console.debug('extracted rarbg torrent URL:', torrentURL);
         return torrentURL;
     }
@@ -3311,7 +3322,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
     // give a white border so that we'll have them all the same size
-    addCss('div.rg_bx { border-radius: 2px;border: 2px #fff solid;}');
+    addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}');
 
     // language=CSS
     addCss(`.hover-click:hover,
