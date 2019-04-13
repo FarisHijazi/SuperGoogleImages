@@ -1570,20 +1570,20 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             } else {
                 console.error('Image not found', ImagePanel.focP.ris_fc_Url);
             }
-        });
+        }, 'keydown');
         Mousetrap.bind(['numpad4'], function (e) {// ◀
             ImagePanel.previousImage();
-        });
+        }, 'keydown');
         Mousetrap.bind(['numpad6'], function (e) { // ▶
             ImagePanel.nextImage();
-        });
+        }, 'keydown');
         Mousetrap.bind(['numpad3'], function (e) {// ⬊ Open related images in new tab
             const moreRelatedImagesLink = ImagePanel.focP.q('.irc_rismo.irc_rimask a');
             if (moreRelatedImagesLink != null) {
                 openInTab(moreRelatedImagesLink.href);
             }
-        });
-        Mousetrap.bind(['d', 'numpad5'], ImagePanel.downloadCurrentImage);
+        }, 'keydown');
+        Mousetrap.bind(['d', 'numpad5'], ImagePanel.downloadCurrentImage, 'keydown');
 
 
         Mousetrap.bind(['enter'], function (e) {
@@ -1594,11 +1594,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind([',', 'up', 'numpad8'], function (e) { // ▲ Prev/Left relImage
             prevRelImg();
             e.preventDefault();
-        });
+        }, 'keydown');
         Mousetrap.bind(['.', 'down', 'numpad2'], function (e) {// Next related mainImage
             nextRelImg();
             e.preventDefault();
-        });
+        }, 'keydown');
         Mousetrap.bind(['o'], function (e) {
             for (var div of ImagePanel.focP.ris_Divs) {
                 const img = div.querySelector('img');
@@ -1618,9 +1618,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             console.log('Visit:', visitUrl);
             openInTab(visitUrl);
-        });
+        }, 'keydown');
         // Search using title
-        Mousetrap.bind(['numpad9'], () => ImagePanel.focP.lookupTitle());
+        Mousetrap.bind(['numpad9'], () => ImagePanel.focP.lookupTitle(), 'keydown');
         Mousetrap.bind([';'], () => ImagePanel.focP.siteSearch());
 
         // TODO: find a hotkey for this function
