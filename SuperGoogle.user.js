@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Super Google Images
-// @namespace    https://github.com/buzamahmooza
+// @namespace    https://github.com/FarisHijazi
 // @author       Faris Hijazi
-// @version      0.3.3
+// @version      0.4
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -14,7 +14,7 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        unsafeWindow
-// @require      http://code.jquery.com/jquery-latest.min.js
+// @require      https://code.jquery.com/jquery-3.4.0.min.js
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
 // @require      https://greasyfork.org/scripts/14150-google-%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91/code/Google%EF%BC%9A%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91.user.js
@@ -74,12 +74,12 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         display: inline-block; 
         border-bottom: 1px dotted black; 
     } 
- 
+
     img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
     img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
         border: 3px #F00 solid; 
     } 
- 
+
     img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
     img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
         -webkit-filter: grayscale(1) !important; /* Webkit */ 
@@ -93,11 +93,11 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         border-radius: 5px; 
         border: 3px #0F0 solid; 
     } 
- 
+
     div.${showImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) { 
         border: 3px #6800FF solid; 
     } 
- 
+
     div.${showImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
         border: 3px #FFA500 solid; 
     }`);
