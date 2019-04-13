@@ -303,7 +303,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
          */
         addURL(url, successful, o) {
             if (successful && !this.resultMap.has(url)) {
-                if (PProxy.ddg.isDdgUrl(url)) {
+                if (PProxy.DDG.test(url)) {
                     this.scc_ddgp++;
                 } else {
                     this.scc_tot++;
@@ -1201,7 +1201,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const focusedImageDiv = ImagePanel.focP.ris_fc_Div;
             if (focusedImageDiv) {
                 const url = focusedImageDiv.querySelector('a').href;
-                const hostname = getHostname(PProxy.ddg.isDdgUrl(url) ? PProxy.ddg.reverseDdgProxy(url) : url);
+                const hostname = getHostname(PProxy.DDG.test(url) ? PProxy.DDG.reverse(url) : url);
                 // updating ImageHost
                 const ih = this.q('a.image-host');
                 if (ih) {
@@ -1254,7 +1254,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             const ddgAnchor = this.q('#ddgSearch');
             if (ddgAnchor) {
-                ddgAnchor.href = PProxy.ddg.ddgProxy(this.pTitle_Anchor.href);
+                ddgAnchor.href = PProxy.DDG.proxy(this.pTitle_Anchor.href);
             }
 
             if (ublSitesSet.has(hostname))
@@ -1519,7 +1519,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 searchBar.focus();
                 searchBar.scrollIntoView();
                 searchBar.select();
-                searchBar.setSelectionRange(0, searchBar.value.length); // this one is for compatibility
+                searchBar.setSelectionRange(searchBar.value.length, searchBar.value.length);
                 e.preventDefault();
             }
         });
@@ -2942,10 +2942,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             function onBadResult(res) {
                 console.debug('onBadResult:', 'fileURL:', fileUrl, 'response.finalURL:', res.finalUrl);
 
-                if (!PProxy.ddg.isDdgUrl(res.finalUrl)) {
+                if (!PProxy.DDG.test(res.finalUrl)) {
                     console.debug(
                         'retrying with ddgproxy',
-                        '\nddgpURL:', PProxy.ddg.ddgProxy(fileUrl),
+                        '\nddgpURL:', PProxy.DDG.proxy(fileUrl),
                         '\nfileURL:', fileUrl,
                         '\nresponse.finalURL:', res.finalUrl
                     );
@@ -2955,7 +2955,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         zip.current++;
                         return;
                     }
-                    requestAndZipImage(PProxy.ddg.ddgProxy(fileUrl), fileName, img);
+                    requestAndZipImage(PProxy.DDG.proxy(fileUrl), fileName, img);
                 } else {
                     return true;
                 }
