@@ -56,51 +56,12 @@
  * @property {number[]} dim:  dimensions [width, height]
  */
 
-var showImages = new ShowImages({
-
-});
+var showImages = new ShowImages({});
 console.log('SuperGoogle showImages:', showImages);
 unsafeWindow.showImagesSuperGoogle = showImages;
 
 
 (function createAndAddCSS() {
-        // language=CSS
-        addCss(
-            ` 
-    .tooltip { 
-        position: relative; 
-        display: inline-block; 
-        border-bottom: 1px dotted black; 
-    } 
-
-    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
-    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
-        border: 3px #F00 solid; 
-    } 
-
-    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"], 
-    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] { 
-        -webkit-filter: grayscale(1) !important; /* Webkit */ 
-         opacity: 0.5 !important; 
-    }`);
-
-        // language=CSS
-        addCss(
-            ` /*set borders*/ 
-    div.${showImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {	 
-        border-radius: 5px; 
-        border: 3px #0F0 solid; 
-    } 
-
-    div.${showImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) { 
-        border: 3px #ff00c5 solid; 
-    } 
-
-    div.${showImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
-        border: 3px #FFA500 solid; 
-    }`);
-
-
         /* Overlay CSS for highlighting selected images */
         // language=CSS
         addCss(`.highlight, .drop-shadow {
@@ -452,7 +413,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
                     }`);
         }
         static addDirectUrlsButton(mutationTarget) {
-            if(q('#add-direct-urls-button')) return;
+            if (q('#add-direct-urls-button')) return;
             const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
 
             if (!threeDots) {
