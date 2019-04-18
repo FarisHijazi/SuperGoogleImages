@@ -20,13 +20,11 @@
 // @require      https://greasyfork.org/scripts/14150-google-%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91/code/Google%EF%BC%9A%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91.user.js
 // @require      https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js
 // @require      https://github.com/buzamahmooza/Helpful-Web-Userscripts/raw/master/Handy%20AF%20functions%20Faris.user.js
-// @run-at       document-idle
+// @run-at       document-start
 // @connect      *
 // ==/UserScript==
 
 // TODO: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
-
-void(0);
 /**
  * Metadata object containing info for each image
  * @typedef {Object} Meta
@@ -248,7 +246,6 @@ unsafeWindow.showImagesSuperGoogle = showImages;
 
 
     unsafeWindow.GoogleUtils = GoogleUtils;
-    console.log('GoogleUtils', GoogleUtils);
 
     // write back to storage (in case the storage was empty)
     GM_setValue('Preferences', Preferences);
@@ -1360,25 +1357,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     var url = new URL(location.href);
     const isGoogleImages = url.searchParams.get('tbm') === 'isch'; // TODO: find a better way of determining whether the page is a Google Image search
 
-    go();
 
-    $(document).ready(function () {
-        // observe new image boxes that load
-        observeDocument(function (mutationTarget, addedNodes) {
-            const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
-            if (addedImageBoxes.length) {
-                onImageBatchLoading(addedImageBoxes);
-                updateDownloadBtnText();
-            }
-        }, {singleCallbackPerMutation: true});
-
-
-        // automatically display originals if searching for a site:
-        if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
-            showImages.displayImages();
+    // observe new image boxes that load
+    observeDocument(function (mutationTarget, addedNodes) {
+        const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
+        if (addedImageBoxes.length) {
+            onImageBatchLoading(addedImageBoxes);
+            updateDownloadBtnText();
         }
+    }, {singleCallbackPerMutation: true});
 
-    });
+
+    elementReady('body').then(go);
 
 
     if (isGoogleImages) {
@@ -1422,57 +1412,63 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     function go() {
         if (onGoogleImages) {
-            try {
 
-                // iterating over the stored ubl sites
-                for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
-                for (const ublURL of GM_getValue(Consts.GMValues.ublUrls, new Set())) ublMetas.add(ublURL);
-                for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
-                if (Preferences.periodicallySaveUnblockedSites)
-                    setInterval(storeUblSitesSet, 5000);
+            // iterating over the stored ubl sites
+            for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
+            for (const ublURL of GM_getValue(Consts.GMValues.ublUrls, new Set())) ublMetas.add(ublURL);
+            for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
+            if (Preferences.periodicallySaveUnblockedSites)
+                setInterval(storeUblSitesSet, 5000);
 
-                // if (new URL(location.href).searchParams.get('allsizes'))
-                {
-                    var showAllSizesAnchor = q(Consts.Selectors.showAllSizes);
-                    if (!!showAllSizesAnchor) showAllSizesAnchor.click();
-                }
-
-
-                // wait for panel to appear then start modding
-                let elementGetter = () => (ImagePanel.mainPanelEl && ImagePanel.focP && ImagePanel.focP.mainImage && ImagePanel.focP.buttons) ? qa('#irc_cc > div') : undefined;
-                waitForElement(elementGetter, function (panelEl) {
-                    // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
-                    const mutationObserver = new MutationObserver(function (mutations, observer) {
-                        observer.disconnect();
-                        console.log('panelMutationCallback()');
-
-                        try {
-                            onPanelMutation(mutations);
-                        } catch (e) {
-                            console.warn(e, 'Focused panel:', ImagePanel.focP);
-                        }
-
-                        observePanels();
-                    });
-
-                    ImagePanel.modifyP(panelEl);
-
-                    function observePanels() {
-                        mutationObserver.observe(ImagePanel.mainPanelEl, {
-                            childList: true,
-                            subtree: true,
-                            attributes: true,
-                            attributeFilter: ['data-ved']
-                        });
-                    }
-
-                    observePanels();
-                });
-            } catch (e) {
-                console.error(e);
+            // if (new URL(location.href).searchParams.get('allsizes'))
+            {
+                var showAllSizesAnchor = q(Consts.Selectors.showAllSizes);
+                if (!!showAllSizesAnchor) showAllSizesAnchor.click();
             }
 
-            waitForElement('#hdtb-msb', injectGoogleButtons);
+
+            // wait for panel to appear then start modding
+            let panels = () => (ImagePanel.mainPanelEl && ImagePanel.focP && ImagePanel.focP.mainImage && ImagePanel.focP.buttons) ?
+                qa('#irc_cc > div') : undefined;
+
+            elementReady(panels).then(panels => panels.forEach(function (panelEl) {
+                console.log('panel element ready', panelEl);
+                // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
+                const mutationObserver = new MutationObserver(function (mutations, observer) {
+                    observer.disconnect(); // stop watching until changes are done
+                    console.log('panelMutationCallback()');
+
+                    try {
+                        onPanelMutation(mutations);
+                    } catch (e) {
+                        console.warn(e, 'Focused panel:', ImagePanel.focP);
+                    }
+
+                    observePanels(); // continue observing
+                });
+
+                ImagePanel.modifyP(panelEl);
+
+                function observePanels() {
+                    mutationObserver.observe(ImagePanel.mainPanelEl, {
+                        childList: true,
+                        subtree: true,
+                        attributes: true,
+                        attributeFilter: ['data-ved']
+                    });
+                }
+
+                observePanels();
+            }));
+
+            elementReady('#hdtb-msb').then(injectGoogleButtons);
+
+
+            // automatically display originals if searching for a site:
+            if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
+                showImages.displayImages();
+            }
+
         } else {
             // bind each result to the corresponding number
             for (let i = 0, results = qa('div.srg > div'); i < results.length; i++) {
@@ -1826,238 +1822,233 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /**Modify the navbar and add custom buttons*/
     function injectGoogleButtons() {
         console.log('injectGoogleButtons()');
-        try {
-            const controlsContainer = createElement(`<div id="${controlsContainerId}"</div>`);
-            /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
+        const controlsContainer = createElement(`<div id="${controlsContainerId}"</div>`);
+        /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
 
-            const navbar = createAndGetNavbar(function (topnavContentDiv) {
-                const gNavbar = q('#rshdr');
-                topnavContentDiv.before(gNavbar, q('#searchform'));
-                topnavContentDiv.appendChild(controlsContainer);
-            });
+        const navbar = createAndGetNavbar(function (topnavContentDiv) {
+            const gNavbar = q('#rshdr');
+            topnavContentDiv.before(gNavbar, q('#searchform'));
+            topnavContentDiv.appendChild(controlsContainer);
+        });
 
-            // auto-click on "tools" if on Google Images @google-specific
-            const toolsButton = q('.hdtb-tl');
-            if (!!toolsButton) {
-                if (!toolsButton.classList.contains('hdtb-tl-sel')) { // if the tools bar is not already visible (not already clicked)
-                    toolsButton.click();
-                } else console.warn('tools button already activated');
-            } else console.warn('tools button not found');
-
-
-            // var linkAnimated = createElement('<a style="display:" class="hdtb-tl" href="#" onclick="alert("finally"); document.getElementById("itp_animated").firstElementChild.click();">Animated</a>');
-
-            // buttons
-            const createGButton = (id, innerText, onClick) => {
-                const button = createElement(`<button class="${Consts.ClassNames.buttons} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
-                if (onClick && typeof (onClick) === 'function') {
-                    button.onclick = function () {
-                        onClick();
-                    };
-                }
-                return button;
-            };
+        // auto-click on "tools" if on Google Images @google-specific
+        const toolsButton = q('.hdtb-tl');
+        if (!!toolsButton) {
+            if (!toolsButton.classList.contains('hdtb-tl-sel')) { // if the tools bar is not already visible (not already clicked)
+                toolsButton.click();
+            } else console.warn('tools button already activated');
+        } else console.warn('tools button not found');
 
 
-            /**
-             * @param id    the checkbox element id
-             * @param labelText
-             * @param onChange    what happens when the text box changes?
-             * @param checked
-             * @returns {HTMLDivElement} this label element contains a checkbox input element
-             */
-            const createGCheckBox = (id, labelText, onChange, checked) => {
-                checked = checked === true || GM_getValue(id); // get default value if not passed
-                labelText = labelText.replace(/\s/g, '&nbsp;');
+        // var linkAnimated = createElement('<a style="display:" class="hdtb-tl" href="#" onclick="alert("finally"); document.getElementById("itp_animated").firstElementChild.click();">Animated</a>');
 
-                const checkBoxContainerEl = createElement(
-                    `<div class="sg" style="display:inline;">
+        // buttons
+        const createGButton = (id, innerText, onClick) => {
+            const button = createElement(`<button class="${Consts.ClassNames.buttons} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
+            if (onClick && typeof (onClick) === 'function') {
+                button.onclick = function () {
+                    onClick();
+                };
+            }
+            return button;
+        };
+
+
+        /**
+         * @param id    the checkbox element id
+         * @param labelText
+         * @param onChange    what happens when the text box changes?
+         * @param checked
+         * @returns {HTMLDivElement} this label element contains a checkbox input element
+         */
+        const createGCheckBox = (id, labelText, onChange, checked) => {
+            checked = checked === true || GM_getValue(id); // get default value if not passed
+            labelText = labelText.replace(/\s/g, '&nbsp;');
+
+            const checkBoxContainerEl = createElement(
+                `<div class="sg" style="display:inline;">
 <input id="${id}" type="checkbox" ${checked ? 'checked="checked"' : ''}>
 <label for="${id}">${labelText}</label>
 </div>`);
-                if (typeof onChange === 'function') {
-                    checkBoxContainerEl.addEventListener('change', onChange);
+            if (typeof onChange === 'function') {
+                checkBoxContainerEl.addEventListener('change', onChange);
+            }
+            return checkBoxContainerEl;
+        };
+
+        // Check boxes
+        const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
+            const checked = q('#hideFailedImagesBox').checked;
+            setVisibilityForImages(!checked, isFailedImage);
+            Preferences.hideFailedImagesOnLoad = !checked; // remember the preference
+        }, Preferences.hideFailedImagesOnLoad);
+        const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
+            setVisibilityForImages(!q('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
+        }, false);
+        const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy',
+            () => {
+                Preferences.useDdgProxy = q('#useDdgProxyBox').checked;
+                updateQualifiedImagesLabel();
+            },
+            Preferences.useDdgProxy
+        );
+        const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs',
+            () => GM_setValue('GIFsException', q('#GIFsExceptionBox').checked),
+            GM_getValue('GIFsException', true)
+        );
+        const cbox_OnlyShowQualifiedImages = createGCheckBox('OnlyShowQualifiedImages', 'Only show qualified images',
+            () => GM_setValue('OnlyShowQualifiedImages', this.checked), //fixme: causes an error: "Uncaught TypeError: Cannot read property 'checked' of undefined" only for the `Only show qualified images` checkbox
+            GM_getValue('OnlyShowQualifiedImages', false)
+        );
+        const cbox_ZIP = createGCheckBox('zipInsteadOfDownload', 'ZIP', function changeZIPBtnText() {
+            const checked = cbox_ZIP.checked;
+            updateDownloadBtnText();
+            GM_setValue('zipInsteadOfDownload', checked);
+        }, GM_getValue('zipInsteadOfDownload', true));
+        cbox_ZIP.style.padding = '0px';
+
+
+        const isGif = img_bx => getMeta(img_bx).ity === 'gif' || /\.gif($|\?)/.test(getMeta(img_bx).ou);
+        const isFailedImage = (img_bx) => img_bx.classList.contains(Consts.ClassNames.FAILED_DDG) || img_bx.classList.contains(Consts.ClassNames.FAILED_DDG);
+
+
+        for (const img of getThumbnails(true)) {
+            img.classList.add('blur');
+        }
+
+
+        const constraintsContainer = (function () {
+            // todo: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
+
+            const default_slider_minImgSize_value = 250;
+            const slider_minImgSize = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
+
+            var sliderReading_minImgSize = createElement(`<label for="minImgSizeSlider" id="minImgSizeSliderValue">${slider_minImgSize.value}x${slider_minImgSize.value}</label>`);
+            slider_minImgSize.oninput = function () {
+                sliderReading_minImgSize.innerHTML = /*'Min Dimensions<br>' +*/ (`${this.value}x${this.value}`);
+
+                // Highlighting images that will be downloaded
+                // clearAllEffects(); // todo: this is being called too much
+                for (const img of getThumbnails(true)) {
+                    var meta = getMeta(img);
+                    var width = meta.ow, height = meta.oh,
+                        isBigger = width >= this.value || height >= this.value;
+
+                    if (isBigger) {
+                        img.classList.add('qualified-dimensions', 'out');
+                        img.classList.remove('in');
+                    } else {
+                        img.classList.add('blur', 'in');
+                        img.classList.remove('qualified-dimensions');
+                    }
                 }
-                return checkBoxContainerEl;
+                updateQualifiedImagesLabel(getQualifiedGImgs({
+                    ogs: qa('img.rg_ic.rg_i'),
+                    exception4smallGifs: null,
+                    ignoreDlLimit: true
+                }).size);
+            };
+            slider_minImgSize.onchange = function () {
+                // todo: maybe this can be done using a CSS, rather than manually changing it every time
+                // hide images that are too small
+                setVisibilityForImages(false, '.sg-too-small-hide', false);
+                clearEffectsDelayed();
+                updateQualifiedImagesLabel();
             };
 
-            // Check boxes
-            const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
-                const checked = q('#hideFailedImagesBox').checked;
-                setVisibilityForImages(!checked, isFailedImage);
-                Preferences.hideFailedImagesOnLoad = !checked; // remember the preference
-            }, Preferences.hideFailedImagesOnLoad);
-            const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
-                setVisibilityForImages(!q('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
-            }, false);
-            const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy',
-                () => {
-                    Preferences.useDdgProxy = q('#useDdgProxyBox').checked;
-                    updateQualifiedImagesLabel();
-                },
-                Preferences.useDdgProxy
-            );
-            const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs',
-                () => GM_setValue('GIFsException', q('#GIFsExceptionBox').checked),
-                GM_getValue('GIFsException', true)
-            );
-            const cbox_OnlyShowQualifiedImages = createGCheckBox('OnlyShowQualifiedImages', 'Only show qualified images',
-                () => GM_setValue('OnlyShowQualifiedImages', this.checked), //fixme: causes an error: "Uncaught TypeError: Cannot read property 'checked' of undefined" only for the `Only show qualified images` checkbox
-                GM_getValue('OnlyShowQualifiedImages', false)
-            );
-            const cbox_ZIP = createGCheckBox('zipInsteadOfDownload', 'ZIP', function changeZIPBtnText() {
-                const checked = cbox_ZIP.checked;
-                updateDownloadBtnText();
-                GM_setValue('zipInsteadOfDownload', checked);
-            }, GM_getValue('zipInsteadOfDownload', true));
-            cbox_ZIP.style.padding = '0px';
+            const slider_dlLimit = createElement(`<input id="dlLimitSlider" type="range" min="1" max="${1000}" value="20">`);
+            var sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</strong>`);
+            slider_dlLimit.oninput = highlightSelection;
+            slider_dlLimit.onchange = clearEffectsDelayed;
 
 
-            const isGif = img_bx => getMeta(img_bx).ity === 'gif' || /\.gif($|\?)/.test(getMeta(img_bx).ou);
-            const isFailedImage = (img_bx) => img_bx.classList.contains(Consts.ClassNames.FAILED_DDG) || img_bx.classList.contains(Consts.ClassNames.FAILED_DDG);
+            var tr1 = document.createElement('tr');
+            tr1.appendChild(slider_minImgSize);
+            tr1.appendChild(sliderReading_minImgSize);
 
+            var tr2 = document.createElement('tr');
+            tr2.appendChild(slider_dlLimit);
+            tr2.appendChild(sliderReading_dlLimit);
 
-            for (const img of getThumbnails(true)) {
-                img.classList.add('blur');
+            var constraintsContainer = document.createElement('tb');
+            constraintsContainer.classList.add('sg');
+            constraintsContainer.appendChild(tr1);
+            constraintsContainer.appendChild(tr2);
+            //todo: make the image size slider increment discretely, depending on the available dimensions of the images
+            // Sliders
+
+            return constraintsContainer;
+        })();
+
+        var satCondLabel = createElement(`<label id="satCondLabel">Images satisfying conditions: 0</label>`);
+
+        // == creating buttons ==
+
+        const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
+            showImages.displayImages();
+        });
+        const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
+            q('#itp_animated').firstElementChild.click();
+        });
+        const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
+            const imgLinks = Array.from(qa('a.rg_l[href]'));
+            console.log('imgLinks:', imgLinks);
+
+            for (const a of imgLinks) {
+                const img = a.querySelector('img');
+                const dlName = cleanGibberish(getMeta(img)['pt']);
+
+                img.setAttribute('download-name', dlName);
+                img.alt = dlName;
+                // ImageManager.markImageOnLoad(img, a.getAttribute('href'));
+                console.log('Preloading image:', `"${dlName}"`, !isBase64ImageData(img.src) ? img.src : 'Base64ImageData');
             }
+        });
+        const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
+        const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
 
+        const btn_download = createGButton('downloadBtn', 'Download ⇓', downloadImages);
+        btn_download.style.margin = '20px';
+        btn_download.style.border = '20px';
+        btn_download.innerHTML = cbox_ZIP.checked ? 'ZIP&nbsp;images' : `Download&nbsp;⇓`;
 
-            const constraintsContainer = (function () {
-                // todo: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
+        var downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
 
-                const default_slider_minImgSize_value = 250;
-                const slider_minImgSize = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
+        // Appending buttons to downloadPanel
+        for (const el of [cbox_ZIP, btn_download, btn_preload, btn_downloadJson, constraintsContainer]) {
+            downloadPanel.appendChild(el);
+        }
 
-                var sliderReading_minImgSize = createElement(`<label for="minImgSizeSlider" id="minImgSizeSliderValue">${slider_minImgSize.value}x${slider_minImgSize.value}</label>`);
-                slider_minImgSize.oninput = function () {
-                    sliderReading_minImgSize.innerHTML = /*'Min Dimensions<br>' +*/ (`${this.value}x${this.value}`);
-
-                    // Highlighting images that will be downloaded
-                    // clearAllEffects(); // todo: this is being called too much
-                    for (const img of getThumbnails(true)) {
-                        var meta = getMeta(img);
-                        var width = meta.ow, height = meta.oh,
-                            isBigger = width >= this.value || height >= this.value;
-
-                        if (isBigger) {
-                            img.classList.add('qualified-dimensions', 'out');
-                            img.classList.remove('in');
-                        } else {
-                            img.classList.add('blur', 'in');
-                            img.classList.remove('qualified-dimensions');
-                        }
-                    }
-                    updateQualifiedImagesLabel(getQualifiedGImgs({
-                        ogs: qa('img.rg_ic.rg_i'),
-                        exception4smallGifs: null,
-                        ignoreDlLimit: true
-                    }).size);
-                };
-                slider_minImgSize.onchange = function () {
-                    // todo: maybe this can be done using a CSS, rather than manually changing it every time
-                    // hide images that are too small
-                    setVisibilityForImages(false, '.sg-too-small-hide', false);
-                    clearEffectsDelayed();
-                    updateQualifiedImagesLabel();
-                };
-
-                const slider_dlLimit = createElement(`<input id="dlLimitSlider" type="range" min="1" max="${1000}" value="20">`);
-                var sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</strong>`);
-                slider_dlLimit.oninput = highlightSelection;
-                slider_dlLimit.onchange = clearEffectsDelayed;
-
-
-                var tr1 = document.createElement('tr');
-                tr1.appendChild(slider_minImgSize);
-                tr1.appendChild(sliderReading_minImgSize);
-
-                var tr2 = document.createElement('tr');
-                tr2.appendChild(slider_dlLimit);
-                tr2.appendChild(sliderReading_dlLimit);
-
-                var constraintsContainer = document.createElement('tb');
-                constraintsContainer.classList.add('sg');
-                constraintsContainer.appendChild(tr1);
-                constraintsContainer.appendChild(tr2);
-                //todo: make the image size slider increment discretely, depending on the available dimensions of the images
-                // Sliders
-
-                return constraintsContainer;
-            })();
-
-            var satCondLabel = createElement(`<label id="satCondLabel">Images satisfying conditions: 0</label>`);
-
-            // == creating buttons ==
-
-            const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
-                showImages.displayImages();
-            });
-            const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
-                q('#itp_animated').firstElementChild.click();
-            });
-            const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
-                const imgLinks = Array.from(qa('a.rg_l[href]'));
-                console.log('imgLinks:', imgLinks);
-
-                for (const a of imgLinks) {
-                    const img = a.querySelector('img');
-                    const dlName = cleanGibberish(getMeta(img)['pt']);
-
-                    img.setAttribute('download-name', dlName);
-                    img.alt = dlName;
-                    // ImageManager.markImageOnLoad(img, a.getAttribute('href'));
-                    console.log('Preloading image:', `"${dlName}"`, !isBase64ImageData(img.src) ? img.src : 'Base64ImageData');
-                }
-            });
-            const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
-            const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
-
-            const btn_download = createGButton('downloadBtn', 'Download ⇓', downloadImages);
-            btn_download.style.margin = '20px';
-            btn_download.style.border = '20px';
-            btn_download.innerHTML = cbox_ZIP.checked ? 'ZIP&nbsp;images' : `Download&nbsp;⇓`;
-
-            var downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
-
-            // Appending buttons to downloadPanel
-            for (const el of [cbox_ZIP, btn_download, btn_preload, btn_downloadJson, constraintsContainer]) {
-                downloadPanel.appendChild(el);
-            }
-
-            // todo: append the element somewhere else, where it will also be appended with the web search (not only the image search)
-            // search engine dropdown
-            const searchEngineSelect = createElement(`<select id="search-engine-select">
+        // todo: append the element somewhere else, where it will also be appended with the web search (not only the image search)
+        // search engine dropdown
+        const searchEngineSelect = createElement(`<select id="search-engine-select">
     <option id="google-search">Google</option>
     <option id="yandex-search">Yandex</option>
     <option id="ddg-search">DuckDuckGo</option>
 </select>`);
-            searchEngineSelect.onchange = function (e) {
-                const query = new URL(location.href).searchParams.get('q');
-                switch (searchEngineSelect.value.toLowerCase()) {
-                    case 'yandex':
-                        location.assign('https://yandex.com/images/search?text=' + encodeURIComponent(query));
-                        break;
-                    case 'duckduckgo':
-                        location.assign('https://duckduckgo.com/?&kao=-1&kp=-2&k1=-1&kak=-1&atb=v50-4&t=hf&iax=images&ia=' + (/&tbm=isch/.test(location.href) ? 'images' : 'web') + '&q=' + encodeURIComponent(query));
-                        break;
-                }
-            };
+        searchEngineSelect.onchange = function (e) {
+            const query = new URL(location.href).searchParams.get('q');
+            switch (searchEngineSelect.value.toLowerCase()) {
+                case 'yandex':
+                    location.assign('https://yandex.com/images/search?text=' + encodeURIComponent(query));
+                    break;
+                case 'duckduckgo':
+                    location.assign('https://duckduckgo.com/?&kao=-1&kp=-2&k1=-1&kak=-1&atb=v50-4&t=hf&iax=images&ia=' + (/&tbm=isch/.test(location.href) ? 'images' : 'web') + '&q=' + encodeURIComponent(query));
+                    break;
+            }
+        };
 
-            /** contains the current download path, changing it will change the download path */
-            var defaultDownlodPath = '';
-            var pathBox = createElement(`<div class="sg" style="display: inline;"> <input id="download-path" value="${defaultDownlodPath}"><label>Download path</label> </div>`);
+        /** contains the current download path, changing it will change the download path */
+        var defaultDownlodPath = '';
+        var pathBox = createElement(`<div class="sg" style="display: inline;"> <input id="download-path" value="${defaultDownlodPath}"><label>Download path</label> </div>`);
 
-            const divider = document.createElement('div');
-            controlsContainer.appendChild(divider);
+        const divider = document.createElement('div');
+        controlsContainer.appendChild(divider);
 
-            // appending buttons and controls
-            divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, btn_animated, searchEngineSelect, pathBox, downloadPanel);
-            constraintsContainer.after(satCondLabel);
-            downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
-
-        } catch (r) {
-            console.error(r);
-        }
+        // appending buttons and controls
+        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, btn_animated, searchEngineSelect, pathBox, downloadPanel);
+        constraintsContainer.after(satCondLabel);
+        downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
     }
 
     /**
@@ -3670,51 +3661,6 @@ function cleanGibberish(str, minWgr, debug = false) {
 }
 
 
-/**@WIP
- * @param {function|string} elementGetter - a function to get the wanted element (or event a condition function)
- * that will be called to test if the element has appeared yet. (should return true only when the element appears)
- * @param callback - the result of elementGetter will be passed as the first argument
- * @return {MutationObserver|null}
- */
-function waitForElement(elementGetter, callback) {
-    const hasElementAppeared = function (mutations, me) {
-        function handleSuccess(el) {
-            callback(el);
-            if (me) me.disconnect();
-        }
-
-        var element = (typeof (elementGetter) === 'function') ? elementGetter() :
-            (typeof (elementGetter) === 'string') ? document.querySelectorAll(elementGetter) :
-                elementGetter;
-
-        try {
-            if (element instanceof Element || element === true) {
-                handleSuccess(element);
-            } else if (element && element.length) {
-                for (const el of element) {
-                    handleSuccess(el);
-                }
-            } else {
-                console.warn('element is not an instance of Element, neither is it iterable :( ', element);
-            }
-        } catch (e) {
-            console.warn('element:', element, e);
-        }
-        return element;
-    };
-
-    if (!hasElementAppeared(null)) { // if element didn't already appear
-        const observer = new MutationObserver(hasElementAppeared);
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true,
-            attributes: false,
-            characterData: false
-        });
-        return observer;
-    }
-}
-
 /**
  * @param {function} callback -
  * @param {Object=} options
@@ -3729,7 +3675,6 @@ function waitForElement(elementGetter, callback) {
  * @param {boolean} [options.subtree=false] Optional -
  */
 function observeDocument(callback, options={}) {
-    callback(document.body);
     if ($ && typeof ($.extend) === 'function') {
         options = $.extend({
             singleCallbackPerMutation: false,
@@ -3744,27 +3689,63 @@ function observeDocument(callback, options={}) {
         }, options);
     }
 
-    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
-    if (MutationObserver) {
-        var observer = new MutationObserver(
-            function mutationCallback(mutations) {
-                for (const mutation of mutations) {
-                    if (!mutation.addedNodes.length)
-                        continue;
-                    callback(mutation.target);
-                    if (options.singleCallbackPerMutation === true) {
-                        break;
+    elementReady('body').then((body)=> {
+        callback(document.body);
+
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+        if (MutationObserver) {
+            var observer = new MutationObserver(
+                function mutationCallback(mutations) {
+                    for (const mutation of mutations) {
+                        if (!mutation.addedNodes.length)
+                            continue;
+                        callback(mutation.target);
+                        if (options.singleCallbackPerMutation === true) {
+                            break;
+                        }
                     }
                 }
-            }
-        );
-        return observer.observe(document.body, options);
-    } else {
-        document.addEventListener('DOMAttrModified', callback, false);
-        document.addEventListener('DOMNodeInserted', callback, false);
-    }
+            );
+            return observer.observe(document.body, options);
+        } else {
+            document.addEventListener('DOMAttrModified', callback, false);
+            document.addEventListener('DOMNodeInserted', callback, false);
+        }
+    });
 }
 
+function elementReady(selector, timeoutInMs = -1) {
+    return new Promise((resolve, reject) => {
+        var getter = typeof selector === 'function' ?
+            () => selector() :
+            () => document.querySelectorAll(selector)
+        ;
+        var els = getter();
+        if (els && els.length) {
+            resolve(els[0]);
+        }
+        if (timeoutInMs > 0)
+            var timeout = setTimeout(() => {
+                reject(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
+                console.debug(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
+            }, timeoutInMs);
+
+
+        new MutationObserver((mutationRecords, observer) => {
+            const iterable = getter() || [];
+            Array.from(iterable).forEach((element) => {
+                clearTimeout(timeout);
+                resolve(iterable);
+                console.log('resolve(element):', element);
+                observer.disconnect();
+            });
+
+        }).observe(document.documentElement, {
+            childList: true,
+            subtree: true
+        });
+    });
+}
 function getElementsByXPath(xpath, parent) {
     let results = [];
     let query = document.evaluate(xpath,
