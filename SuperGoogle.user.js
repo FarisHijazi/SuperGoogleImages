@@ -26,7 +26,7 @@
 
 // TODO: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
 
-
+void(0);
 /**
  * Metadata object containing info for each image
  * @typedef {Object} Meta
@@ -95,7 +95,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
     } 
 
     div.${showImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) { 
-        border: 3px #6800FF solid; 
+        border: 3px #ff00c5 solid; 
     } 
 
     div.${showImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) { 
@@ -196,7 +196,6 @@ unsafeWindow.showImagesSuperGoogle = showImages;
     };
     Consts.ClassNames = $.extend(showImages.ClassNames, Consts.ClassNames);
 
-    // done: make the preferences object be written to the storage, rather than having each element stored, also extend a default object
     // OPTIONS:
     const Preferences = $.extend({
         invertWheelRelativeImageNavigation: false,
@@ -415,6 +414,8 @@ unsafeWindow.showImagesSuperGoogle = showImages;
             element.appendChild(createElement(`<a class="mod-anchor" target="_blank" href="${href}">${tempInnerHTML}</a>`));
         }
         static wrapPanels() {
+            console.log('wrapGSavesPanels()');
+
             var iio = this.initialItemObjectList;
 
             var i = 0;
@@ -453,6 +454,20 @@ unsafeWindow.showImagesSuperGoogle = showImages;
                         height: 100%;
                     }`);
         }
+        static addDirectUrlsButton(mutationTarget) {
+            if(q('#add-direct-urls-button')) return;
+            const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
+
+            if (!threeDots) {
+                console.warn('dropdown was not found, unable to addJsonToDropdown()');
+            } else {
+                const dlj = createElement(`<button id="add-direct-urls-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Direct urls</span></button>`);
+                threeDots.closest('div[role="button"]').after(dlj);
+                dlj.onclick = function () {
+                    GSaves.addDirectUrls();
+                };
+            }
+        }
         static addDirectUrls(mutationTarget) {
             addCss('.RggFob .mL2B4d { text-align: center; }', 'gsaves-center-anchors');
             console.log('GSaves.addDirectUrls();');
@@ -476,12 +491,13 @@ unsafeWindow.showImagesSuperGoogle = showImages;
             if (q('#download-json-button')) // button already exists
                 return;
 
-            const threeDots = document.querySelector('#ow21');
+            const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
+
             if (!threeDots) {
                 console.warn('dropdown was not found, unable to addJsonToDropdown()');
             } else {
                 const dlj = createElement(`<button id="download-json-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Download JSON {}</span></button>`);
-                threeDots.after(dlj);
+                threeDots.closest('div[role="button"]').after(dlj);
                 dlj.onclick = function () {
                     GSaves.downloadJson();
                 };
@@ -587,8 +603,12 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         console.log('beginning of google.com/save site...');
 
         Mousetrap.bind('`', function () {
-            console.log('wrapGSavesPanelsWithAnchors');
             GSaves.wrapPanels();
+        });
+
+        observeDocument(function () {
+            GSaves.addDirectUrlsButton();
+            GSaves.addDLJsonButton();
         });
 
         if (false) {
@@ -1342,23 +1362,28 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     go();
 
+    $(document).ready(function () {
+        // observe new image boxes that load
+        observeDocument(function (mutationTarget, addedNodes) {
+            const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
+            if (addedImageBoxes.length) {
+                onImageBatchLoading(addedImageBoxes);
+                updateDownloadBtnText();
+            }
+        }, {singleCallbackPerMutation: true});
+
+
+        // automatically display originals if searching for a site:
+        if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
+            showImages.displayImages();
+        }
+
+    });
+
+
     if (isGoogleImages) {
         bindKeys();
-    } else {
-        observeDocument(function () {
-            GSaves.addDirectUrls();
-            GSaves.addDLJsonButton();
-        });
     }
-
-    // observe new image boxes that load
-    observeDocument(function (mutationTarget, addedNodes) {
-        const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
-        if (addedImageBoxes.length) {
-            onImageBatchLoading(addedImageBoxes);
-            updateDownloadBtnText();
-        }
-    }, {singleCallbackPerMutation: true});
 
     setInterval(clickLoadMoreImages, 400);
 
@@ -1413,9 +1438,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }
 
 
+                // wait for panel to appear then start modding
                 let elementGetter = () => (ImagePanel.mainPanelEl && ImagePanel.focP && ImagePanel.focP.mainImage && ImagePanel.focP.buttons) ? qa('#irc_cc > div') : undefined;
-
-                const startPanelModifications = function startPanelModifications(panelEl) {
+                waitForElement(elementGetter, function (panelEl) {
                     // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
                     const mutationObserver = new MutationObserver(function (mutations, observer) {
                         observer.disconnect();
@@ -1442,13 +1467,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     }
 
                     observePanels();
-                };
-                waitForElement(elementGetter, startPanelModifications);
-
-                // adds a toggleEncryptedGoogle button
-                /*q('#ab_ctls').appendChild(createElement(`<i class="ab_ctl">
-            <a id="toggleEngrypted" href="${toggleEncryptedGoogle(true)}"> ${/www\.google/.test(location.hostname) ? "engrypted.google&nbsp;⇌" : "www.google.com"}</a>
-        </i>`));*/
+                });
             } catch (e) {
                 console.error(e);
             }
@@ -1480,7 +1499,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             105: 'numpad9'
         });
 
-        Mousetrap.bind(['c c'], cleanSearch);
+        Mousetrap.bind(['c c'], cleanupSearch);
         Mousetrap.bind(['u'], () => {
             location.assign(safeSearchOffUrl());
         });
@@ -1631,8 +1650,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     // attach chgMon to document.body
-    function cleanSearch() {
-        console.log('cleanSearch()');
+    function cleanupSearch() {
+        console.log('cleanupSearch()');
         const searchBar = q(Consts.Selectors.searchBox);
         searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
     }
@@ -1971,7 +1990,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // == creating buttons ==
 
             const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
-                    showImages.displayImages();
+                showImages.displayImages();
             });
             const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
                 q('#itp_animated').firstElementChild.click();
@@ -2035,11 +2054,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, btn_animated, searchEngineSelect, pathBox, downloadPanel);
             constraintsContainer.after(satCondLabel);
             downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
-
-            // automatically display originals if searching for a site:
-            if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
-                showImages.displayImages();
-            }
 
         } catch (r) {
             console.error(r);
@@ -2295,6 +2309,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             const img = imageBox.querySelector('img.rg_i');
 
+            img.setAttribute('alt', getGimgDescription(img));
             img.setAttribute('download-name', getGimgDescription(img));
             // markImageOnLoad(img, img.closest('a').href);
         }
@@ -3702,7 +3717,7 @@ function waitForElement(elementGetter, callback) {
 
 /**
  * @param {function} callback -
- * @param {Object} options
+ * @param {Object=} options
  * @param {boolean} [options.singleCallbackPerMutation=false]
  *
  * @param {string[]} [options.attributeFilter=[]] Optional - An array of specific attribute names to be monitored. If this property isn't included, changes to all attributes cause mutation notifications. No default value.
@@ -3713,7 +3728,7 @@ function waitForElement(elementGetter, callback) {
  * @param {boolean} [options.childList=false] Optional - Set to true to monitor the target node (and, if subtree is true, its descendants) for the addition or removal of new child nodes. The default is false.
  * @param {boolean} [options.subtree=false] Optional -
  */
-function observeDocument(callback, options) {
+function observeDocument(callback, options={}) {
     callback(document.body);
     if ($ && typeof ($.extend) === 'function') {
         options = $.extend({
