@@ -25,6 +25,8 @@
 // ==/UserScript==
 
 // TODO: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
+// [x] DONE: inconsistent loading, sometimes the navbar is NOT added, issue started appearing after using elementLoad()
+
 /**
  * Metadata object containing info for each image
  * @typedef {Object} Meta
@@ -128,6 +130,8 @@ unsafeWindow.showImagesSuperGoogle = showImages;
 
     // === end of basic checks and imports ===
 
+    var url = new URL(location.href);
+
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
     console.debug('SuperGoogle running');
 
@@ -175,6 +179,8 @@ unsafeWindow.showImagesSuperGoogle = showImages;
 
 
     const GoogleUtils = (function () {
+        var isOnGoogle = () => GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
+
         const url = {};
 
         url.isOnEncryptedGoogle = /encrypted.google.com/.test(location.hostname);
@@ -195,16 +201,23 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         // if the selector key ends with 's' (plural), then it gets multiple elements, otherwise just a single element
         for (const key of Object.keys(Consts.Selectors)) {
             const v = Consts.Selectors[key];
-            els.__defineGetter__(key, key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
+            els.__defineGetter__(key,
+                key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
                 (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
         }
 
-        return {
-            url: url,
-            elements: els
-        };
-    })();
 
+        const o = {
+            url: url,
+            elements: els,
+        };
+        o.__defineGetter__('isOnGoogle', isOnGoogle);
+        o.__defineGetter__('isOnGoogleImages', () =>
+            new URL(location.href).searchParams.get('tbm') === 'isch' // TODO: find a better way of determining whether the page is a Google Image search
+        );
+
+        return o;
+    })();
 
     unsafeWindow.GoogleUtils = GoogleUtils;
 
@@ -321,7 +334,6 @@ unsafeWindow.showImagesSuperGoogle = showImages;
 
     var controlsContainerId = 'google-controls-container';
     var progressBar;
-    var onGoogleImages = GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
     var currentDownloadCount = 0;
     var isTryingToClickLastRelImg = false;
 
@@ -600,14 +612,14 @@ unsafeWindow.showImagesSuperGoogle = showImages;
             }
         }
 
-        /** @return {HTMLDivElement} */
+        /** @return {HTMLDivElement|Node} */
         static get mainPanelEl() {
             return q('div#irc_cc');
         }
         /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
         static get focP() {
             return this.mainPanelEl ? new ImagePanel(this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"]')) : console.warn('MainPanel not found!');
-            // return this.mainPanelEl ? new IP(this.mainPanelEl.querySelector('div.immersive-container')) : console.warn('MainPanel not found!');
+            // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
         }
         static get noPanelWasOpened() {
             return q('#irc_cb').getAttribute('data-ved') == null;
@@ -957,7 +969,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
                 return false;
             }
 
-            let p = (panelEl instanceof HTMLElement) ? new ImagePanel(panelEl) : ImagePanel.focP;
+            let p = (panelEl instanceof HTMLElement) ? new ImagePanel(panelEl) : panelEl;
             // p.removeLink();
             // p.injectSearchByImage();
             // p.addDownloadRelatedImages();
@@ -969,16 +981,12 @@ unsafeWindow.showImagesSuperGoogle = showImages;
             p.update_ImageHost();
             p.update_sbi();
 
-            // add extensions boxes
-            for (const imgBox of panelEl.qa('div.irc_rimask:not(.ext)')) {
-                addImgExtensionBox(imgBox);
-            }
 
             // rarbg torrent link
             let torrentLink = p.q('.torrent-link');
-            let linkIsTorrent = /\/torrent\//gi.test(p.pTitle_Anchor.href);
             if (torrentLink) {
-                torrentLink.style.display = linkIsTorrent ? 'inline-block' : 'none';
+                torrentLink.style.display = /\/torrent\//gi.test(p.pTitle_Anchor.href) ? // is torrent link?
+                    'inline-block' : 'none';
             }
         }
         /**
@@ -1059,6 +1067,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         }
 
         makeDescriptionClickable() {
+            var self = this;
             const descriptionEl = this.descriptionEl;
 
             function openDescription() {
@@ -1315,26 +1324,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     })();
 
 
-    var url = new URL(location.href);
-    const isGoogleImages = url.searchParams.get('tbm') === 'isch'; // TODO: find a better way of determining whether the page is a Google Image search
-
-
-    // observe new image boxes that load
-    observeDocument(function (mutationTarget, addedNodes) {
-        const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
-        if (addedImageBoxes.length) {
-            onImageBatchLoading(addedImageBoxes);
-            updateDownloadBtnText();
-        }
-    }, {singleCallbackPerMutation: true});
-
 
     elementReady('body').then(go);
 
-
-    if (isGoogleImages) {
-        bindKeys();
-    }
 
     setInterval(clickLoadMoreImages, 400);
 
@@ -1343,10 +1335,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /**
      * Called every time a panel mutation is observed
      */
-    function onPanelMutation(mutations) {
-        if (ImagePanel.focP) {
-            ImagePanel.updateP(ImagePanel.focP);
-        }
+    function onPanelMutation(mutations, panelEl) {
+        ImagePanel.updateP(panelEl);
 
         (function updateSliderLimits() {
             // optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
@@ -1372,7 +1362,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function go() {
-        if (onGoogleImages) {
+        if (GoogleUtils.isOnGoogleImages) {
+            bindKeys();
+
+            // observe new image boxes that load
+            observeDocument(function (mutationTarget, addedNodes) {
+                const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
+                if (addedImageBoxes.length) {
+                    onImageBatchLoading(addedImageBoxes);
+                    updateDownloadBtnText();
+                }
+            }, {singleCallbackPerMutation: true});
+
 
             // iterating over the stored ubl sites
             for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
@@ -1389,37 +1390,39 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
             // wait for panel to appear then start modding
-            let panels = () => (ImagePanel.mainPanelEl && ImagePanel.focP && ImagePanel.focP.mainImage && ImagePanel.focP.buttons) ?
-                qa('#irc_cc > div') : undefined;
-
-            elementReady(panels).then(panels => panels.forEach(function (panelEl) {
+            elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(panels => qa('#irc_cc > div').forEach(function (panelEl) {
                 console.log('panel element ready', panelEl);
-                // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
-                const mutationObserver = new MutationObserver(function (mutations, observer) {
-                    observer.disconnect(); // stop watching until changes are done
-                    console.log('panelMutationCallback()');
 
-                    try {
-                        onPanelMutation(mutations);
-                    } catch (e) {
-                        console.warn(e, 'Focused panel:', ImagePanel.focP);
-                    }
-
-                    observePanels(); // continue observing
-                });
-
+                // make one-time modifications
                 ImagePanel.modifyP(panelEl);
 
-                function observePanels() {
-                    mutationObserver.observe(ImagePanel.mainPanelEl, {
+                // bind mutation observer, observes every change happening to the panels (any one of them)
+                const mutationObserver = new MutationObserver(function (mutations, observer) {
+                    // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
+                    console.log('panelMutationCallback()');
+
+                    observer.disconnect(); // stop watching until changes are done
+
+                    try {
+                        onPanelMutation(mutations, panelEl);
+                    } catch (e) {
+                        console.warn(e, 'Focused panel:', panelEl);
+                    }
+
+                    observer.observePanels(); // continue observing
+                });
+
+                // creating a function (template for observing)
+                mutationObserver.observePanels = function() {
+                    mutationObserver.observe(panelEl, {
                         childList: true,
                         subtree: true,
                         attributes: true,
                         attributeFilter: ['data-ved']
                     });
-                }
+                };
 
-                observePanels();
+                mutationObserver.observePanels();
             }));
 
             elementReady('#hdtb-msb').then(injectGoogleButtons);
@@ -1740,7 +1743,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         ;
         return qa(selector);
     }
-    // done:    Make a navbar that drops down containing all the buttons and controls
 
     function updateQualifiedImagesLabel(value) {
         value = value != null ? value : Array.from(getQualifiedGImgs()).length;
@@ -1753,12 +1755,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             dlLimitSlider.setAttribute('value', value);
             q('#dlLimitSliderValue').innerText = value;
         }
-        /*if (q("#OnlyShowQualifiedImages").checked)
-            for (const img of getThumbnails()) {
-                const qualified = img.hasAttribute('qualified-dimensions');
-                setVisible(img, qualified);
-            }
-            */
     }
     function highlightSelection() {
         const sliderValueDlLimit = this.value;
@@ -3651,7 +3647,7 @@ function observeDocument(callback, options={}) {
     }
 
     elementReady('body').then((body)=> {
-        callback(document.body);
+        callback(document.documentElement);
 
         var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
         if (MutationObserver) {
@@ -3667,7 +3663,7 @@ function observeDocument(callback, options={}) {
                     }
                 }
             );
-            return observer.observe(document.body, options);
+            return observer.observe(document.documentElement, options);
         } else {
             document.addEventListener('DOMAttrModified', callback, false);
             document.addEventListener('DOMNodeInserted', callback, false);
@@ -3688,16 +3684,17 @@ function elementReady(selector, timeoutInMs = -1) {
         if (timeoutInMs > 0)
             var timeout = setTimeout(() => {
                 reject(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
-                console.debug(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
+                console.warn(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
             }, timeoutInMs);
 
 
         new MutationObserver((mutationRecords, observer) => {
-            const iterable = getter() || [];
-            Array.from(iterable).forEach((element) => {
+            const elements = getter() || [];
+            Array.from(elements).forEach((element) => {
                 clearTimeout(timeout);
-                resolve(iterable);
-                console.log('resolve(element):', element);
+                resolve(elements);
+                resolve(element); // this doesn't even do anything, there will be only a single call to resolve()
+                console.debug('resolve(element):', element);
                 observer.disconnect();
             });
 
