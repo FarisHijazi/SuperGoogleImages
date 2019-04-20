@@ -63,49 +63,6 @@ console.log('SuperGoogle showImages:', showImages);
 unsafeWindow.showImagesSuperGoogle = showImages;
 
 
-(function createAndAddCSS() {
-        /* Overlay CSS for highlighting selected images */
-        // language=CSS
-        addCss(`.highlight, .drop-shadow {
-            filter: drop-shadow(8px 8px 10px gray) !important;
-        }
-
-        .blur.in {
-            -webkit-transition: all 0.1s ease-in !important;
-            /*-webkit-filter: blur(6px) !important;*/
-            transform: scale(0.7) !important;
-            opacity: 0.3 !important;
-        }
-
-        .blur.out:not(.in) {
-            -webkit-filter: blur(0px) !important;
-            /*filter: blur(0px) !important;*/
-            transform: scale(1) !important;
-            opacity: 1 !important;
-            -webkit-transition: all 0.25s ease-out !important;
-            transition: all 0.25s ease-out !important;
-        }
-
-        .transparent {
-            opacity: 0.4 !important;
-        }
-
-        .sg-too-small {
-
-        }
-
-        .sg-too-small-hide {
-            display: none !important;
-        }
-
-        .hide-img {
-            display: none !important;
-        }`, 'filters-style');
-        /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
-    }
-)();
-
-
 (function () {
     'use strict';
 
@@ -3282,6 +3239,49 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
         return summary;
     };
+
+
+    (function createAndAddHighlightCSS() {
+            /* Overlay CSS for highlighting selected images */
+            // language=CSS
+            addCss(`.highlight, .drop-shadow {
+            filter: drop-shadow(8px 8px 10px gray) !important;
+        }
+
+        .blur.in {
+            -webkit-transition: all 0.1s ease-in !important;
+            /*-webkit-filter: blur(6px) !important;*/
+            transform: scale(0.7) !important;
+            opacity: 0.3 !important;
+        }
+
+        .blur.out:not(.in) {
+            -webkit-filter: blur(0px) !important;
+            /*filter: blur(0px) !important;*/
+            transform: scale(1) !important;
+            opacity: 1 !important;
+            -webkit-transition: all 0.25s ease-out !important;
+            transition: all 0.25s ease-out !important;
+        }
+
+        .transparent {
+            opacity: 0.4 !important;
+        }
+
+        .sg-too-small {
+
+        }
+
+        .sg-too-small-hide {
+            display: none !important;
+        }
+
+        .hide-img {
+            display: none !important;
+        }`, 'filters-style');
+            /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
+        }
+    )();
 
 
     // give a white border so that we'll have them all the same size
