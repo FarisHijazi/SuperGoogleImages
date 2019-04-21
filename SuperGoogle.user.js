@@ -79,6 +79,25 @@
         }
         return this;
     };
+    Set.prototype.union = function (other) {
+        if (!other.concat) other = Array.from(other);
+        return new Set(
+            other.concat(Array.from(this))
+        );
+    };
+    Set.prototype.intersection = function (other) {
+        if (!other.filter) other = Array.from(other);
+        return new Set(
+            other.filter(x => this.has(x))
+        );
+    };
+    /** this - other
+     * @param other
+     * @returns {Set} containing what this has but other doesn't */
+    Set.prototype.difference = function (other) {
+        if (!other.has) other = new Set(other);
+        return new Set(Array.from(this).filter(x => !other.has(x)))
+    };
 
     // === end of basic checks and imports ===
 
@@ -497,10 +516,11 @@
         console.log('relocating to de-localize:', newHost);
         location.hostname = newHost;
     }
+
     // URL args: Modifying the URL and adding arguments, such as specifying the size
     if (Preferences.customUrlArgs && Object.keys(Preferences.customUrlArgs).length) {
-        const url = new URL(location.href),
-            searchParams = url.searchParams;
+        const url = new URL(location.href);
+        const searchParams = url.searchParams;
 
         for (const key in Preferences.customUrlArgs) {
             if (Preferences.customUrlArgs.hasOwnProperty(key)) {
@@ -1372,7 +1392,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 });
 
                 // creating a function (template for observing)
-                mutationObserver.observePanels = function() {
+                mutationObserver.observePanels = function () {
                     mutationObserver.observe(panelEl, {
                         childList: true,
                         subtree: true,
@@ -3631,7 +3651,7 @@ function cleanGibberish(str, minWgr, debug = false) {
  * @param {boolean} [options.childList=false] Optional - Set to true to monitor the target node (and, if subtree is true, its descendants) for the addition or removal of new child nodes. The default is false.
  * @param {boolean} [options.subtree=false] Optional -
  */
-function observeDocument(callback, options={}) {
+function observeDocument(callback, options = {}) {
     if ($ && typeof ($.extend) === 'function') {
         options = $.extend({
             singleCallbackPerMutation: false,
@@ -3646,7 +3666,7 @@ function observeDocument(callback, options={}) {
         }, options);
     }
 
-    elementReady('body').then((body)=> {
+    elementReady('body').then((body) => {
         callback(document.documentElement);
 
         var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
