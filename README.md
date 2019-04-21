@@ -21,22 +21,28 @@ display full resolution images, zip+download all images, and more. See a list of
 
 ## Installation
 
+### Userscript (Tampermonkey)
+
 1. make sure you have a UserScript client like Tampermonkey.
 2. [Download](https://github.com/FarisHijazi/SuperGoogle/raw/master/SuperGoogle.user.js) or visit the RAW file url.
 3. [Required only for downloading] Go to the Tampermonkey settings and change download mode to `Browser API`, (see how)[TODO: add url].
     > Tampermonkey dashboard (by clicking the icon) > Downloads BETA > Download Mode: > Browser API > Save
 4. [Required only for downloading] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow` (details)[TODO: add url]. TODO: add screenshot
 
+### Browser extension
+
+//
+
+Not yet supported, but coming soon!
+
+//
+
 ## Usage
 
 Open Google.com/....
 TODO: write about usage
 
-### Hotkeys
-
-TODO: list hotkeys
-
-## Features
+Below is a list of the available features, listed from what is (probably) most useful.
 
 ### Display original images
 
@@ -86,13 +92,16 @@ Adds the following features to the image panel:
 
 TODO: continue listing features
 
+### Hotkeys
+
+TODO: list hotkeys
+
 ## External Libraries
 
 This script does use several other external libraries and scripts, they will be listed below with links to their sources.
 
-UserScripts
+Scripts
 
-- [Google Bypass Result Page Redirect.user.js](lib/Google%20Bypass%20Result%20Page%20Redirect.user.js), [source](https://greasyfork.org/scripts/14150-google-%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91/code/Google%EF%BC%9A%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91.user.js)
 - [Google Direct Links for Pages and Images.user.js](lib/Google%20Direct%20Links%20for%20Pages%20and%20Images.user.js), [source](https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js)
 
 Libraries

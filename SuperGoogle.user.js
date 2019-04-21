@@ -2,11 +2,11 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi
 // @author       Faris Hijazi
-// @version      0.4
+// @version      0.5
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
-// @include      /https?://(www|encrypted)\.google\..*/
+// @include     /^https?://(?:www|encrypted|ipv[46])\.google\.[^/]+/(?:$|[#?]|search|webhp|imgres)/
 // @grant        GM_xmlhttpRequest
 // @grant        GM_download
 // @grant        GM.getValue
@@ -17,14 +17,13 @@
 // @require      https://code.jquery.com/jquery-3.4.0.min.js
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
-// @require      https://greasyfork.org/scripts/14150-google-%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91/code/Google%EF%BC%9A%E7%BB%95%E8%BF%87%E6%90%9C%E7%B4%A2%E7%BB%93%E6%9E%9C%E7%BD%91%E9%A1%B5%E9%93%BE%E6%8E%A5%E9%87%8D%E5%AE%9A%E5%90%91.user.js
 // @require      https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js
 // @require      https://github.com/buzamahmooza/Helpful-Web-Userscripts/raw/master/Handy%20AF%20functions%20Faris.user.js
 // @run-at       document-start
 // @connect      *
 // ==/UserScript==
 
-// TODO: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
+// [x] DONE: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
 // [x] DONE: inconsistent loading, sometimes the navbar is NOT added, issue started appearing after using elementLoad()
 
 /**
@@ -734,9 +733,10 @@ unsafeWindow.showImagesSuperGoogle = showImages;
             const risFcDiv = this.ris_fc_Div;
             var reverseImgSearchUrl = '#';
             if (!!risFcDiv) {
-                const imgURL = this.mainImage.src || risFcDiv.querySelector('a').href;
-                const reverseSearchURL = GoogleUtils.url.getGImgReverseSearchURL(imgURL),
-                    url = new URL(reverseSearchURL);
+                var imgURL = (risFcDiv.querySelector('img[oldsrc]') || {}).oldsrc || risFcDiv.querySelector('a[href]').href || this.mainImage.src;
+                reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(imgURL);
+
+                const url = new URL(reverseImgSearchUrl);
                 url.searchParams.append('allsizes', '1');
                 reverseImgSearchUrl = url.toString();
             }
@@ -745,7 +745,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
 
         /**Goes to the previous (Left) main mainImage*/
         static previousImage() {
-            const previousImageArrow = q('a[id^="irc-la"]');  // id that starts with "irc-la"
+            const previousImageArrow = q('div#irc-lac > a');  // id that starts with "irc-la"
             var x = previousImageArrow.style.display !== 'none' ? // is it there?
                 !previousImageArrow.click() : // returns true
                 false;
@@ -754,7 +754,7 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         }
         /**Goes to the next (Right) main mainImage*/
         static nextImage() {
-            const nextImageArrow = q('a[id^="irc-ra"]');  // id that starts with "irc-ra"
+            const nextImageArrow = q('div#irc-rac > a');  // id that starts with "irc-ra"
             var x = nextImageArrow.style.display !== 'none' ? // is it there?
                 !nextImageArrow.click() : // returns true
                 false;
