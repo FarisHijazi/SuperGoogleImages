@@ -12,6 +12,7 @@
       <excludeFolder url="file://$MODULE_DIR$/../Scripts/Scraps" />
       <excludeFolder url="file://$MODULE_DIR$/../Scripts/Snippets" />
       <excludeFolder url="file://$MODULE_DIR$/../Scripts/pastebin" />
+      <excludePattern pattern="*.bak*" />
     </content>
     <content url="file://$MODULE_DIR$">
       <excludeFolder url="file://$MODULE_DIR$/.tmp" />

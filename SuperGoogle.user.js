@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi
 // @author       Faris Hijazi
-// @version      0.5
+// @version      0.6
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -17,14 +17,31 @@
 // @require      https://code.jquery.com/jquery-3.4.0.min.js
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
-// @require      https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js
-// @require      https://github.com/buzamahmooza/Helpful-Web-Userscripts/raw/master/Handy%20AF%20functions%20Faris.user.js
+// @require      https://github.com/ccampbell/mousetrap/raw/master/mousetrap.min.js
+// @require      https://github.com/buzamahmooza/Helpful-Web-Userscripts/raw/master/download_script.user.js
 // @run-at       document-start
 // @connect      *
 // ==/UserScript==
 
-// [x] DONE: fix: the first 20 images always get their display='none' for some reason (probably something to do with the other 2 google scripts)
-// [x] DONE: inconsistent loading, sometimes the navbar is NOT added, issue started appearing after using elementLoad()
+
+/**
+ * Copyright 2019-2030 Faris Hijazi
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
+//  ======
 
 /**
  * Metadata object containing info for each image
@@ -60,6 +77,42 @@
 
 (function () {
     'use strict';
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // var searchModeDiv = document.querySelector('div#hdtb-msb-vis' + ' div.hdtb-msel');
+        // if (!(searchModeDiv && searchModeDiv.innerHTML === 'Images')) {
+        //     return;
+        // }
+
+        var style = document.createElement('style');
+        style.textContent = 'a.x_source_link {' + [
+            'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
+            'text-decoration: none !important',
+            'color: inherit !important',
+            'display: block !important'
+        ].join(';') + '}';
+        document.head.appendChild(style);
+    }, true);
+
+    var M = (typeof GM !== 'undefined') ? GM : {
+        getValue: function (name, alt) {
+            var value = GM_getValue(name, alt);
+            return {
+                then: function (callback) {
+                    callback(value);
+                }
+            };
+        },
+        setValue: function (name, value) {
+            GM_setValue(name, value);
+            return {
+                then: function (callback) {
+                    callback();
+                }
+            };
+        }
+    };
+
 
     // todo: replace this with importing GM_dummy_functions, and importing a pollyfill
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
@@ -1352,6 +1405,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
 
         if (GoogleUtils.isOnGoogleImages) {
+            googleDirectLinks();
+
             bindKeys();
 
             // observe new image boxes that load
@@ -1619,9 +1674,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function addImgDownloadButton(imgBox) {
         if (imgBox.querySelector('.download-block'))
             return;
-        const img = imgBox.querySelector('img.rg_ic.rg_i'),
-            meta = getMeta(img),
-            src = meta ? meta.ou : img.src;
+        const img = imgBox.querySelector('img.rg_ic.rg_i');
+        const meta = getMeta(img);
+        const src = meta ? meta.ou : img.src;
+
         const downloadButton = createElement(`<div class="text-block download-block"
      href="JavaScript:void(0);" 
     style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
@@ -2035,7 +2091,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         qualifiedGImgs[i].fileURL,
                         qualifiedGImgs[i].fileName,
                         '${location.hostname} ${document.title}',
-                        qualifiedGImgs[i]
+                        {
+                            element: qualifiedGImgs[i]
+                        }
                     );
                     currentDownloadCount++;
                     i++;
@@ -3731,4 +3789,197 @@ function getElementsByXPath(xpath, parent) {
         results.push(query.snapshotItem(i));
     }
     return results;
+}
+
+/** Create an element by typing it's inner HTML.
+ For example:   var myAnchor = createElement('<a href="https://example.com">Go to example.com</a>');
+ * @param html
+ * @param callback optional callback, invoked once the element is created, the element is passed.
+ * @return {Element}
+ */
+function createElement(html, callback) {
+    const div = document.createElement('div');
+    div.innerHTML = (html).trim();
+    const element = div.firstElementChild;
+    if (!!callback && callback.call)
+        callback.call(null, element);
+
+    return element;
+}
+
+function unsafeEval(func, opt) {
+    let body = 'return (' + func + ').apply(this, arguments)';
+    unsafeWindow.Function(body).call(unsafeWindow, opt);
+}
+
+/**
+ * @author: https://greasyfork.org/en/scripts/19210-google-direct-links-for-pages-and-images/code
+ * Google: Direct Links for Pages and Images
+ */
+function googleDirectLinks() {
+    unsafeEval(function (opt_noopen) {
+
+        var debug = false;
+        var count = 0;
+
+        var options = {noopen: opt_noopen};
+        debug && console.log('Options:', options);
+
+        // web pages: url?url=
+        // images: imgres?imgurl=
+        // custom search engine: url?q=
+        // malware: interstitial?url=
+        var re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
+        /** replace redirect, also replace dataUris */
+        var restore = function (link, url) {
+            var oldUrl = link.getAttribute('href') || '';
+            var newUrl = url || oldUrl;
+            var matches = newUrl.match(re);
+            if (matches) {
+                debug && console.log('restoring', link._x_id, newUrl);
+
+                link.setAttribute('href', decodeURIComponent(matches[2]));
+                enhanceLink(link);
+                if (matches[1] === 'imgres') {
+                    if (link.querySelector('img[src^="data:"]')) {
+                        link._x_href = newUrl;
+                    }
+                    enhanceThumbnail(link, newUrl);
+                }
+            } else if (url != null) {
+                link.setAttribute('href', newUrl);
+            }
+        };
+
+        /** stop propagation onclick */
+        var purifyLink = function (a) {
+            if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
+                a.removeAttribute('onmousedown');
+            }
+            if (a.parentElement &&
+                /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
+                a.addEventListener('click', function (e) {
+                    e.stopImmediatePropagation();
+                    e.stopPropagation();
+                }, true);
+            }
+        };
+
+        /**
+         * - purifyLink
+         * - set rel="noreferrer", referrerpolicy="no-referrer"
+         * - stopImmediatePropagation onclick */
+        var enhanceLink = function (a) {
+            purifyLink(a);
+            a.setAttribute('rel', 'noreferrer');
+            a.setAttribute('referrerpolicy', 'no-referrer');
+        };
+
+        /** make thumbnail info-bar clickable
+         *  @faris: storing "fullres-src" attribute to images
+         */
+        var enhanceThumbnail = function (link, url) {
+            // @faris, storing fullres-src attribute to images
+            var imgs = [].slice.call(link.querySelectorAll('div~img'));
+            imgs.length && imgs.forEach(function (img) {
+                console.log('img fullres-src="' + link.href + '"');
+                img.setAttribute('fullres-src', link.href);
+            });
+
+            var infos = [].slice.call(link.querySelectorAll('img~div'));
+            if (infos.length > 0) {
+                var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
+                infos.forEach(function (info) {
+                    var pagelink = document.createElement('a');
+                    enhanceLink(pagelink);
+                    pagelink.href = pageUrl;
+                    pagelink.className = 'x_source_link';
+                    pagelink.textContent = info.textContent;
+                    info.textContent = '';
+                    info.appendChild(pagelink);
+                });
+            }
+        };
+
+        /** returns full path, not just partial path */
+        var normalizeUrl = (function () {
+            var fakeLink = document.createElement('a');
+
+            return function (url) {
+                fakeLink.href = url;
+                return fakeLink.href;
+            }
+        })();
+
+        var handler = function (a) {
+            if (a._x_id) {
+                restore(a);
+                return;
+            }
+
+            a._x_id = ++count;
+            debug && a.setAttribute('x-id', a._x_id);
+
+            a.__defineSetter__('href', function setter(v) {
+                // in case an object is passed by clever Google
+                restore(this, String(v));
+            });
+            a.__defineGetter__('href', function getter() {
+                debug && console.log('get', this._x_id, this.getAttribute('href'), this);
+                return normalizeUrl(this.getAttribute('href'));
+            });
+
+            if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
+                /\brwt\(/.test(a.getAttribute('onmousedown')) ||
+                /\bmouse/.test(a.getAttribute('jsaction')) ||
+                /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
+                enhanceLink(a);
+            }
+            restore(a);
+        };
+
+
+        // observe
+
+
+        var checkNewNodes = function (mutations) {
+            debug && console.log('State:', document.readyState);
+            if (mutations.target) {
+                checkAttribute(mutations);
+            } else {
+                mutations.forEach && mutations.forEach(checkAttribute);
+            }
+        };
+        var checkAttribute = function (mutation) {
+            var target = mutation.target;
+            if (target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
+                return;
+
+            if (target && target.nodeName.toUpperCase() === 'A') {
+                if ((mutation.attributeName || mutation.attrName) === 'href') {
+                    debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
+                }
+                handler(target);
+            } else if (target instanceof Element) {
+                [].slice.call(target.querySelectorAll('a')).forEach(handler);
+            }
+        };
+
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
+        if (MutationObserver) {
+            debug && console.log('MutationObserver: true');
+            new MutationObserver(checkNewNodes).observe(document.documentElement, {
+                childList: true,
+                attributes: true,
+                attributeFilter: ['href'],
+                subtree: true
+            });
+        } else {
+            debug && console.log('MutationEvent: true');
+            document.addEventListener('DOMAttrModified', checkAttribute, false);
+            document.addEventListener('DOMNodeInserted', checkNewNodes, false);
+        }
+
+    });
 }
