@@ -178,7 +178,7 @@
             const v = Consts.Selectors[key];
             els.__defineGetter__(key,
                 key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
-                (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
+                    (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
         }
 
 
@@ -548,6 +548,7 @@
         if (!areEqual)
             location.assign(url.toString());
     }
+
 
     // todo: move GSaves code to another script
     // if on google.com/saves, add keyboard shortcuts
@@ -1307,8 +1308,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     })();
 
 
-
-    elementReady('body').then(go);
+    $('body').ready(go);
 
 
     setInterval(clickLoadMoreImages, 400);
@@ -1345,6 +1345,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function go() {
+
+        // wait for the showAllSizes link to appear then click it
+        $(Consts.Selectors.showAllSizes).ready((jq) => {
+            return jq(Consts.Selectors.showAllSizes).each(el => el.click && el.click());
+        });
+
         if (GoogleUtils.isOnGoogleImages) {
             bindKeys();
 
@@ -1364,12 +1370,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
             if (Preferences.periodicallySaveUnblockedSites)
                 setInterval(storeUblSitesSet, 5000);
-
-            // if (new URL(location.href).searchParams.get('allsizes'))
-            {
-                var showAllSizesAnchor = q(Consts.Selectors.showAllSizes);
-                if (!!showAllSizesAnchor) showAllSizesAnchor.click();
-            }
 
 
             // wait for panel to appear then start modding
@@ -2442,9 +2442,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             /* // if the image hasn't loaded (doesn't appear), then just go to the one after it
              try {
-                 const sibblingImg = panel.ris_fc_Div.querySelector('img');
-                 if (sibblingImg && sibblingImg.getAttribute('loaded') == 'undefined') {
-                     console.debug('sibblingImg.loaded = ', sibblingImg.getAttribute('loaded'));
+                 const siblingImg = panel.ris_fc_Div.querySelector('img');
+                 if (siblingImg && siblingImg.getAttribute('loaded') == 'undefined') {
+                     console.debug('siblingImg.loaded = ', siblingImg.getAttribute('loaded'));
                      return prevRelImg()
                  }
              } catch (e) {
@@ -2541,8 +2541,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 prs.urlParams = '';
             } else if (prs.path) {
                 prs.trimPathRight();
-            } else if (prs.hostname && prs.hostnameSplit.length > 2) {
-                prs.trimHostRight();
             }
             return prs;
         };
@@ -2639,7 +2637,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     /**
-     * @param minified: delete unnescessary meta attributes?
+     * @param minified: delete unneeded meta attributes?
      * @returns {Array} an array containing the meta objects of the images
      */
     function getResultsData(minified = true) {
@@ -3265,40 +3263,40 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             /* Overlay CSS for highlighting selected images */
             // language=CSS
             addCss(`.highlight, .drop-shadow {
-            filter: drop-shadow(8px 8px 10px gray) !important;
-        }
+                filter: drop-shadow(8px 8px 10px gray) !important;
+            }
 
-        .blur.in {
-            -webkit-transition: all 0.1s ease-in !important;
-            /*-webkit-filter: blur(6px) !important;*/
-            transform: scale(0.7) !important;
-            opacity: 0.3 !important;
-        }
+            .blur.in {
+                -webkit-transition: all 0.1s ease-in !important;
+                /*-webkit-filter: blur(6px) !important;*/
+                transform: scale(0.7) !important;
+                opacity: 0.3 !important;
+            }
 
-        .blur.out:not(.in) {
-            -webkit-filter: blur(0px) !important;
-            /*filter: blur(0px) !important;*/
-            transform: scale(1) !important;
-            opacity: 1 !important;
-            -webkit-transition: all 0.25s ease-out !important;
-            transition: all 0.25s ease-out !important;
-        }
+            .blur.out:not(.in) {
+                -webkit-filter: blur(0px) !important;
+                /*filter: blur(0px) !important;*/
+                transform: scale(1) !important;
+                opacity: 1 !important;
+                -webkit-transition: all 0.25s ease-out !important;
+                transition: all 0.25s ease-out !important;
+            }
 
-        .transparent {
-            opacity: 0.4 !important;
-        }
+            .transparent {
+                opacity: 0.4 !important;
+            }
 
-        .sg-too-small {
+            .sg-too-small {
 
-        }
+            }
 
-        .sg-too-small-hide {
-            display: none !important;
-        }
+            .sg-too-small-hide {
+                display: none !important;
+            }
 
-        .hide-img {
-            display: none !important;
-        }`, 'filters-style');
+            .hide-img {
+                display: none !important;
+            }`, 'filters-style');
             /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
         }
     )();
@@ -3489,7 +3487,7 @@ a.download-related {
      * Useful for adding buttons and controls to it
      * @param callback - this callback should be used when instantly adding content to the navbar,
      *  do NOT just take the returned value and start adding elements.
-     *  @return {HTMLDivElement} returns the parent navbar element
+     *  @return {HTMLDivElement|HTMLElement} returns the parent navbar element
      */
     function createAndGetNavbar(callback) {
         // Settings up the navbar
