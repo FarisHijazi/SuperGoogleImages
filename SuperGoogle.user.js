@@ -57,14 +57,9 @@
  * @property {number[]} dim:  dimensions [width, height]
  */
 
-var showImages = new ShowImages({});
-console.log('SuperGoogle showImages:', showImages);
-unsafeWindow.showImagesSuperGoogle = showImages;
-
 
 (function () {
     'use strict';
-
 
     // todo: replace this with importing GM_dummy_functions, and importing a pollyfill
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
@@ -86,7 +81,11 @@ unsafeWindow.showImagesSuperGoogle = showImages;
 
     // === end of basic checks and imports ===
 
-    var url = new URL(location.href);
+    var showImages = new ShowImages({});
+    console.log('SuperGoogle showImages:', showImages);
+    unsafeWindow.showImagesSuperGoogle = showImages;
+
+    var pageUrl = new URL(location.href);
 
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
     console.debug('SuperGoogle running');
@@ -130,7 +129,8 @@ unsafeWindow.showImagesSuperGoogle = showImages;
         },
         hideFailedImagesOnLoad: false,
         periodicallySaveUnblockedSites: false,
-        useDdgProxy: true
+        useDdgProxy: true,
+        delocalize: true, // use google.com instead of another local url
     }, GM_getValue('Preferences'));
 
 
@@ -490,6 +490,12 @@ unsafeWindow.showImagesSuperGoogle = showImages;
      filter: alpha(opacity=100); /!* For IE8 and earlier *!/
      }`);*/
 
+
+    if (Preferences.delocalize && location.hostname.match(/google\.(.+)/)[1] !== 'com') {
+        var newHost = location.hostname.replace(/(google\.)(.+)/i, '$1com');
+        console.log('relocating to de-localize:', newHost);
+        location.hostname = newHost;
+    }
     // URL args: Modifying the URL and adding arguments, such as specifying the size
     if (Preferences.customUrlArgs && Object.keys(Preferences.customUrlArgs).length) {
         const url = new URL(location.href),
@@ -1360,11 +1366,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                     observer.disconnect(); // stop watching until changes are done
 
-                    try {
-                        onPanelMutation(mutations, panelEl);
-                    } catch (e) {
-                        console.warn(e, 'Focused panel:', panelEl);
-                    }
+                    onPanelMutation(mutations, panelEl);
 
                     observer.observePanels(); // continue observing
                 });
@@ -3226,9 +3228,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const properties = (function () {
             const ps = new Set();
             for (const o of j.data) {
-                for (const p of Object.keys(o)) {
-                    ps.add(p);
-                }
+                ps.addAll(Object.keys(o));
             }
             return ps;
         })();
