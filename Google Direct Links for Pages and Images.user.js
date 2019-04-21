@@ -19,6 +19,11 @@
 // ==/UserScript==
 
 document.addEventListener('DOMContentLoaded', function () {
+    // var searchModeDiv = document.querySelector('div#hdtb-msb-vis' + ' div.hdtb-msel');
+    // if (!(searchModeDiv && searchModeDiv.innerHTML === 'Images')) {
+    //     return;
+    // }
+
     var style = document.createElement('style');
     style.textContent = 'a.x_source_link {' + [
         'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
@@ -27,7 +32,10 @@ document.addEventListener('DOMContentLoaded', function () {
         'display: block !important'
     ].join(';') + '}';
     document.head.appendChild(style);
+    putDirectLinks();
+
 }, true);
+
 
 var M = (typeof GM !== 'undefined') ? GM : {
     getValue: function (name, alt) {
@@ -48,38 +56,17 @@ var M = (typeof GM !== 'undefined') ? GM : {
     }
 };
 
-function getOption() {
-    var opt_noopen = false;
-    // For example: open https://ipv4.google.com/#x-option:open-inplace
-    switch (location.hash) {
-        // Open links in the current tab.
-        case '#x-option:open-inplace':
-            opt_noopen = true;
-            break;
-        // Do not ...
-        case '#x-option:no-open-inplace':
-            opt_noopen = false;
-            break;
-        default:
-            return M.getValue('opt_noopen', opt_noopen);
-    }
-    M.setValue('opt_noopen', opt_noopen);
-    return {
-        then: function (callback) {
-            callback(opt_noopen);
-        }
-    };
-}
-
 function unsafeEval(func, opt) {
     let body = 'return (' + func + ').apply(this, arguments)';
     unsafeWindow.Function(body).call(unsafeWindow, opt);
 }
 
-getOption().then(function run(opt_noopen) {
-    var searchModeDiv = document.querySelector('div#hdtb-msb-vis' + ' div.hdtb-msel');
-    if(!(searchModeDiv && searchModeDiv.innerHTML === 'Images')) return;
 
+/**
+ * @author: TODO: add author
+ * Google: Direct Links for Pages and Images
+ */
+function putDirectLinks() {
     unsafeEval(function (opt_noopen) {
 
         var debug = false;
@@ -93,12 +80,14 @@ getOption().then(function run(opt_noopen) {
         // custom search engine: url?q=
         // malware: interstitial?url=
         var re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
+        /** replace redirect, also replace dataUris */
         var restore = function (link, url) {
             var oldUrl = link.getAttribute('href') || '';
             var newUrl = url || oldUrl;
             var matches = newUrl.match(re);
             if (matches) {
                 debug && console.log('restoring', link._x_id, newUrl);
+
                 link.setAttribute('href', decodeURIComponent(matches[2]));
                 enhanceLink(link);
                 if (matches[1] === 'imgres') {
@@ -112,6 +101,7 @@ getOption().then(function run(opt_noopen) {
             }
         };
 
+        /** stop propagation onclick */
         var purifyLink = function (a) {
             if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
                 a.removeAttribute('onmousedown');
@@ -126,25 +116,26 @@ getOption().then(function run(opt_noopen) {
         };
 
         /**
-         * set rel="noreferrer", referrerpolicy="no-referrer"
-         * and stopImmediatePropagation onclick
-         * @param a
-         */
+         * - purifyLink
+         * - set rel="noreferrer", referrerpolicy="no-referrer"
+         * - stopImmediatePropagation onclick */
         var enhanceLink = function (a) {
             purifyLink(a);
             a.setAttribute('rel', 'noreferrer');
             a.setAttribute('referrerpolicy', 'no-referrer');
-            if (options.noopen) {
-                a.setAttribute('target', '_self');
-                a.addEventListener('click', function (event) {
-                    event.stopImmediatePropagation();
-                    event.stopPropagation();
-                }, true);
-            }
         };
 
+        /** make thumbnail info-bar clickable
+         *  @faris: storing "fullres-src" attribute to images
+         */
         var enhanceThumbnail = function (link, url) {
-            // make thumbnail info-bar clickable
+            // @faris, storing fullres-src attribute to images
+            var imgs = [].slice.call(link.querySelectorAll('div~img'));
+            imgs.length && imgs.forEach(function (img) {
+                console.log('img fullres-src="' + link.href + '"');
+                img.setAttribute('fullres-src', link.href);
+            });
+
             var infos = [].slice.call(link.querySelectorAll('img~div'));
             if (infos.length > 0) {
                 var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
@@ -160,47 +151,34 @@ getOption().then(function run(opt_noopen) {
             }
         };
 
-        var fakeLink = document.createElement('a');
-        var normalizeUrl = function (url) {
-            fakeLink.href = url;
-            return fakeLink.href;
-        };
+        /** returns full path, not just partial path */
+        var normalizeUrl = (function () {
+            var fakeLink = document.createElement('a');
 
-        var setter = function (v) {
-            v = String(v);  // in case an object is passed by clever Google
-            debug && console.log('State:', document.readyState);
-            debug && console.log('set', this._x_id, this.getAttribute('href'), v);
-            restore(this, v);
-        };
-        var getter = function () {
-            debug && console.log('get', this._x_id, this.getAttribute('href'));
-            return normalizeUrl(this._x_href || this.getAttribute('href'));
-        };
-        var blocker = function (event) {
-            event.stopPropagation();
-            restore(this);
-            debug && console.log('block', this._x_id, this.getAttribute('href'));
-        };
+            return function (url) {
+                fakeLink.href = url;
+                return fakeLink.href;
+            }
+        })();
 
         var handler = function (a) {
             if (a._x_id) {
                 restore(a);
                 return;
             }
+
             a._x_id = ++count;
             debug && a.setAttribute('x-id', a._x_id);
-            if (Object.defineProperty) {
-                debug && console.log('define property', a._x_id);
-                Object.defineProperty(a, 'href', {get: getter, set: setter});
-            } else if (a.__defineSetter__) {
-                debug && console.log('define getter', a._x_id);
-                a.__defineSetter__('href', setter);
-                a.__defineGetter__('href', getter);
-            } else {
-                debug && console.log('define listener', a._x_id);
-                a.onmouseenter = a.onmousemove = a.onmouseup = a.onmousedown =
-                    a.ondbclick = a.onclick = a.oncontextmenu = blocker;
-            }
+
+            a.__defineSetter__('href', function setter(v) {
+                // in case an object is passed by clever Google
+                restore(this, String(v));
+            });
+            a.__defineGetter__('href', function getter() {
+                debug && console.log('get', this._x_id, this.getAttribute('href'), this);
+                return normalizeUrl(this.getAttribute('href'));
+            });
+
             if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
                 /\brwt\(/.test(a.getAttribute('onmousedown')) ||
                 /\bmouse/.test(a.getAttribute('jsaction')) ||
@@ -209,6 +187,10 @@ getOption().then(function run(opt_noopen) {
             }
             restore(a);
         };
+
+
+        // observe
+
 
         var checkNewNodes = function (mutations) {
             debug && console.log('State:', document.readyState);
@@ -220,7 +202,7 @@ getOption().then(function run(opt_noopen) {
         };
         var checkAttribute = function (mutation) {
             var target = mutation.target;
-            if(target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
+            if (target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
                 return;
 
             if (target && target.nodeName.toUpperCase() === 'A') {
@@ -249,5 +231,5 @@ getOption().then(function run(opt_noopen) {
             document.addEventListener('DOMNodeInserted', checkNewNodes, false);
         }
 
-    }, opt_noopen);
-});
+    });
+}
