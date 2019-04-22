@@ -202,8 +202,13 @@
         hideFailedImagesOnLoad: false,
         periodicallySaveUnblockedSites: false,
         useDdgProxy: true,
-        delocalize: true, // use google.com instead of another local url
+        delocalize: true, // use google.com instead google.specificCountry
+        autoShowFullresRelatedImages: true,
+        favoriteOnDownloads: true, // favourite any image that you download
     }, GM_getValue('Preferences'));
+    // write back to storage (in case the storage was empty)
+    GM_setValue('Preferences', Preferences);
+
 
 
     const GoogleUtils = (function () {
@@ -246,18 +251,14 @@
 
         return o;
     })();
-
     unsafeWindow.GoogleUtils = GoogleUtils;
-
-    // write back to storage (in case the storage was empty)
-    GM_setValue('Preferences', Preferences);
 
     // GM_setValue(Constants.GMValues.UBL_SITES, "");
     // GM_setValue(Constants.GMValues.UBL_URLS, "");
     // GM_setValue(Constants.GMValues.UBL_SITES_MAP, "");
 
-    const ublSitesSet = new Set(),
-        ublMetas = new Set();
+    const ublSitesSet = new Set();
+    const ublMetas = new Set();
 
     /** Contains the ubl data of a single domain name */
     class UBLdata {
@@ -335,12 +336,9 @@
         }
     );
 
-
-    var zip = new JSZip();
     JSZip.prototype.generateIndexHtml = function generateZipIndexHtml() {
         let html = '';
-        for (const key in this.files) {
-            if (!this.files.hasOwnProperty(key)) continue;
+        for (const key of Object.keys(this.files)) {
             try {
                 const file = this.files[key];
                 /**{url, name, page}*/
@@ -357,8 +355,13 @@
                 console.error(e);
             }
         }
-        return zip.file('index.html', new Blob([html], {type: 'text/plain'}));
+        return this.file('index.html', new Blob([html], {type: 'text/plain'}));
     };
+    /**
+     * the zip file
+     * @type {JSZip}
+     */
+    var zip = new JSZip();
 
     var controlsContainerId = 'google-controls-container';
     var progressBar;
@@ -642,19 +645,39 @@
      *  sbi: search by image
      */
     class ImagePanel {  // ImagePanel class
+        static thePanels = new Set();
+        el;
+        // TODO: instead of using an object and creating thousands of those guys, just extend the panel element objects
+        //      give them more functions and use THEM
         constructor(element) {
+            if (ImagePanel.thePanels.has(element.panel)) {
+                return element.panel;
+            }
+            if (ImagePanel.thePanels.size >= 3) {
+                console.warn("You've already created 3 panels:", ImagePanel.thePanels, 'trying to create:', element);
+            }
             if (typeof element !== 'undefined') {
                 this.el = element;
+                element.__defineGetter__('panel', () => this);
+
+                // extend the element
+                for(var key of Object.keys(this)){
+                    console.log('extending panel, adding:', key, element);
+                    element[key] = this[key];
+                }
+
+                ImagePanel.thePanels.add(element);
             }
         }
 
-        /** @return {HTMLDivElement|Node} */
+        /** The big panel that holds all 3 child panels
+         * @return {HTMLDivElement|Node} */
         static get mainPanelEl() {
             return q('div#irc_cc');
         }
         /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
         static get focP() {
-            return this.mainPanelEl ? new ImagePanel(this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"]')) : console.warn('MainPanel not found!');
+            return this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"]').panel;
             // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
         }
         static get noPanelWasOpened() {
@@ -671,6 +694,10 @@
         }
         get isFocused() {
             return this.el.style.transform === 'translate3d(0px, 0px, 0px);';
+        }
+
+        get panel() {
+            return this;
         }
 
         /** @return {HTMLDivElement} */
@@ -746,6 +773,7 @@
         get ris_Divs() {
             var d = this.ris_DivsAll;
             if (d) return d.filter(div => !div.classList.contains('irc_rismo'));
+            return [];
         }
         /** @return {HTMLDivElement} returns related image container (div.irc-deck)*/
         get ris_Container() {
@@ -755,10 +783,11 @@
 
         /**
          * @type {NodeListOf<HTMLAnchorElement>}
-         * Visit:       a.i3599.irc_vpl.irc_lth,
-         * Save:        a.i15087,
-         * View saved:  a.i18192.r-iXoO2jjyyEGY,
-         * Share:       a.i17628
+         * @returns {Object} buttons
+         * @property buttons.Visit:       a.i3599.irc_vpl.irc_lth,
+         * @property buttons.Save:        a.i15087,
+         * @property buttons.View saved:  a.i18192.r-iXoO2jjyyEGY,
+         * @property buttons.Share:       a.i17628
          */
         get buttons() {
             const buttonsContainer = this.q('.irc_but_r > tbody > tr');
@@ -853,9 +882,10 @@
             // there exists only a single X button common for all 3 image panels
             document.querySelector('a#irc_cb').addEventListener('click', removeHash);
 
-            let p = new ImagePanel(panelEl);
+            let panel = new ImagePanel(panelEl);
+            panelEl.addEventListener('panelMutation', () => panel.onPanelMutation());
 
-            const classList = p.rightPart.classList;
+            const classList = panel.rightPart.classList;
             if (!classList.contains('scroll-nav')) {
                 classList.add('scroll-nav');
             }
@@ -867,23 +897,23 @@
 
 
             // adding text-decoration to secondary title
-            p.sTitle_Anchor.parentElement.after(createElement(
+            panel.sTitle_Anchor.parentElement.after(createElement(
                 '<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/></div>'
             ));
 
-            p.inject_SiteSearch();
+            panel.inject_SiteSearch();
 
-            p.inject_ViewImage();
-            p.inject_DownloadImage();
+            panel.inject_ViewImage();
+            panel.inject_DownloadImage();
 
-            p.inject_sbi();
+            panel.inject_sbi();
 
             // waitForElement(() => IP.focusedPanel.relatedImage_Container, () => { p.inject_DownloadRelatedImages(); });
-            p.inject_Download_ris();
-            p.inject_ImageHost();
+            panel.inject_Download_ris();
+            panel.inject_ImageHost();
 
             /* @deprecated: the imgDimensions element was removed from the webpage*/
-            const dimensionsEl = p.q('.irc_idim');
+            const dimensionsEl = panel.q('.irc_idim');
             if (dimensionsEl) {
                 dimensionsEl.addEventListener('click', ImagePanel.moreSizes);
                 dimensionsEl.classList.add('hover-click');
@@ -891,8 +921,8 @@
 
             // remove "Images may be subject to copyright" text
             (function removeCopyrightElement() {
-                p.sTitle_Anchor.style = 'padding-right: 5px; text-decoration:none;';
-                for (const copyrightEl of getElementsByXPath('//span[contains(text(),\'Images may be subject to copyright\')]', p.el))
+                panel.sTitle_Anchor.style = 'padding-right: 5px; text-decoration:none;';
+                for (const copyrightEl of getElementsByXPath('//span[contains(text(),\'Images may be subject to copyright\')]', panel.el))
                     copyrightEl.remove();
             })();
 
@@ -904,12 +934,12 @@
          style=" width: 25px; height: 25px; ">
     <label style=" display: list-item; ">Torrent link</label></a>`);
                 rarbg_tl.onclick = () => {
-                    if (/\/torrent\/|rarbg/i.test(p.pTitle_Anchor.href)) {
-                        p.pTitle_Anchor.hostname = 'www.rarbgaccess.org'; // choosing a specific mirror
-                        anchorClick(extractRarbgTorrentURL(p.pTitle_Anchor.innerText, p.pTitle_Anchor.href), '_blank');
+                    if (/\/torrent\/|rarbg/i.test(panel.pTitle_Anchor.href)) {
+                        panel.pTitle_Anchor.hostname = 'www.rarbgaccess.org'; // choosing a specific mirror
+                        anchorClick(extractRarbgTorrentURL(panel.pTitle_Anchor.innerText, panel.pTitle_Anchor.href), '_blank');
                     }
                 };
-                p.pTitle_Anchor.before(rarbg_tl);
+                panel.pTitle_Anchor.before(rarbg_tl);
             })();
 
             //@info .irc_ris    class of the relatedImgsDivContainer
@@ -950,9 +980,9 @@
                                     if (onRightPart || isOrContains(irc_ris, elUnderMouse) || (elUnderMouse.classList.contains('irc_mut'))) {
                                         // console.log('elUnderMouse:', elUnderMouse);
                                         if (wheelUp) {
-                                            nextRelImg();
+                                            ImagePanel.nextRelImg();
                                         } else {
-                                            prevRelImg();
+                                            ImagePanel.prevRelImg();
                                         }
                                     } else {
                                         console.debug('Mouse wheel did NOT scroll while over a container element.\nelUnderMouse:', elUnderMouse);
@@ -985,9 +1015,9 @@
             }
 
             (function moveImgDimensionEl() {
-                const imgDimEl = p.q('.rn92ee.irc_msc');
+                const imgDimEl = panel.q('.rn92ee.irc_msc');
                 if (!!imgDimEl) {
-                    p.sTitle_Anchor.after(imgDimEl);
+                    panel.sTitle_Anchor.after(imgDimEl);
                 }
             })();
 
@@ -1091,6 +1121,10 @@
                 console.log('Download:', name, currentImageURL);
                 download(currentImageURL, name, undefined, focused_risDiv);
                 panel.q('.torrent-link').click();
+
+                if(Preferences.favoriteOnDownloads) {
+                    panel.buttons.Save.click();
+                }
             } catch (e) {
                 console.warn(e);
             }
@@ -1099,8 +1133,19 @@
         q() {
             return this.el.querySelector(...arguments);
         }
+
         qa() {
             return this.el.querySelectorAll(...arguments);
+        }
+
+        static showRis() {
+            ImagePanel.thePanels.forEach(p => p.showRis);
+        }
+
+        showRis() {
+            for (var div of this.ris_Divs) {
+                showImages.replaceImgSrc(div.querySelector('img'));
+            }
         }
 
         makeDescriptionClickable() {
@@ -1347,7 +1392,155 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
             return containerEl;
         }
+
+        static prevRelImg() {
+            ImagePanel.focP.prevRelImg();
+        }
+        static nextRelImg() {
+            ImagePanel.focP.nextRelImg();
+        }
+
+        /**
+         * Navigates to the previous related image in the irc_ris in the main panel.
+         * @return {boolean} returns true if the successful (no errors occur)
+         */
+        prevRelImg() {
+            try {
+                if (!this.ris_fc_Div) return false;
+                let previousElementSibling = this.ris_fc_Div.previousElementSibling;
+
+                if (!!previousElementSibling) {
+                    previousElementSibling.click();
+                } else if (Preferences.loopbackWhenCyclingRelatedImages) {
+                    // List of relImgs without that last "View More".
+                    const endRis = Array.from(this.ris_Divs).pop();
+                    endRis.click();
+                } else {
+                    ImagePanel.previousImage();
+                    if (q('#irc-lac').style.display !== 'none') { // if not on the first picture
+                        ImagePanel.__tryToClickBottom_ris_image(30);
+                    }
+                }
+
+
+                /* // if the image hasn't loaded (doesn't appear), then just go to the one after it
+                 try {
+                     const siblingImg = this.ris_fc_Div.querySelector('img');
+                     if (siblingImg && siblingImg.getAttribute('loaded') == 'undefined') {
+                         console.debug('siblingImg.loaded = ', siblingImg.getAttribute('loaded'));
+                         return prevRelImg()
+                     }
+                 } catch (e) {
+                 }*/
+                return true;
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        //todo: rather than clicking the image when it loads, just set the className to make it selected: ".irc_rist"
+        /**
+         * keeps on trying to press the bottom related image (the last one to the bottom right) until it does.
+         * @param interval  the interval between clicks
+         */
+        static __tryToClickBottom_ris_image(interval = 30) {
+            isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
+
+            var timeout = null;
+            const recursivelyClickLastRelImg = function () {
+                console.log('recursivelyClickLastRelImg()');
+                timeout = setTimeout(function tryToClick() {
+                    const risLast = ImagePanel.focP.ris_DivLast;
+                    if (risLast && risLast.click) {
+                        risLast.click();
+                        isTryingToClickLastRelImg = false;
+                        clearTimeout(timeout);
+                        console.log('finally clicked the last related img:', risLast);
+                    } else {
+                        recursivelyClickLastRelImg();
+                    }
+                }, interval);
+            };
+            recursivelyClickLastRelImg();
+
+            while (!isTryingToClickLastRelImg) {
+                // polling
+                console.log('waiting to be done...');
+            }
+        }
+
+        /**
+         * Navigates to the next related image in the irc_ris in the main panel.
+         * @return {boolean} returns true if the successful (no errors occur)
+         */
+        nextRelImg() {
+            try {
+                const ris_fc_Div = this.ris_fc_Div;
+                if (!this.ris_fc_Div) {
+                    return false;
+                }
+                let nextElSibling = ris_fc_Div.nextElementSibling;
+                if (nextElSibling && !nextElSibling.classList.contains('irc_rismo')) {
+                    nextElSibling.click();
+                } else if (Preferences.loopbackWhenCyclingRelatedImages) {
+                    Array.from(this.ris_DivsAll)[0].click();
+                    console.debug('clicking first irc_irs to loop, cuz there isn\'t any on the right', this.ris_DivsAll[0]);
+                } else {
+                    ImagePanel.nextImage();
+                }
+
+                return true;
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+
+        /**
+         * Called every time a panel mutation is observed
+         */
+        onPanelMutation() {
+            console.log('panelMutation()');
+            ImagePanel.updateP(this);
+            if(Preferences.autoShowFullresRelatedImages) {
+                this.showRis()
+            }
+
+            (function updateSliderLimits() {
+                // TODO: optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
+                // OR: use the already binded meta objects with the images
+                const metaDatas = Array.from(getImgBoxes()).map(getMeta); // FIXME: this is expensive
+                const dimensions = metaDatas.map(meta => [meta.ow, meta.oh]);
+                const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
+                const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
+
+                const minImgSizeSlider = q('#minImgSizeSlider');
+                if (minImgSizeSlider) {
+                minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
+                minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
+            }
+
+            const dlLimitSlider = q('#dlLimitSlider');
+            if (dlLimitSlider) {
+                dlLimitSlider.setAttribute('max', metaDatas.length.toString());
+                dlLimitSlider.value = metaDatas.length;
+                // TODO: also update the label value
+                }
+            })();
+        }
+        /**
+         * called when changing from one panel to another (going left or right)
+         */
+        onSwitch() {
+            console.log('panel.onSwitch()', this);
+        }
+
     }
+
+    console.log('ImagePanel class:', ImagePanel);
+    unsafeWindow.ImagePanel = ImagePanel;
+    unsafeWindow.IP = ImagePanel;
+
 
     const clearEffectsDelayed = (function () {
         let timeOut;
@@ -1368,34 +1561,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     // === start of function definitions ===
 
-    /**
-     * Called every time a panel mutation is observed
-     */
-    function onPanelMutation(mutations, panelEl) {
-        ImagePanel.updateP(panelEl);
-
-        (function updateSliderLimits() {
-            // optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
-            const metaDatas = Array.from(getImgBoxes()).map(getMeta);
-            const dimensions = metaDatas.map(meta => [meta.ow, meta.oh]);
-            const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
-            const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
-            // todo: get the min dimension and the max dimension, and make the limits of the slider depend on what images exist
-
-            const minImgSizeSlider = q('#minImgSizeSlider');
-            if (minImgSizeSlider) {
-                minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
-                minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
-            }
-
-            const dlLimitSlider = q('#dlLimitSlider');
-            if (dlLimitSlider) {
-                dlLimitSlider.setAttribute('max', metaDatas.length.toString());
-                dlLimitSlider.value = metaDatas.length;
-                // TODO: also update the label value
-            }
-        })();
-    }
 
     function go() {
 
@@ -1427,6 +1592,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 setInterval(storeUblSitesSet, 5000);
 
 
+            // TODO: move this into the ImagePanel class and use events instead of observing
             // wait for panel to appear then start modding
             elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(panels => qa('#irc_cc > div').forEach(function (panelEl) {
                 console.log('panel element ready', panelEl);
@@ -1437,11 +1603,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 // bind mutation observer, observes every change happening to the panels (any one of them)
                 const mutationObserver = new MutationObserver(function (mutations, observer) {
                     // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
-                    console.log('panelMutationCallback()');
-
                     observer.disconnect(); // stop watching until changes are done
 
-                    onPanelMutation(mutations, panelEl);
+                    // panelEl.dispatchEvent(new Event('panelMutation'));
+                    panelEl.panel.onPanelMutation(); // make changes
 
                     observer.observePanels(); // continue observing
                 });
@@ -1456,6 +1621,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     });
                 };
 
+                // start observing
                 mutationObserver.observePanels();
             }));
 
@@ -1605,21 +1771,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             openInTab(currentImgUrl);
         });
         Mousetrap.bind([',', 'up', 'numpad8'], function (e) { // ▲ Prev/Left relImage
-            prevRelImg();
+            ImagePanel.prevRelImg();
             e.preventDefault();
         }, 'keydown');
         Mousetrap.bind(['.', 'down', 'numpad2'], function (e) {// Next related mainImage
-            nextRelImg();
+            ImagePanel.nextRelImg();
             e.preventDefault();
         }, 'keydown');
-        Mousetrap.bind(['o'], function (e) {
-            for (var div of ImagePanel.focP.ris_Divs) {
-                const img = div.querySelector('img');
-                var anchor = img.closest('a[href]');
-                console.log('Replacing with original:', img, 'Anchor:', anchor);
-                showImages.replaceImgSrc(img, anchor);
-            }
-        });
+        Mousetrap.bind(['o'], ImagePanel.showRis);
         Mousetrap.bind(['h'], function (e) {
             q('#rcnt').style.visibility = (/hidden/i).test(q('#rcnt').style.visibility) ? 'visible' : 'hidden';
             e.preventDefault();
@@ -2442,101 +2601,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // cross-browser wheel delta
         wheelEvent = window.event || wheelEvent; // old IE support
         return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
-    }
-
-    //todo: rather than clicking the image when it loads, just set the className to make it selected: ".irc_rist"
-    /**
-     * keeps on trying to press the bottom related image (the last one to the bottom right) until it does.
-     * @param interval  the interval between clicks
-     */
-    function tryToClickBottom_ris_image(interval = 30) {
-        isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
-
-        var timeout = null;
-        const recursivelyClickLastRelImg = function () {
-            console.log('recursivelyClickLastRelImg()');
-            timeout = setTimeout(function tryToClick() {
-                const risLast = ImagePanel.focP.ris_DivLast;
-                if (risLast && risLast.click) {
-                    risLast.click();
-                    isTryingToClickLastRelImg = false;
-                    clearTimeout(timeout);
-                    console.log('finally clicked the last related img:', risLast);
-                } else {
-                    recursivelyClickLastRelImg();
-                }
-            }, interval);
-        };
-        recursivelyClickLastRelImg();
-
-        while (!isTryingToClickLastRelImg) {
-            // polling
-            console.log('waiting to be done...');
-        }
-    }
-
-    /**
-     * Navigates to the previous related image in the irc_ris in the main panel.
-     * @return {boolean} returns true if the successful (no errors occur)
-     */
-    function prevRelImg() {
-        try {
-            const panel = ImagePanel.focP;
-            if (!panel.ris_fc_Div) return false;
-            let previousElementSibling = panel.ris_fc_Div.previousElementSibling;
-
-            if (!!previousElementSibling) {
-                previousElementSibling.click();
-            } else if (Preferences.loopbackWhenCyclingRelatedImages) {
-                const relImgsOnly = Array.from(panel.ris_Divs);// List of relImgs without that last "View More".
-
-                const endRis = relImgsOnly.pop();
-                endRis.click();
-            } else {
-                ImagePanel.previousImage();
-                tryToClickBottom_ris_image(30);
-            }
-
-
-            /* // if the image hasn't loaded (doesn't appear), then just go to the one after it
-             try {
-                 const siblingImg = panel.ris_fc_Div.querySelector('img');
-                 if (siblingImg && siblingImg.getAttribute('loaded') == 'undefined') {
-                     console.debug('siblingImg.loaded = ', siblingImg.getAttribute('loaded'));
-                     return prevRelImg()
-                 }
-             } catch (e) {
-             }*/
-            return true;
-        } catch (e) {
-            console.warn(e);
-        }
-    }
-    /**
-     * Navigates to the next related image in the irc_ris in the main panel.
-     * @return {boolean} returns true if the successful (no errors occur)
-     */
-    function nextRelImg() {
-        try {
-            const panel = ImagePanel.focP;
-            const ris_fc_Div = panel.ris_fc_Div;
-            if (!panel.ris_fc_Div) {
-                return false;
-            }
-            let nextElSibling = ris_fc_Div.nextElementSibling;
-            if (nextElSibling && !nextElSibling.classList.contains('irc_rismo')) {
-                nextElSibling.click();
-            } else if (Preferences.loopbackWhenCyclingRelatedImages) {
-                Array.from(panel.ris_DivsAll)[0].click();
-                console.debug('clicking first irc_irs to loop, cuz there isn\'t any on the right', panel.ris_DivsAll[0]);
-            } else {
-                ImagePanel.nextImage();
-            }
-
-            return true;
-        } catch (e) {
-            console.warn(e);
-        }
     }
 
     function toggleEncryptedGoogle(doNotChangeLocation) {
