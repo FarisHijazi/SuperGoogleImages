@@ -23,7 +23,6 @@
 // @connect      *
 // ==/UserScript==
 
-
 /**
  * Copyright 2019-2030 Faris Hijazi
  *
@@ -208,7 +207,6 @@
     }, GM_getValue('Preferences'));
     // write back to storage (in case the storage was empty)
     GM_setValue('Preferences', Preferences);
-
 
 
     const GoogleUtils = (function () {
@@ -654,14 +652,14 @@
                 return element.panel;
             }
             if (ImagePanel.thePanels.size >= 3) {
-                console.warn("You've already created 3 panels:", ImagePanel.thePanels, 'trying to create:', element);
+                console.warn('You\'ve already created 3 panels:', ImagePanel.thePanels, 'trying to create:', element);
             }
             if (typeof element !== 'undefined') {
                 this.el = element;
                 element.__defineGetter__('panel', () => this);
 
                 // extend the element
-                for(var key of Object.keys(this)){
+                for (var key of Object.keys(this)) {
                     console.log('extending panel, adding:', key, element);
                     element[key] = this[key];
                 }
@@ -715,7 +713,7 @@
         get descriptionEl() {
             const titleDescrDiv = this.titleAndDescriptionDiv;
             if (titleDescrDiv) {
-                return titleDescrDiv.querySelector('div.irc_asc');
+                return titleDescrDiv.querySelector('div.irc_asc > div > .irc_su');
             } else {
                 console.warn('titleAndDescriptionDiv not found for image panel:', this.el);
             }
@@ -1122,7 +1120,7 @@
                 download(currentImageURL, name, undefined, focused_risDiv);
                 panel.q('.torrent-link').click();
 
-                if(Preferences.favoriteOnDownloads) {
+                if (Preferences.favoriteOnDownloads) {
                     panel.buttons.Save.click();
                 }
             } catch (e) {
@@ -1502,7 +1500,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         onPanelMutation() {
             console.log('panelMutation()');
             ImagePanel.updateP(this);
-            if(Preferences.autoShowFullresRelatedImages) {
+            if (Preferences.autoShowFullresRelatedImages) {
                 this.showRis()
             }
 
@@ -3052,8 +3050,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         mimeTypesJSON[contentType].extensions[0] :
                         mimeType2;
                     console.debug(fullMatch);
-                    const wrongMime = !/image/i.test(mimeType1),
-                        isDoctype = /<!DOCTYPE html PUBLIC/.test(res.responseText);
+                    const wrongMime = !/image/i.test(mimeType1);
+                    const isDoctype = /<!DOCTYPE html PUBLIC/.test(res.responseText);
 
                     if (wrongMime) {
                         console.log('wrongMime type but continueing to download it:', contentType);
@@ -3871,9 +3869,36 @@ function createElement(html, callback) {
     return element;
 }
 
-function unsafeEval(func, opt) {
+/**
+ * Snoops on an object, monitors all attempts to access and set properties
+ * @param {Object} obj - the object to monitor
+ * @param {string[]=} props - list of properties to watch, watches all properties by default
+ * @param {Function=} onset - callback when the property is set (newValue is passed)
+ * @param {Function=} onget - callback when the property is accessed
+ */
+function snoopProperty(obj, props = [], onset = (val) => null, onget = () => null) {
+    if (props.length === 0) { // default to all properties
+        props = Object.keys(obj);
+    }
+
+    for (const prop of props) {
+        obj['__' + prop] = obj[prop]; // actual property
+
+        obj.__defineSetter__(prop, function (newValue) {
+            console.log('someone just set the property:', prop, 'to value:', newValue, '\non:', obj);
+            onset.call(obj, newValue);
+            obj['__' + prop] = newValue;
+        });
+        obj.__defineGetter__(prop, function () {
+            console.log('someone just accessed', prop, '\non:', obj);
+            onget.call(obj);
+            return obj['__' + prop];
+        });
+    }
+}
+function unsafeEval(func, ...arguments) {
     let body = 'return (' + func + ').apply(this, arguments)';
-    unsafeWindow.Function(body).call(unsafeWindow, opt);
+    unsafeWindow.Function(body).apply(unsafeWindow, arguments);
 }
 
 /**
@@ -3996,7 +4021,7 @@ function googleDirectLinks() {
             if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
                 /\brwt\(/.test(a.getAttribute('onmousedown')) ||
                 /\bmouse/.test(a.getAttribute('jsaction')) ||
-                /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
+                a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
                 enhanceLink(a);
             }
             restore(a);
