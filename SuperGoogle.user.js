@@ -203,7 +203,7 @@
         useDdgProxy: true,
         delocalize: true, // use google.com instead google.specificCountry
         autoShowFullresRelatedImages: true,
-        favoriteOnDownloads: true, // favourite any image that you download
+        favoriteOnDownloads: true, // favorite any image that you download
     }, GM_getValue('Preferences'));
     // write back to storage (in case the storage was empty)
     GM_setValue('Preferences', Preferences);
@@ -543,25 +543,6 @@
     /** change mouse cursor when hovering over elements for scroll navigation
      * cursor found here:   https://www.flaticon.com/free-icon/arrows_95103#
      */
-    /*addCss(`
-    
-     .grey-scale,
-     img[loaded="error"] {
-     -webkit-filter: grayscale(1); /!* Webkit *!/
-     filter: gray; /!* IE6-9 *!/
-     filter: grayscale(1); /!* W3C *!/
-     }
-    
-     img[loaded="error"],
-     img[loaded="loading"] {
-     opacity: 0.5;
-     filter: alpha(opacity=50); /!* For IE8 and earlier *!/
-     }
-    
-     img[loaded="true"] {
-     opacity: 1;
-     filter: alpha(opacity=100); /!* For IE8 and earlier *!/
-     }`);*/
 
 
     if (Preferences.delocalize && location.hostname.match(/google\.(.+)/)[1] !== 'com') {
@@ -783,7 +764,7 @@
          * @type {NodeListOf<HTMLAnchorElement>}
          * @returns {Object} buttons
          * @property buttons.Visit:       a.i3599.irc_vpl.irc_lth,
-         * @property buttons.Save:        a.i15087,
+         * @property buttons.Save:        a.i15087, (not saved: i15087 saved: i35661)
          * @property buttons.View saved:  a.i18192.r-iXoO2jjyyEGY,
          * @property buttons.Share:       a.i17628
          */
@@ -795,6 +776,22 @@
             buttons.Save = buttonsContainer.querySelector('a.i15087');
             buttons.ViewSaved = buttonsContainer.querySelector('a.i18192.r-iXoO2jjyyEGY');
             buttons.Share = buttonsContainer.querySelector('a.i17628');
+
+            buttons.notsaved = buttonsContainer.querySelector('a.i15087'); // the button that appears without a star (not saved)
+            buttons.saved = buttonsContainer.querySelector('a.i35661'); // has a star (means it's saved)
+
+            buttons.save = function() {
+                // if not saved, save
+                if(buttons.saved.style.display === 'none') {
+                    buttons.saved.click();
+                }
+            };
+            buttons.unsave = function() {
+                // if saved, unsave
+                if(buttons.notsaved.style.display === 'none') {
+                    buttons.notsaved.click();
+                }
+            };
 
             return buttons;
         }
@@ -1034,7 +1031,9 @@
                 return false;
             }
 
-            let p = (panelEl instanceof HTMLElement) ? new ImagePanel(panelEl) : panelEl;
+            let p = (panelEl instanceof HTMLElement) ?
+                panelEl.panel ? panelEl.panel : new ImagePanel(panelEl) :
+                panelEl;
             // p.removeLink();
             // p.injectSearchByImage();
             // p.addDownloadRelatedImages();
@@ -1121,7 +1120,7 @@
                 panel.q('.torrent-link').click();
 
                 if (Preferences.favoriteOnDownloads) {
-                    panel.buttons.Save.click();
+                    panel.buttons.save();
                 }
             } catch (e) {
                 console.warn(e);
@@ -1500,6 +1499,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         onPanelMutation() {
             console.log('panelMutation()');
             ImagePanel.updateP(this);
+
+            // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
+
             if (Preferences.autoShowFullresRelatedImages) {
                 this.showRis()
             }
@@ -1814,19 +1816,20 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      */
     function addImgExtensionBox(imgBox) {
         if (imgBox.querySelector('.text-block')) return;
-        const img = imgBox.querySelector('img.rg_ic.rg_i'),
-            meta = getMeta(img),
-            ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|\?)/i);
-        if (!ext) return;
+
+        const img = imgBox.querySelector('img.rg_ic.rg_i');
+        const meta = getMeta(img);
+        const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|\?)/i);
+
+        // if (!ext) return;
         const textBox = createElement(`<div class="text-block ext ext-${ext}"></div>`);
         if (!ext.toUpperCase) {
-            console.warn('ext.toUpperCase is not a function:', ext);
             return;
         }
         textBox.innerText = ext.toUpperCase();
-        // textBox.style["background-color"] = (ext == 'gif') ? "magenta" : "#83a3ff";
+        // textBox.style["background-color"] = (ext === 'gif') ? "magenta" : "#83a3ff";
         img.after(textBox);
-        img.classList.add('ext', `ext-${ext}`);
+        imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
     }
     function addImgDownloadButton(imgBox) {
         if (imgBox.querySelector('.download-block'))
@@ -2448,6 +2451,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             imageBox.classList.add('rg_bx_listed');
             addImgExtensionBox(imageBox);
             addImgDownloadButton(imageBox);
+
 
             const img = imageBox.querySelector('img.rg_i');
 
@@ -3426,6 +3430,53 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}');
 
     // language=CSS
+    addCss(`img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"],
+        img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] {
+        border: 3px #F00 solid;
+    }
+
+    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"],
+        img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] {
+        -webkit-filter: grayscale(1) !important; /* Webkit */
+        opacity: 0.5 !important;
+    }`);
+
+        // language=CSS
+        addCss(
+            ` /*set borders*/
+    div.${showImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {
+        border-radius: 5px;
+        border: 3px #0F0 solid;
+    }
+
+    div.${showImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) {
+        border: 3px #ff00c5 solid;
+    }
+
+    div.${showImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) {
+        border: 3px #FFA500 solid;
+    }`);
+
+    // language=CSS
+    addCss(`.grey-scale,
+    img[loaded="error"] {
+        -webkit-filter: grayscale(1);
+    }
+
+    img[loaded="error"],
+    img[loaded="loading"] {
+        opacity: 0.5;
+        filter: alpha(opacity=50); /* For IE8 and earlier */
+        filter: opacity(50%);
+    }
+
+    img[loaded="true"] {
+        opacity: 1;
+        filter: alpha(opacity=100); /* For IE8 and earlier */
+        filter: opacity(100%);
+    }`);
+
+    // language=CSS
     addCss(`.hover-click:hover,
 .hover-click:focus {
     color: #999;
@@ -3461,6 +3512,7 @@ div.irc_hd * {
 /*keeps the bar at a fixed position when scrolling*/
 /*.rshdr, .jsrp{position:fixed; height:100%; width:100%; left:0; top:0; z-index:2;}
 #rcnt{position:relative; z-index:1; margin:100% 0 0;}*/
+
 div#extrares {
     display: none !important;
 }
@@ -3474,7 +3526,6 @@ div.rg_bx {
 .irc_asc {
     display: inline-block !important;
 }
-
 .irc_ris {
     height: fit-content !important;
     width: 80% !important;
@@ -3508,10 +3559,9 @@ div.text-block.download-block:hover {
     opacity: 1;
 }
 
-div.text-block.ext-gif {
-    background-color: magenta;
+.ext-gif {
+    background-color: #2c0330 !important;
 }
-
 div.text-block.ext:not(.ext-gif) {
     background-color: #00cbff;
 }
@@ -3528,8 +3578,7 @@ a.download-related {
     inset 1px 1px 0 rgba(255, 255, 255, .05);
 }
 
-/**/
-
+/* sliders*/
 [type="range"] {
     -webkit-appearance: none;
     /*width: 70%;*/
@@ -3869,33 +3918,6 @@ function createElement(html, callback) {
     return element;
 }
 
-/**
- * Snoops on an object, monitors all attempts to access and set properties
- * @param {Object} obj - the object to monitor
- * @param {string[]=} props - list of properties to watch, watches all properties by default
- * @param {Function=} onset - callback when the property is set (newValue is passed)
- * @param {Function=} onget - callback when the property is accessed
- */
-function snoopProperty(obj, props = [], onset = (val) => null, onget = () => null) {
-    if (props.length === 0) { // default to all properties
-        props = Object.keys(obj);
-    }
-
-    for (const prop of props) {
-        obj['__' + prop] = obj[prop]; // actual property
-
-        obj.__defineSetter__(prop, function (newValue) {
-            console.log('someone just set the property:', prop, 'to value:', newValue, '\non:', obj);
-            onset.call(obj, newValue);
-            obj['__' + prop] = newValue;
-        });
-        obj.__defineGetter__(prop, function () {
-            console.log('someone just accessed', prop, '\non:', obj);
-            onget.call(obj);
-            return obj['__' + prop];
-        });
-    }
-}
 function unsafeEval(func, ...arguments) {
     let body = 'return (' + func + ').apply(this, arguments)';
     unsafeWindow.Function(body).apply(unsafeWindow, arguments);
