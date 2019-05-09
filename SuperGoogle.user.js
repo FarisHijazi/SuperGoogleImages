@@ -77,22 +77,6 @@
 (function () {
     'use strict';
 
-    document.addEventListener('DOMContentLoaded', function () {
-        // var searchModeDiv = document.querySelector('div#hdtb-msb-vis' + ' div.hdtb-msel');
-        // if (!(searchModeDiv && searchModeDiv.innerHTML === 'Images')) {
-        //     return;
-        // }
-
-        var style = document.createElement('style');
-        style.textContent = 'a.x_source_link {' + [
-            'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
-            'text-decoration: none !important',
-            'color: inherit !important',
-            'display: block !important'
-        ].join(';') + '}';
-        document.head.appendChild(style);
-    }, true);
-
     var M = (typeof GM !== 'undefined') ? GM : {
         getValue: function (name, alt) {
             var value = GM_getValue(name, alt);
@@ -113,13 +97,15 @@
     };
 
 
-    // todo: replace this with importing GM_dummy_functions, and importing a pollyfill
+    // todo: replace this with importing GM_dummy_functions, and importing a polyfill
+    var unsafeWindow;
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
+
     // prevents duplicate instances
     if (typeof unsafeWindow.superGoogleScript === 'undefined') {
         unsafeWindow.superGoogleScript = this;
     } else {
-        void (0);
+        return;
     }
 
     Set.prototype.addAll = function (range) {
@@ -185,25 +171,42 @@
     };
     Consts.ClassNames = $.extend(showImages.ClassNames, Consts.ClassNames);
 
+
     // OPTIONS:
+
+    // TODO: add a little dropdown where it'll show you the current options and you can
+    //      modify them and reload the page with your changes
     const Preferences = $.extend({
-        invertWheelRelativeImageNavigation: false,
+        // everything that has to do with the search page and url
+        location: {
+            customUrlArgs: {
+                // "tbs=isz": "lt",//
+                // islt: "2mp",    // isLargerThan
+                // tbs: "isz:l",   // l=large, m=medium...
+                // "hl": "en"
+            },
+            /**
+             * @type {string|null}
+             * if this field is falsy, then there will be no changes to the url.
+             */
+            forcedHostname: 'ipv4.google.com',
+        },
         defaultAnchorTarget: '_blank',
         staticNavbar: false,
-        loopbackWhenCyclingRelatedImages: false,
-        successColor: 'rgb(167, 99, 255)',
-        customUrlArgs: {
-            // "tbs=isz": "lt",//
-            // islt: "2mp",    // isLargerThan
-            // tbs: "isz:l",   // l=large, m=medium...
-            // "hl": "en"
+        loading: {
+            successColor: 'rgb(167, 99, 255)',
+            hideFailedImagesOnLoad: false,
+            useDdgProxy: true,
         },
-        hideFailedImagesOnLoad: false,
-        periodicallySaveUnblockedSites: false,
-        useDdgProxy: true,
-        delocalize: true, // use google.com instead google.specificCountry
-        autoShowFullresRelatedImages: true,
-        favoriteOnDownloads: true, // favorite any image that you download
+        ubl: {
+            periodicUblSaving: false, // periodically save the unblocked sites list
+        },
+        panels: {
+            autoShowFullresRelatedImages: true,
+            loopbackWhenCyclingRelatedImages: false,
+            favoriteOnDownloads: true, // favorite any image that you download
+            invertWheelRelativeImageNavigation: false,
+        },
     }, GM_getValue('Preferences'));
     // write back to storage (in case the storage was empty)
     GM_setValue('Preferences', Preferences);
@@ -361,7 +364,6 @@
      */
     var zip = new JSZip();
 
-    var controlsContainerId = 'google-controls-container';
     var progressBar;
     var currentDownloadCount = 0;
     var isTryingToClickLastRelImg = false;
@@ -545,23 +547,21 @@
      */
 
 
-    if (Preferences.delocalize && location.hostname.match(/google\.(.+)/)[1] !== 'com') {
-        var newHost = location.hostname.replace(/(google\.)(.+)/i, '$1com');
-        console.log('relocating to de-localize:', newHost);
-        location.hostname = newHost;
+    if (Preferences.location.forcedHostname && typeof Preferences.location.forcedHostname === 'string' && Preferences.location.forcedHostname !== location.hostname) {
+        location.hostname = Preferences.location.forcedHostname;
     }
 
     // URL args: Modifying the URL and adding arguments, such as specifying the size
-    if (Preferences.customUrlArgs && Object.keys(Preferences.customUrlArgs).length) {
+    if (Preferences.location.customUrlArgs && Object.keys(Preferences.location.customUrlArgs).length) {
         const url = new URL(location.href);
         const searchParams = url.searchParams;
 
-        for (const key in Preferences.customUrlArgs) {
-            if (Preferences.customUrlArgs.hasOwnProperty(key)) {
+        for (const key in Preferences.location.customUrlArgs) {
+            if (Preferences.location.customUrlArgs.hasOwnProperty(key)) {
                 if (searchParams.has(key))
-                    searchParams.set(key, Preferences.customUrlArgs[key]);
+                    searchParams.set(key, Preferences.location.customUrlArgs[key]);
                 else
-                    searchParams.append(key, Preferences.customUrlArgs[key]);
+                    searchParams.append(key, Preferences.location.customUrlArgs[key]);
             }
         }
         console.debug('new location:', url.toString());
@@ -598,16 +598,6 @@
             GSaves.addDirectUrlsButton();
             GSaves.addDLJsonButton();
         });
-
-        if (false) {
-            observeDocument(function (mutationTarget) {
-                console.log('mutationTarget:', mutationTarget);
-                if (mutationTarget.querySelector('.str-clip-card-space')) {
-                    console.log('mutationTarget invoked wrapGSavesPanelsWithAnchors()');
-                    GSaves.wrapPanels();
-                }
-            });
-        }
     }
 
 
@@ -639,9 +629,10 @@
                 this.el = element;
                 element.__defineGetter__('panel', () => this);
 
+                // TODO: try extending using the ImagePanel.prototype
                 // extend the element
                 for (var key of Object.keys(this)) {
-                    console.log('extending panel, adding:', key, element);
+                    console.debug('extending panel, adding:', key, element);
                     element[key] = this[key];
                 }
 
@@ -763,10 +754,15 @@
         /**
          * @type {NodeListOf<HTMLAnchorElement>}
          * @returns {Object} buttons
-         * @property buttons.Visit:       a.i3599.irc_vpl.irc_lth,
-         * @property buttons.Save:        a.i15087, (not saved: i15087 saved: i35661)
-         * @property buttons.View saved:  a.i18192.r-iXoO2jjyyEGY,
-         * @property buttons.Share:       a.i17628
+         * @property {HTMLAnchorElement} buttons.Visit:       a.i3599.irc_vpl.irc_lth,
+         * @property {HTMLAnchorElement} buttons.Save:        a.i15087, (not saved: i15087 saved: i35661)
+         * @property {HTMLAnchorElement} buttons.View saved:  a.i18192.r-iXoO2jjyyEGY,
+         * @property {HTMLAnchorElement} buttons.Share:       a.i17628
+         * @property {HTMLAnchorElement} buttons.notsaved:    a.i15087
+         * @property {HTMLAnchorElement} buttons.saved:       a.i35661
+         *
+         * @property {Function} buttons.save
+         * @property {Function} buttons.unsave
          */
         get buttons() {
             const buttonsContainer = this.q('.irc_but_r > tbody > tr');
@@ -963,7 +959,7 @@
                                     return false;
                                 }
                                 /// Wheel definetely moved at this point
-                                let wheelUp = Preferences.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
+                                let wheelUp = Preferences.panels.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
                                 if (!onLeftSide) {   // If the mouse is under the RIGHT side of the image panel
                                     if (isOrContains(elUnderMouse, leftPart)) {
                                         if (wheelUp) {
@@ -1119,7 +1115,7 @@
                 download(currentImageURL, name, undefined, focused_risDiv);
                 panel.q('.torrent-link').click();
 
-                if (Preferences.favoriteOnDownloads) {
+                if (Preferences.panels.favoriteOnDownloads) {
                     panel.buttons.save();
                 }
             } catch (e) {
@@ -1275,7 +1271,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     ih.href = GoogleUtils.url.gImgSearchURL + 'site:' + hostname;
 
                     if (ublSitesSet.has(hostname))
-                        setStyleInHTML(ih, 'color', `${Preferences.successColor} !important`);
+                        setStyleInHTML(ih, 'color', `${Preferences.loading.successColor} !important`);
                 } else {
                     console.warn('ImageHost element not found:', ih);
                 }
@@ -1324,7 +1320,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
 
             if (ublSitesSet.has(hostname))
-                setStyleInHTML(this.sTitle_Anchor, 'color', `${Preferences.successColor} !important`);
+                setStyleInHTML(this.sTitle_Anchor, 'color', `${Preferences.loading.successColor} !important`);
         }
 
         /** Removes the annoying image link when the panel is open */
@@ -1408,7 +1404,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 if (!!previousElementSibling) {
                     previousElementSibling.click();
-                } else if (Preferences.loopbackWhenCyclingRelatedImages) {
+                } else if (Preferences.panels.loopbackWhenCyclingRelatedImages) {
                     // List of relImgs without that last "View More".
                     const endRis = Array.from(this.ris_Divs).pop();
                     endRis.click();
@@ -1479,7 +1475,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 let nextElSibling = ris_fc_Div.nextElementSibling;
                 if (nextElSibling && !nextElSibling.classList.contains('irc_rismo')) {
                     nextElSibling.click();
-                } else if (Preferences.loopbackWhenCyclingRelatedImages) {
+                } else if (Preferences.panels.loopbackWhenCyclingRelatedImages) {
                     Array.from(this.ris_DivsAll)[0].click();
                     console.debug('clicking first irc_irs to loop, cuz there isn\'t any on the right', this.ris_DivsAll[0]);
                 } else {
@@ -1497,12 +1493,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          * Called every time a panel mutation is observed
          */
         onPanelMutation() {
-            console.log('panelMutation()');
+            debug && console.log('panelMutation()');
             ImagePanel.updateP(this);
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
 
-            if (Preferences.autoShowFullresRelatedImages) {
+            if (Preferences.panels.autoShowFullresRelatedImages) {
                 this.showRis()
             }
 
@@ -1537,10 +1533,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     }
 
-    console.log('ImagePanel class:', ImagePanel);
-    unsafeWindow.ImagePanel = ImagePanel;
-    unsafeWindow.IP = ImagePanel;
-
 
     const clearEffectsDelayed = (function () {
         let timeOut;
@@ -1570,7 +1562,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
 
         if (GoogleUtils.isOnGoogleImages) {
-            googleDirectLinks();
+            unsafeEval(googleDirectLinks);
 
             bindKeys();
 
@@ -1580,23 +1572,31 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if (addedImageBoxes.length) {
                     onImageBatchLoading(addedImageBoxes);
                     updateDownloadBtnText();
+
                 }
             }, {singleCallbackPerMutation: true});
 
+            // automatically display originals if searching for a site:
+            if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
+                console.log('automatically display originals for "site:" search');
+                // HACK: delaying it cuz if it's too early it'll cause issues for the first 20 images
+                setTimeout(function () {
+                    showImages.displayImages();
+                }, 3500);
+            }
 
-            // iterating over the stored ubl sites
-            for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
-            for (const ublURL of GM_getValue(Consts.GMValues.ublUrls, new Set())) ublMetas.add(ublURL);
-            for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
-            if (Preferences.periodicallySaveUnblockedSites)
-                setInterval(storeUblSitesSet, 5000);
+            // // iterating over the stored ubl sites
+            // for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
+            // for (const ublURL of GM_getValue(Consts.GMValues.ublUrls, new Set())) ublMetas.add(ublURL);
+            // for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
+            // if (Preferences.ubl.periodicUblSaving)
+            //     setInterval(storeUblSitesSet, 5000);
 
 
             // TODO: move this into the ImagePanel class and use events instead of observing
             // wait for panel to appear then start modding
-            elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(panels => qa('#irc_cc > div').forEach(function (panelEl) {
-                console.log('panel element ready', panelEl);
-
+            elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(function () {
+                qa('#irc_cc > div').forEach(function (panelEl) {
                 // make one-time modifications
                 ImagePanel.modifyP(panelEl);
 
@@ -1623,15 +1623,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 // start observing
                 mutationObserver.observePanels();
-            }));
+                });
+            });
 
-            elementReady('#hdtb-msb').then(injectGoogleButtons);
-
-
-            // automatically display originals if searching for a site:
-            if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
-                showImages.displayImages();
-            }
+            // wait for searchbar to load
+            elementReady('#hdtb-msb').then(function () {
+                injectGoogleButtons();
+            });
 
         } else {
             // bind each result to the corresponding number
@@ -1725,9 +1723,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         Mousetrap.bind([`'`], function (e) {
-            Preferences.loopbackWhenCyclingRelatedImages = !Preferences.loopbackWhenCyclingRelatedImages;
-            GM_setValue('LOOP_RELATED_IMAGES', Preferences.loopbackWhenCyclingRelatedImages);
-            console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.loopbackWhenCyclingRelatedImages);
+            Preferences.panels.loopbackWhenCyclingRelatedImages = !Preferences.panels.loopbackWhenCyclingRelatedImages;
+            GM_setValue('LOOP_RELATED_IMAGES', Preferences.panels.loopbackWhenCyclingRelatedImages);
+            console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.panels.loopbackWhenCyclingRelatedImages);
         });
         Mousetrap.bind(['t'], function (e) {
             console.debug('Torrent search');
@@ -1972,9 +1970,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     /**Modify the navbar and add custom buttons*/
+    // TODO: use jquery to create the elements, it'll be much cleaner
     function injectGoogleButtons() {
         console.log('injectGoogleButtons()');
-        const controlsContainer = createElement(`<div id="${controlsContainerId}"</div>`);
+        const controlsContainer = createElement('<div id="google-controls-container"</div>');
         /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
 
         const navbar = createAndGetNavbar(function (topnavContentDiv) {
@@ -2032,17 +2031,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
             const checked = q('#hideFailedImagesBox').checked;
             setVisibilityForImages(!checked, isFailedImage);
-            Preferences.hideFailedImagesOnLoad = !checked; // remember the preference
-        }, Preferences.hideFailedImagesOnLoad);
+                Preferences.loading.hideFailedImagesOnLoad = !checked; // remember the preference
+            }, Preferences.loading.hideFailedImagesOnLoad);
         const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
             setVisibilityForImages(!q('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
         }, false);
         const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy',
             () => {
-                Preferences.useDdgProxy = q('#useDdgProxyBox').checked;
+                Preferences.loading.useDdgProxy = q('#useDdgProxyBox').checked;
                 updateQualifiedImagesLabel();
             },
-            Preferences.useDdgProxy
+            Preferences.loading.useDdgProxy
         );
         const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs',
             () => GM_setValue('GIFsException', q('#GIFsExceptionBox').checked),
@@ -3383,7 +3382,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     };
 
 
-    (function createAndAddHighlightCSS() {
             /* Overlay CSS for highlighting selected images */
             // language=CSS
             addCss(`.highlight, .drop-shadow {
@@ -3419,12 +3417,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
 
             .hide-img {
-                display: none !important;
-            }`, 'filters-style');
-            /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
-        }
-    )();
+        display: none !important;
+    }`, 'filters-style');
+    /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
 
+
+    // GDLPI script css
+    addCss('a.x_source_link {' + [
+        'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
+        'text-decoration: none !important',
+        'color: inherit !important',
+        'display: block !important'
+    ].join(';') + '}');
 
     // give a white border so that we'll have them all the same size
     addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}');
@@ -3619,7 +3623,7 @@ a.download-related {
 }
 
 .ubl-site {
-    color: ${Preferences.successColor} !important;
+    color: ${Preferences.loading.successColor} !important;
 }
 
 .scroll-nav:hover,
@@ -3838,18 +3842,16 @@ function observeDocument(callback, options = {}) {
 
         var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
         if (MutationObserver) {
-            var observer = new MutationObserver(
-                function mutationCallback(mutations) {
-                    for (const mutation of mutations) {
-                        if (!mutation.addedNodes.length)
-                            continue;
+            var observer = new MutationObserver(function mutationCallback(mutations) {
+                for (const mutation of mutations) {
+                    if (mutation.addedNodes.length) {
                         callback(mutation.target);
                         if (options.singleCallbackPerMutation === true) {
                             break;
                         }
                     }
                 }
-            );
+            });
             return observer.observe(document.documentElement, options);
         } else {
             document.addEventListener('DOMAttrModified', callback, false);
@@ -3928,39 +3930,46 @@ function unsafeEval(func, ...arguments) {
  * Google: Direct Links for Pages and Images
  */
 function googleDirectLinks() {
-    unsafeEval(function (opt_noopen) {
+    var debug = false;
+    var count = 0;
 
-        var debug = false;
-        var count = 0;
+    // web pages:            [0] url?url=
+    // images:               [1] imgres?imgurl=
+    // custom search engine: [2] url?q=
+    // malware:              [3] interstitial?url=
+    var re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
 
-        var options = {noopen: opt_noopen};
-        debug && console.log('Options:', options);
+    /** replace redirect and dataUris
+     *
+     * @param {*|HTMLAnchorElement} link
+     * @param {string=} url
+     */
+    var restore = function (link, url) {
+        var oldUrl = link.getAttribute('href') || '';
+        var newUrl = url || oldUrl;
 
-        // web pages: url?url=
-        // images: imgres?imgurl=
-        // custom search engine: url?q=
-        // malware: interstitial?url=
-        var re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
-        /** replace redirect, also replace dataUris */
-        var restore = function (link, url) {
-            var oldUrl = link.getAttribute('href') || '';
-            var newUrl = url || oldUrl;
-            var matches = newUrl.match(re);
-            if (matches) {
-                debug && console.log('restoring', link._x_id, newUrl);
+        var matches = newUrl.match(re);
+        if (matches) {
+            debug && console.log('restoring', link._x_id, newUrl);
 
-                link.setAttribute('href', decodeURIComponent(matches[2]));
-                enhanceLink(link);
-                if (matches[1] === 'imgres') {
-                    if (link.querySelector('img[src^="data:"]')) {
+            link.href = decodeURIComponent(matches[2]);
+            enhanceLink(link);
+            if (matches[1] === 'imgres') {
+                if (link.querySelector('img[src^="data:"]')) {
                         link._x_href = newUrl;
                     }
                     enhanceThumbnail(link, newUrl);
                 }
             } else if (url != null) {
                 link.setAttribute('href', newUrl);
-            }
-        };
+        }
+    };
+
+    /**
+     * - purifyLink
+     * - set rel="noreferrer", referrerpolicy="no-referrer"
+     * - stopImmediatePropagation onclick */
+    var enhanceLink = function (a) {
 
         /** stop propagation onclick */
         var purifyLink = function (a) {
@@ -3976,14 +3985,9 @@ function googleDirectLinks() {
             }
         };
 
-        /**
-         * - purifyLink
-         * - set rel="noreferrer", referrerpolicy="no-referrer"
-         * - stopImmediatePropagation onclick */
-        var enhanceLink = function (a) {
-            purifyLink(a);
-            a.setAttribute('rel', 'noreferrer');
-            a.setAttribute('referrerpolicy', 'no-referrer');
+        purifyLink(a);
+        a.setAttribute('rel', 'noreferrer');
+        a.setAttribute('referrerpolicy', 'no-referrer');
         };
 
         /** make thumbnail info-bar clickable
@@ -3993,7 +3997,7 @@ function googleDirectLinks() {
             // @faris, storing fullres-src attribute to images
             var imgs = [].slice.call(link.querySelectorAll('div~img'));
             imgs.length && imgs.forEach(function (img) {
-                console.log('img fullres-src="' + link.href + '"');
+            debug && console.log('img fullres-src="' + link.href + '"');
                 img.setAttribute('fullres-src', link.href);
             });
 
@@ -4063,24 +4067,23 @@ function googleDirectLinks() {
         };
         var checkAttribute = function (mutation) {
             var target = mutation.target;
-            if (target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
-                return;
+        if (target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
+            return;
 
-            if (target && target.nodeName.toUpperCase() === 'A') {
-                if ((mutation.attributeName || mutation.attrName) === 'href') {
-                    debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
-                }
-                handler(target);
-            } else if (target instanceof Element) {
-                [].slice.call(target.querySelectorAll('a')).forEach(handler);
+        if (target && target.tagName === 'A') {
+            if ((mutation.attributeName || mutation.attrName) === 'href') {
+                debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
             }
-        };
+            handler(target);
+        } else if (target instanceof Element) {
+            target.querySelectorAll('a').forEach(handler);
+        }
+    };
 
-        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
-
-        if (MutationObserver) {
-            debug && console.log('MutationObserver: true');
-            new MutationObserver(checkNewNodes).observe(document.documentElement, {
+    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+    if (MutationObserver) {
+        debug && console.log('MutationObserver: true');
+        new MutationObserver(checkNewNodes).observe(document.documentElement, {
                 childList: true,
                 attributes: true,
                 attributeFilter: ['href'],
@@ -4088,9 +4091,7 @@ function googleDirectLinks() {
             });
         } else {
             debug && console.log('MutationEvent: true');
-            document.addEventListener('DOMAttrModified', checkAttribute, false);
-            document.addEventListener('DOMNodeInserted', checkNewNodes, false);
-        }
-
-    });
+        document.addEventListener('DOMAttrModified', checkAttribute, false);
+        document.addEventListener('DOMNodeInserted', checkNewNodes, false);
+    }
 }
