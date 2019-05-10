@@ -1516,8 +1516,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         /**
          * Called every time a panel mutation is observed
          */
-        onPanelMutation() {
-            debug && console.log('panelMutation()');
+        onPanelMutation(mutations) {
+            // debug && console.log('panelMutation()');
             ImagePanel.updateP(this);
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
@@ -1621,29 +1621,37 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // wait for panel to appear then start modding
             elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(function () {
                 qa('#irc_cc > div').forEach(function (panelEl) {
-                // make one-time modifications
-                ImagePanel.modifyP(panelEl);
+                    /**
+                     * every change that happens causes 2 data-dev mutations
+                     * first one with oldValue = <stuff saldkfjasldfkj>
+                     * second has oldValue = null
+                     */
 
-                // bind mutation observer, observes every change happening to the panels (any one of them)
-                const mutationObserver = new MutationObserver(function (mutations, observer) {
-                    // #todo: optimize callbacks, #profiler:  17.9% of the browser delay is from this
-                    observer.disconnect(); // stop watching until changes are done
+                    // make one-time modifications
+                    ImagePanel.modifyP(panelEl);
 
-                    // panelEl.dispatchEvent(new Event('panelMutation'));
-                    panelEl.panel.onPanelMutation(); // make changes
+                    // bind mutation observer, observes every change happening to the panels (any one of them)
+                    const mutationObserver = new MutationObserver(function (mutations, observer) {
+                        observer.disconnect(); // stop watching until changes are done
 
-                    observer.observePanels(); // continue observing
-                });
-
-                // creating a function (template for observing)
-                mutationObserver.observePanels = function () {
-                    mutationObserver.observe(panelEl, {
-                        childList: true,
-                        subtree: true,
-                        attributes: true,
-                        attributeFilter: ['data-ved']
+                        if (mutations[0].oldValue === null) { // if this is the second mutation (only a single callback is needed for each change)
+                            const event = new Event('panelMutation');
+                            event.mutations = mutations;
+                            panelEl.dispatchEvent(event);
+                        }
+                        observer.observePanels(); // continue observing
                     });
-                };
+
+                    // creating a function (template for observing)
+                    mutationObserver.observePanels = function () {
+                        mutationObserver.observe(panelEl, {
+                            childList: false,
+                            subtree: false,
+                            attributes: true,
+                            attributeOldValue: true,
+                            attributeFilter: ['data-ved']
+                        });
+                    };
 
                 // start observing
                 mutationObserver.observePanels();
