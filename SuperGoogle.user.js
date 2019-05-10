@@ -102,12 +102,13 @@
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
 
     // prevents duplicate instances
-    if (typeof unsafeWindow.superGoogleScript === 'undefined') {
-        unsafeWindow.superGoogleScript = this;
+    if (typeof unsafeWindow.superGoogle === 'undefined') {
+        unsafeWindow.superGoogle = this;
     } else {
         return;
     }
 
+    // REFACTOR: TODO: group this into an import-able that will do this simply by importing
     Set.prototype.addAll = function (range) {
         if (range) {
             for (const x of range) {
@@ -136,8 +137,11 @@
         return new Set(Array.from(this).filter(x => !other.has(x)))
     };
 
+
     // === end of basic checks and imports ===
 
+
+    var debug = true;
     var showImages = new ShowImages({});
     console.log('SuperGoogle showImages:', showImages);
     unsafeWindow.showImagesSuperGoogle = showImages;
@@ -670,22 +674,22 @@
             return this;
         }
 
-        /** @return {HTMLDivElement} */
+        /** @return {HTMLDivElement} div.irc_it */
         get titleAndDescriptionDiv() {
             if (!this.el) {
                 return;
             }
-            const titleAndDescrDiv = this.q('div._cjj, div.Qc8zh, div.i30053').querySelector('div.irc_it');
+            const titleAndDescrDiv = this.q('div.irc_b.irc_mmc div.irc_it');
             if (!titleAndDescrDiv) {
                 console.warn('TitleAndDescription div not found!');
             }
             return titleAndDescrDiv;
         }
-        /** @return {HTMLAnchorElement} */
+        /** @return {HTMLSpanElement} */
         get descriptionEl() {
             const titleDescrDiv = this.titleAndDescriptionDiv;
             if (titleDescrDiv) {
-                return titleDescrDiv.querySelector('div.irc_asc > div > .irc_su');
+                return titleDescrDiv.querySelector('div.irc_asc span.irc_su');
             } else {
                 console.warn('titleAndDescriptionDiv not found for image panel:', this.el);
             }
@@ -876,21 +880,17 @@
             let panel = new ImagePanel(panelEl);
             panelEl.addEventListener('panelMutation', () => panel.onPanelMutation());
 
-            const classList = panel.rightPart.classList;
-            if (!classList.contains('scroll-nav')) {
-                classList.add('scroll-nav');
-            }
+            panel.rightPart.classList.add('scroll-nav');
 
             // add onerror listener to the mainimage
-            // this.mainImage.addEventListener('error', function(e) {
-            //     console.log('OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this!', e);
-            // });
+            // this.mainImage.addEventListener('error', function(e) { console.log('OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this!', e); });
 
 
             // adding text-decoration to secondary title
             panel.sTitle_Anchor.parentElement.after(createElement(
                 '<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/></div>'
             ));
+
 
             panel.inject_SiteSearch();
 
@@ -899,7 +899,6 @@
 
             panel.inject_sbi();
 
-            // waitForElement(() => IP.focusedPanel.relatedImage_Container, () => { p.inject_DownloadRelatedImages(); });
             panel.inject_Download_ris();
             panel.inject_ImageHost();
 
@@ -1016,12 +1015,12 @@
         }
 
         /**
-         * Called once everytime the panel is changed
+         * Called once every time the panel is changed
          * @param panelEl
          * @return {boolean}
          */
+        // TODO: make this a non-static method
         static updateP(panelEl) {
-            // console.debug('Updating panel');
             if (!panelEl) {
                 console.warn('Null panel passed');
                 return false;
@@ -1034,7 +1033,20 @@
             // p.injectSearchByImage();
             // p.addDownloadRelatedImages();
 
-            p.makeDescriptionClickable();
+            // make sure that main image link points to the main image (and not to the website)
+            var imgAnchor = p.q('a.irc_mutl');
+            imgAnchor.__defineGetter__('href', function () {
+                imgAnchor.href = imgAnchor.querySelector('img').src || '#';
+                return this.getAttribute('href');
+            });
+            imgAnchor.href = imgAnchor.querySelector('img').src || '#';
+            imgAnchor.addEventListener('click', function (e) {
+                window.open(this.querySelector('img').src, '_blank');
+                e.preventDefault();
+                e.stopImmediatePropagation();
+            });
+
+            p.linkifyDescription();
             p.addImageAttributes();
             p.update_SiteSearch();
             p.update_ViewImage();
@@ -1141,18 +1153,30 @@
             }
         }
 
-        makeDescriptionClickable() {
+        linkifyDescription() {
             var self = this;
-            const descriptionEl = this.descriptionEl;
+            const descriptionEl = self.descriptionEl;
 
-            function openDescription() {
-                window.open(GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(descriptionEl.innerText)), '_blank');
+            if (!descriptionEl) {
+                return;
             }
 
-            if (descriptionEl && !descriptionEl.classList.contains('hover-click')) {
-                descriptionEl.classList.add(`hover-click`);
-                descriptionEl.addEventListener('click', openDescription);
+
+            var descriptionAnchor = self.titleAndDescriptionDiv.querySelector('div.irc_asc > a.clickable-descr');
+            if (!descriptionAnchor) {
+                const html = descriptionEl.outerHTML.replace('<span', '<a').replace('</span', '</a');
+                descriptionAnchor = createElement(html);
+                console.log('descriptionAnchor didn\'t exist, creating a new one:', descriptionAnchor, html);
             }
+            $(descriptionAnchor).addClass('clickable-descr')
+                .attr({
+                    href: GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(descriptionEl.innerText)),
+                    target: '_blank'
+                });
+
+            $(descriptionEl)
+                .before(descriptionAnchor)
+                .css({display: 'none'});
         }
         inject_Download_ris() {
             // const risContainer = this.relatedImage_Container.parentNode;
@@ -1402,7 +1426,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if (!this.ris_fc_Div) return false;
                 let previousElementSibling = this.ris_fc_Div.previousElementSibling;
 
-                if (!!previousElementSibling) {
+                if (previousElementSibling) {
                     previousElementSibling.click();
                 } else if (Preferences.panels.loopbackWhenCyclingRelatedImages) {
                     // List of relImgs without that last "View More".
