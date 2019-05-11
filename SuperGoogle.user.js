@@ -255,6 +255,11 @@
         o.__defineGetter__('isOnGoogleImages', () =>
             new URL(location.href).searchParams.get('tbm') === 'isch' // TODO: find a better way of determining whether the page is a Google Image search
         );
+        o.__defineGetter__('isOnGoogleImagesPanel', () => {
+                const url1 = new URL(location.href);
+                return url1.searchParams.has('imgurl') && url1.pathname.split('/').pop() === 'imgres';
+            }
+        );
 
         return o;
     })();
@@ -334,14 +339,6 @@
         }
     };
 
-
-    const mimeTypesJSON = $.getJSON(
-        'https://cdn.rawgit.com/jshttp/mime-db/master/db.json',
-        /** (PlainObject data, String textStatus, jqXHR jqXHR) */
-        function (data, textStatus, jqXHR) {
-            console.log('JQuery.getJSON()\ndata, textStatus, jqXHR :', data, textStatus, jqXHR);
-        }
-    );
 
     JSZip.prototype.generateIndexHtml = function generateZipIndexHtml() {
         let html = '';
@@ -669,39 +666,39 @@
                         /**
                          * every change that happens causes 2 data-dev mutations
                          * first one with oldValue = <stuff saldkfjasldfkj>
-                     * second has oldValue = null
-                     */
+                         * second has oldValue = null
+                         */
 
-                        // bind mutation observer, observes every change happening to the panels (any one of them)
-                    const mutationObserver = new MutationObserver(function (mutations, observer) {
-                            observer.disconnect(); // stop watching until changes are done
+                            // bind mutation observer, observes every change happening to the panels (any one of them)
+                        const mutationObserver = new MutationObserver(function (mutations, observer) {
+                                observer.disconnect(); // stop watching until changes are done
 
-                            if (mutations[0].oldValue === null) { // if this is the second mutation (only a single callback is needed for each change)
-                                const event = new Event('panelMutation');
-                                event.mutations = mutations;
-                                panel.el.dispatchEvent(event);
-                            }
+                                if (mutations[0].oldValue === null) { // if this is the second mutation (only a single callback is needed for each change)
+                                    const event = new Event('panelMutation');
+                                    event.mutations = mutations;
+                                    panel.el.dispatchEvent(event);
+                                }
 
-                            observer.observePanel(); // continue observing
-                        });
+                                observer.observePanel(); // continue observing
+                            });
 
-                    // creating a function (template for observing)
-                    mutationObserver.observePanel = function () {
-                        mutationObserver.observe(panel.el, {
-                            childList: false,
-                            subtree: false,
-                            attributes: true,
-                            attributeOldValue: true,
-                            attributeFilter: ['data-ved']
-                        });
-                    };
+                        // creating a function (template for observing)
+                        mutationObserver.observePanel = function () {
+                            mutationObserver.observe(panel.el, {
+                                childList: false,
+                                subtree: false,
+                                attributes: true,
+                                attributeOldValue: true,
+                                attributeFilter: ['data-ved']
+                            });
+                        };
 
-                    // save a reference
-                    panel.observer = mutationObserver;
+                        // save a reference
+                        panel.observer = mutationObserver;
 
-                    //start observing
-                    mutationObserver.observePanel();
-                });
+                        //start observing
+                        mutationObserver.observePanel();
+                    });
             });
         }
 
@@ -943,9 +940,8 @@
 
 
             // adding text-decoration to secondary title
-            panel.sTitle_Anchor.parentElement.after(createElement(
-                '<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/></div>'
-            ));
+            $(panel.sTitle_Anchor).parent()
+                .after('<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/>');
 
 
             panel.inject_SiteSearch();
@@ -1013,7 +1009,7 @@
                                     console.debug('Mousewheel didn\'t move');
                                     return false;
                                 }
-                                /// Wheel definetely moved at this point
+                                // Wheel definetely moved at this point
                                 let wheelUp = Preferences.panels.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
                                 if (!onLeftSide) {   // If the mouse is under the RIGHT side of the image panel
                                     if (isOrContains(elUnderMouse, leftPart)) {
@@ -1055,14 +1051,15 @@
                 ]);
                 for (const [selector, char] of keymap) {
                     var bindEl = q(selector);
-                    if (!bindEl) continue;
-                    bindEl.outerHTML = bindEl.outerHTML.replace(new RegExp(char, 'i'), `<u>${char}</u>`);
+                    if (bindEl) {
+                        bindEl.outerHTML = bindEl.outerHTML.replace(new RegExp(char, 'i'), `<u>${char}</u>`);
+                    }
                 }
             }
 
             (function moveImgDimensionEl() {
                 const imgDimEl = panel.q('.rn92ee.irc_msc');
-                if (!!imgDimEl) {
+                if (imgDimEl) {
                     panel.sTitle_Anchor.after(imgDimEl);
                 }
             })();
@@ -1073,7 +1070,6 @@
 
         /**
          * Called once every time the panel is changed
-         * @param panelEl
          * @return {boolean}
          */
         update() {
@@ -1207,25 +1203,27 @@
             const descriptionEl = self.descriptionEl;
 
             if (!descriptionEl) {
+                console.warn('linkifyDescription(): descriptionEl is not defined');
                 return;
             }
 
 
             var descriptionAnchor = self.titleAndDescriptionDiv.querySelector('div.irc_asc > a.clickable-descr');
             if (!descriptionAnchor) {
-                const html = descriptionEl.outerHTML.replace('<span', '<a').replace('</span', '</a');
-                descriptionAnchor = createElement(html);
-                console.log('descriptionAnchor didn\'t exist, creating a new one:', descriptionAnchor, html);
+                descriptionAnchor = $(descriptionEl.outerHTML.replace('<span', '<a').replace('</span', '</a'))
+                    .text(descriptionEl.innerText);
+
+                $(descriptionEl)
+                    .before(descriptionAnchor)
+                    .css({display: 'none'});
             }
-            $(descriptionAnchor).addClass('clickable-descr')
+
+            $(descriptionAnchor)
+                .addClass('clickable-descr')
                 .attr({
-                    href: GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(descriptionEl.innerText)),
+                    href: GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(descriptionAnchor.innerText)),
                     target: '_blank'
                 });
-
-            $(descriptionEl)
-                .before(descriptionAnchor)
-                .css({display: 'none'});
         }
         inject_Download_ris() {
             // const risContainer = this.relatedImage_Container.parentNode;
@@ -1482,8 +1480,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     const endRis = Array.from(this.ris_Divs).pop();
                     endRis.click();
                 } else {
-                    ImagePanel.previousImage();
-                    if (q('#irc-lac').style.display !== 'none') { // if not on the first picture
+                    var prevArrow = ImagePanel.previousImage();
+                    if (prevArrow && prevArrow.style.display !== 'none') { // if not on the first picture
                         ImagePanel.__tryToClickBottom_ris_image(30);
                     }
                 }
@@ -1635,7 +1633,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (el.length) el[0].click();
         });
 
-        if (GoogleUtils.isOnGoogleImages) {
+        if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
             unsafeEval(googleDirectLinks);
 
             bindKeys();
@@ -1666,8 +1664,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // if (Preferences.ubl.periodicUblSaving)
             //     setInterval(storeUblSitesSet, 5000);
 
-
-            // TODO: move this into the ImagePanel class and use events instead of observing
             ImagePanel.init();
 
             // wait for searchbar to load
@@ -3094,7 +3090,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         return;
                     }
                     try {
-                        /* 
+                        /*
                         console.debug(
                             `onload:
     readyState: ${res.readyState}
