@@ -18,15 +18,15 @@ Moving scripts, collecting functions into a library or an object, renaming..
 
 ### Fixes
 
-- [ ] `ShowImages.displayImages()` doesn't show some images, many images are being ignored
+- [x] `ShowImages.displayImages()` doesn't show some images, many images are being ignored
 - [ ] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it
 - [ ] Fix clickable description, it doesn't change when changing to related images
 - [ ] Fix `DisplayOriginalImages`
   - [x] Make a specialized copy for the google script
   - [x] Remove all google-specific functionality from DisplayOriginalImages, make them independent
-  - [ ] Fix inconsistent "loaded" attribute, and fix borders
-  - [ ] Make it so that `ShowImages.js` can be instantiated and you can choose the callbacks and how it modifies the borders and etc
-- [ ] Fix the auto-loader (clicking load next page), you can't click anything other menus because of it
+  - [x] Fix inconsistent "loaded" attribute
+  - [x] Make it so that `ShowImages.js` can be instantiated and you can choose the callbacks and how it modifies the borders and etc
+- [ ] Fix the auto-loader (clicking load next page), you can't click anything other menus because of it, use ajax instead of clicking the button itself
 - [ ] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
 - [ ] Fix: dlLimit slider doesn't select anything the first time it's used
 
