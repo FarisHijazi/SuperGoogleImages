@@ -19,6 +19,8 @@
 A [UserScript](https://openuserjs.org/about/Userscript-Beginners-HOWTO) to add features to Google images, like:  
 display full resolution images, zip+download all images, and more. See a list of [all features here](#Features);
 
+See [demo video here](https://youtu.be/ceFuBh8r8GQ?t=24).
+
 ## Installation
 
 ### Userscript (Tampermonkey)
