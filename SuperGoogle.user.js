@@ -18,7 +18,9 @@
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
 // @require      https://github.com/ccampbell/mousetrap/raw/master/mousetrap.min.js
-// @require      https://github.com/buzamahmooza/Helpful-Web-Userscripts/raw/master/download_script.user.js
+// @require      https://github.com/FarisHijazi/GM_downloader/raw/master/GM_Downloader.user.js
+// @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/ShowImages.js
+// @updateUrl    https://raw.githubusercontent.com/FarisHijazi/SuperGoogle/master/SuperGoogle.user.js
 // @run-at       document-start
 // @connect      *
 // ==/UserScript==
@@ -780,15 +782,15 @@
             buttons.notsaved = buttonsContainer.querySelector('a.i15087'); // the button that appears without a star (not saved)
             buttons.saved = buttonsContainer.querySelector('a.i35661'); // has a star (means it's saved)
 
-            buttons.save = function() {
+            buttons.save = function () {
                 // if not saved, save
-                if(buttons.saved.style.display === 'none') {
+                if (buttons.saved.style.display === 'none') {
                     buttons.saved.click();
                 }
             };
-            buttons.unsave = function() {
+            buttons.unsave = function () {
                 // if saved, unsave
-                if(buttons.notsaved.style.display === 'none') {
+                if (buttons.notsaved.style.display === 'none') {
                     buttons.notsaved.click();
                 }
             };
@@ -1536,15 +1538,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 const minImgSizeSlider = q('#minImgSizeSlider');
                 if (minImgSizeSlider) {
-                minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
-                minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
-            }
+                    minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
+                    minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
+                }
 
-            const dlLimitSlider = q('#dlLimitSlider');
-            if (dlLimitSlider) {
-                dlLimitSlider.setAttribute('max', metaDatas.length.toString());
-                dlLimitSlider.value = metaDatas.length;
-                // TODO: also update the label value
+                const dlLimitSlider = q('#dlLimitSlider');
+                if (dlLimitSlider) {
+                    dlLimitSlider.setAttribute('max', metaDatas.length.toString());
+                    dlLimitSlider.value = metaDatas.length;
+                    // TODO: also update the label value
                 }
             })();
         }
@@ -1580,9 +1582,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     function go() {
 
-        // wait for the showAllSizes link to appear then click it
+        // click showAllSizes link when it appears
         $(Consts.Selectors.showAllSizes).ready((jq) => {
-            return jq(Consts.Selectors.showAllSizes).each(el => el.click && el.click());
+            const el = jq(Consts.Selectors.showAllSizes);
+            if (el.length) el[0].click();
         });
 
         if (GoogleUtils.isOnGoogleImages) {
@@ -1653,8 +1656,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         });
                     };
 
-                // start observing
-                mutationObserver.observePanels();
+                    // start observing
+                    mutationObserver.observePanels();
                 });
             });
 
@@ -1675,6 +1678,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function bindKeys() {
+
+        // S S: SafeSearch toggle
+        Mousetrap.bind('s s', function () {
+            const $ssLink = $('#ss-bimodal-strict');
+            if ($ssLink)
+                $ssLink.click();
+            else
+                $('#ss-bimodal-default').click();
+        });
 
         Mousetrap.addKeycodes({
             96: 'numpad0',
@@ -1759,7 +1771,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             GM_setValue('LOOP_RELATED_IMAGES', Preferences.panels.loopbackWhenCyclingRelatedImages);
             console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.panels.loopbackWhenCyclingRelatedImages);
         });
-        Mousetrap.bind(['t'], function (e) {
+        Mousetrap.bind([''], function openTorrent(e) {
             console.debug('Torrent search');
             openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(ImagePanel.focP.bestNameFromTitle)));
         });
@@ -1768,7 +1780,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             console.debug('btn_Save', btn_Save);
             if (!!btn_Save) btn_Save.click();
         });
-        Mousetrap.bind(['v'], function (e) {
+        Mousetrap.bind(['c'], function collection(e) {
             var btn_ViewSaves = ImagePanel.focP.q('.i18192');
             console.debug('btn_ViewSaves', btn_ViewSaves);
             if (!!btn_ViewSaves) btn_ViewSaves.click();
@@ -1931,11 +1943,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
         return false;
     }
-
+    //TODO: just remove this and use JSZip.genZip()
+    /**
+     * @param {JSZip} thisZip
+     */
     function genZip(thisZip = zip) {
         thisZip.file('index (online).html', new Blob([getIndexHtml()], {type: 'text/plain'}));
         thisZip.generateIndexHtml();
-        thisZip.generateAsync({type: 'blob'}).then(function (content) {
+        return thisZip.generateAsync({type: 'blob'}).then(function (content) {
                 var zipName = (document.title).replace(/site:|( - Google Search)/gi, '');
 
                 saveAs(content, `${zipName} [${Object.keys(thisZip.files).length}].zip`);
@@ -2063,8 +2078,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
             const checked = q('#hideFailedImagesBox').checked;
             setVisibilityForImages(!checked, isFailedImage);
-                Preferences.loading.hideFailedImagesOnLoad = !checked; // remember the preference
-            }, Preferences.loading.hideFailedImagesOnLoad);
+            Preferences.loading.hideFailedImagesOnLoad = !checked; // remember the preference
+        }, Preferences.loading.hideFailedImagesOnLoad);
         const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
             setVisibilityForImages(!q('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
         }, false);
@@ -2911,7 +2926,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     /**
      * This is the URL with safe search off
-     * @returns false if the page is already with "safe search" off
+     *
+     * '#ss-bimodal-strict' to go from unsafe to strict
+     * '#ss-bimodal-default' to go from strict to unsafe
+     *
+     * @returns {string|null} the unsafe url, otherwise returns nothing
      * @deprecated
      */
     function safeSearchOffUrl() {
@@ -3081,8 +3100,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                     const [t, fullMatch, mimeType1, mimeType2] = res.responseHeaders.match(/(content-type: )([\w]+)\/([\w\-]+)/);
                     const contentType = [mimeType1, mimeType2].join('/');
-                    let ext = mimeTypesJSON.hasOwnProperty(contentType) && mimeTypesJSON[contentType] ?
-                        mimeTypesJSON[contentType].extensions[0] :
+                    let ext = mimeTypes.hasOwnProperty(contentType) && mimeTypes[contentType] ?
+                        mimeTypes[contentType].extensions[0] :
                         mimeType2;
                     console.debug(fullMatch);
                     const wrongMime = !/image/i.test(mimeType1);
@@ -3370,6 +3389,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     unsafeWindow.zip = zip;
     unsafeWindow.genZip = genZip;
     unsafeWindow.ImagePanel = ImagePanel;
+    unsafeWindow.IP = ImagePanel;
     unsafeWindow.successfulUrlsSet = ublSitesSet;
     // noinspection JSUnresolvedVariable
     unsafeWindow.ublSitesSet = ublSitesSet;
@@ -3414,41 +3434,41 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     };
 
 
-            /* Overlay CSS for highlighting selected images */
-            // language=CSS
-            addCss(`.highlight, .drop-shadow {
-                filter: drop-shadow(8px 8px 10px gray) !important;
-            }
+    /* Overlay CSS for highlighting selected images */
+    // language=CSS
+    addCss(`.highlight, .drop-shadow {
+        filter: drop-shadow(8px 8px 10px gray) !important;
+    }
 
-            .blur.in {
-                -webkit-transition: all 0.1s ease-in !important;
-                /*-webkit-filter: blur(6px) !important;*/
-                transform: scale(0.7) !important;
-                opacity: 0.3 !important;
-            }
+    .blur.in {
+        -webkit-transition: all 0.1s ease-in !important;
+        /*-webkit-filter: blur(6px) !important;*/
+        transform: scale(0.7) !important;
+        opacity: 0.3 !important;
+    }
 
-            .blur.out:not(.in) {
-                -webkit-filter: blur(0px) !important;
-                /*filter: blur(0px) !important;*/
-                transform: scale(1) !important;
-                opacity: 1 !important;
-                -webkit-transition: all 0.25s ease-out !important;
-                transition: all 0.25s ease-out !important;
-            }
+    .blur.out:not(.in) {
+        -webkit-filter: blur(0px) !important;
+        /*filter: blur(0px) !important;*/
+        transform: scale(1) !important;
+        opacity: 1 !important;
+        -webkit-transition: all 0.25s ease-out !important;
+        transition: all 0.25s ease-out !important;
+    }
 
-            .transparent {
-                opacity: 0.4 !important;
-            }
+    .transparent {
+        opacity: 0.4 !important;
+    }
 
-            .sg-too-small {
+    .sg-too-small {
 
-            }
+    }
 
-            .sg-too-small-hide {
-                display: none !important;
-            }
+    .sg-too-small-hide {
+        display: none !important;
+    }
 
-            .hide-img {
+    .hide-img {
         display: none !important;
     }`, 'filters-style');
     /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
@@ -3477,9 +3497,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         opacity: 0.5 !important;
     }`);
 
-        // language=CSS
-        addCss(
-            ` /*set borders*/
+    // language=CSS
+    addCss(
+        ` /*set borders*/
     div.${showImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {
         border-radius: 5px;
         border: 3px #0F0 solid;
@@ -3988,12 +4008,12 @@ function googleDirectLinks() {
             enhanceLink(link);
             if (matches[1] === 'imgres') {
                 if (link.querySelector('img[src^="data:"]')) {
-                        link._x_href = newUrl;
-                    }
-                    enhanceThumbnail(link, newUrl);
+                    link._x_href = newUrl;
                 }
-            } else if (url != null) {
-                link.setAttribute('href', newUrl);
+                enhanceThumbnail(link, newUrl);
+            }
+        } else if (url != null) {
+            link.setAttribute('href', newUrl);
         }
     };
 
@@ -4020,85 +4040,85 @@ function googleDirectLinks() {
         purifyLink(a);
         a.setAttribute('rel', 'noreferrer');
         a.setAttribute('referrerpolicy', 'no-referrer');
-        };
+    };
 
-        /** make thumbnail info-bar clickable
-         *  @faris: storing "fullres-src" attribute to images
-         */
-        var enhanceThumbnail = function (link, url) {
-            // @faris, storing fullres-src attribute to images
-            var imgs = [].slice.call(link.querySelectorAll('div~img'));
-            imgs.length && imgs.forEach(function (img) {
+    /** make thumbnail info-bar clickable
+     *  @faris: storing "fullres-src" attribute to images
+     */
+    var enhanceThumbnail = function (link, url) {
+        // @faris, storing fullres-src attribute to images
+        var imgs = [].slice.call(link.querySelectorAll('div~img'));
+        imgs.length && imgs.forEach(function (img) {
             debug && console.log('img fullres-src="' + link.href + '"');
-                img.setAttribute('fullres-src', link.href);
+            img.setAttribute('fullres-src', link.href);
+        });
+
+        var infos = [].slice.call(link.querySelectorAll('img~div'));
+        if (infos.length > 0) {
+            var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
+            infos.forEach(function (info) {
+                var pagelink = document.createElement('a');
+                enhanceLink(pagelink);
+                pagelink.href = pageUrl;
+                pagelink.className = 'x_source_link';
+                pagelink.textContent = info.textContent;
+                info.textContent = '';
+                info.appendChild(pagelink);
             });
+        }
+    };
 
-            var infos = [].slice.call(link.querySelectorAll('img~div'));
-            if (infos.length > 0) {
-                var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
-                infos.forEach(function (info) {
-                    var pagelink = document.createElement('a');
-                    enhanceLink(pagelink);
-                    pagelink.href = pageUrl;
-                    pagelink.className = 'x_source_link';
-                    pagelink.textContent = info.textContent;
-                    info.textContent = '';
-                    info.appendChild(pagelink);
-                });
-            }
-        };
+    /** returns full path, not just partial path */
+    var normalizeUrl = (function () {
+        var fakeLink = document.createElement('a');
 
-        /** returns full path, not just partial path */
-        var normalizeUrl = (function () {
-            var fakeLink = document.createElement('a');
+        return function (url) {
+            fakeLink.href = url;
+            return fakeLink.href;
+        }
+    })();
 
-            return function (url) {
-                fakeLink.href = url;
-                return fakeLink.href;
-            }
-        })();
-
-        var handler = function (a) {
-            if (a._x_id) {
-                restore(a);
-                return;
-            }
-
-            a._x_id = ++count;
-            debug && a.setAttribute('x-id', a._x_id);
-
-            a.__defineSetter__('href', function setter(v) {
-                // in case an object is passed by clever Google
-                restore(this, String(v));
-            });
-            a.__defineGetter__('href', function getter() {
-                debug && console.log('get', this._x_id, this.getAttribute('href'), this);
-                return normalizeUrl(this.getAttribute('href'));
-            });
-
-            if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
-                /\brwt\(/.test(a.getAttribute('onmousedown')) ||
-                /\bmouse/.test(a.getAttribute('jsaction')) ||
-                a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
-                enhanceLink(a);
-            }
+    var handler = function (a) {
+        if (a._x_id) {
             restore(a);
-        };
+            return;
+        }
+
+        a._x_id = ++count;
+        debug && a.setAttribute('x-id', a._x_id);
+
+        a.__defineSetter__('href', function setter(v) {
+            // in case an object is passed by clever Google
+            restore(this, String(v));
+        });
+        a.__defineGetter__('href', function getter() {
+            debug && console.log('get', this._x_id, this.getAttribute('href'), this);
+            return normalizeUrl(this.getAttribute('href'));
+        });
+
+        if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
+            /\brwt\(/.test(a.getAttribute('onmousedown')) ||
+            /\bmouse/.test(a.getAttribute('jsaction')) ||
+            a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
+            enhanceLink(a);
+        }
+        restore(a);
+    };
 
 
-        // observe
+    // observe
 
 
-        var checkNewNodes = function (mutations) {
-            debug && console.log('State:', document.readyState);
-            if (mutations.target) {
-                checkAttribute(mutations);
-            } else {
-                mutations.forEach && mutations.forEach(checkAttribute);
-            }
-        };
-        var checkAttribute = function (mutation) {
-            var target = mutation.target;
+    var checkNewNodes = function (mutations) {
+        debug && console.log('State:', document.readyState);
+        if (mutations.target) {
+            checkAttribute(mutations);
+        } else {
+            mutations.forEach && mutations.forEach(checkAttribute);
+        }
+    };
+    var checkAttribute = function (mutation) {
+        var target = mutation.target;
         if (target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
             return;
 
@@ -4116,13 +4136,13 @@ function googleDirectLinks() {
     if (MutationObserver) {
         debug && console.log('MutationObserver: true');
         new MutationObserver(checkNewNodes).observe(document.documentElement, {
-                childList: true,
-                attributes: true,
-                attributeFilter: ['href'],
-                subtree: true
-            });
-        } else {
-            debug && console.log('MutationEvent: true');
+            childList: true,
+            attributes: true,
+            attributeFilter: ['href'],
+            subtree: true
+        });
+    } else {
+        debug && console.log('MutationEvent: true');
         document.addEventListener('DOMAttrModified', checkAttribute, false);
         document.addEventListener('DOMNodeInserted', checkNewNodes, false);
     }
