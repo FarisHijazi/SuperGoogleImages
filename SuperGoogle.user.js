@@ -622,6 +622,7 @@
     class ImagePanel {  // ImagePanel class
         static thePanels = new Set();
         el;
+        observer;
         // TODO: instead of using an object and creating thousands of those guys, just extend the panel element objects
         //      give them more functions and use THEM
         constructor(element) {
@@ -644,6 +645,64 @@
 
                 ImagePanel.thePanels.add(element);
             }
+
+            this.__modifyPanelEl();
+        }
+
+        /**
+         * waits for the first panel to be in focus, then binds mutation observers to panels firing "panelMutation" events
+         * Also applies modifications to panels (by calling modifyP)
+         */
+        static init() {
+            // wait for panel to appear then start modding
+            elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(function () {
+
+                // make the X button on the image panel remove the hash from the address bar
+                // there exists only a single X button common for all 3 image panels
+                $('a#irc_cb').click(removeHash);
+
+                // instantiate the panels and thus causing modifications
+                $('#irc_cc > div').toArray()
+                    .map(panelEl => new ImagePanel(panelEl))
+                    // for each panel, create an observer and start observing
+                    .forEach(panel => {
+                        /**
+                         * every change that happens causes 2 data-dev mutations
+                         * first one with oldValue = <stuff saldkfjasldfkj>
+                     * second has oldValue = null
+                     */
+
+                        // bind mutation observer, observes every change happening to the panels (any one of them)
+                    const mutationObserver = new MutationObserver(function (mutations, observer) {
+                            observer.disconnect(); // stop watching until changes are done
+
+                            if (mutations[0].oldValue === null) { // if this is the second mutation (only a single callback is needed for each change)
+                                const event = new Event('panelMutation');
+                                event.mutations = mutations;
+                                panel.el.dispatchEvent(event);
+                            }
+
+                            observer.observePanel(); // continue observing
+                        });
+
+                    // creating a function (template for observing)
+                    mutationObserver.observePanel = function () {
+                        mutationObserver.observe(panel.el, {
+                            childList: false,
+                            subtree: false,
+                            attributes: true,
+                            attributeOldValue: true,
+                            attributeFilter: ['data-ved']
+                        });
+                    };
+
+                    // save a reference
+                    panel.observer = mutationObserver;
+
+                    //start observing
+                    mutationObserver.observePanel();
+                });
+            });
         }
 
         /** The big panel that holds all 3 child panels
@@ -804,14 +863,14 @@
          * '#irc_mimg > a#irc_mil > img#irc_mi' should work (but it's not working for some reason)*/
         get mainImage() {
             // return this.element.querySelector('#irc_mimg > a#irc_mil > img#irc_mi');
-            if (!!this.el) {
+            if (this.el) {
                 return this.q('img.irc_mi, img.irc_mut');
             }
         }
         get bestNameFromTitle() {
-            const sTitle = this.sTitle_Text,
-                pTitle = this.pTitle_Text,
-                description = this.descriptionText;
+            const sTitle = this.sTitle_Text;
+            const pTitle = this.pTitle_Text;
+            const description = this.descriptionText;
             var unionPTitleAndDescrAndSTitle = unionTitleAndDescr(description, unionTitleAndDescr(pTitle, sTitle));
 
             console.log(
@@ -852,35 +911,30 @@
         /**Goes to the previous (Left) main mainImage*/
         static previousImage() {
             const previousImageArrow = q('div#irc-lac > a');  // id that starts with "irc-la"
-            var x = previousImageArrow.style.display !== 'none' ? // is it there?
+            var x = previousImageArrow && previousImageArrow.style.display !== 'none' ? // is it there?
                 !previousImageArrow.click() : // returns true
                 false;
             if (!x) console.log('prev arrow doesn\'t exist');
-            return x;
+            return previousImageArrow;
         }
         /**Goes to the next (Right) main mainImage*/
         static nextImage() {
             const nextImageArrow = q('div#irc-rac > a');  // id that starts with "irc-ra"
-            var x = nextImageArrow.style.display !== 'none' ? // is it there?
+            var x = nextImageArrow && nextImageArrow.style.display !== 'none' ? // is it there?
                 !nextImageArrow.click() : // returns true
                 false;
             if (!x) console.log('next arrow doesn\'t exist');
-            return x;
+            return nextImageArrow;
         }
 
         /**
          * Should be called only once for each panel
-         * @param panelEl
          */
-        static modifyP(panelEl) {
-            console.debug('Modifying panelEl:', panelEl);
+        __modifyPanelEl() {
+            var panel = this;
+            console.debug('Modifying panelEl:', panel.el);
 
-            // make the X button on the image panel remove the hash from the address bar
-            // there exists only a single X button common for all 3 image panels
-            document.querySelector('a#irc_cb').addEventListener('click', removeHash);
-
-            let panel = new ImagePanel(panelEl);
-            panelEl.addEventListener('panelMutation', () => panel.onPanelMutation());
+            panel.el.addEventListener('panelMutation', () => panel.onPanelMutation());
 
             panel.rightPart.classList.add('scroll-nav');
 
@@ -936,7 +990,7 @@
 
             //@info .irc_ris    class of the relatedImgsDivContainer
             //@info div#isr_mc  the main container containing all the image boxes, and the panels (only 2 children)
-            panelEl.addEventListener(
+            panel.el.addEventListener(
                 'wheel',
                 /**
                  * @param {WheelEvent} wheelEvent
@@ -1013,7 +1067,8 @@
                 }
             })();
 
-            // ImagePanel.updateP(p);
+            // ImagePanel.updateP(panel);
+            return panel;
         }
 
         /**
@@ -1021,22 +1076,14 @@
          * @param panelEl
          * @return {boolean}
          */
-        // TODO: make this a non-static method
-        static updateP(panelEl) {
-            if (!panelEl) {
-                console.warn('Null panel passed');
-                return false;
-            }
-
-            let p = (panelEl instanceof HTMLElement) ?
-                panelEl.panel ? panelEl.panel : new ImagePanel(panelEl) :
-                panelEl;
-            // p.removeLink();
-            // p.injectSearchByImage();
-            // p.addDownloadRelatedImages();
+        update() {
+            let panel = this;
+            // panel.removeLink();
+            // panel.injectSearchByImage();
+            // panel.addDownloadRelatedImages();
 
             // make sure that main image link points to the main image (and not to the website)
-            var imgAnchor = p.q('a.irc_mutl');
+            var imgAnchor = panel.q('a.irc_mutl');
             imgAnchor.__defineGetter__('href', function () {
                 imgAnchor.href = imgAnchor.querySelector('img').src || '#';
                 return this.getAttribute('href');
@@ -1048,18 +1095,18 @@
                 e.stopImmediatePropagation();
             });
 
-            p.linkifyDescription();
-            p.addImageAttributes();
-            p.update_SiteSearch();
-            p.update_ViewImage();
-            p.update_ImageHost();
-            p.update_sbi();
+            panel.linkifyDescription();
+            panel.addImageAttributes();
+            panel.update_SiteSearch();
+            panel.update_ViewImage();
+            panel.update_ImageHost();
+            panel.update_sbi();
 
 
             // rarbg torrent link
-            let torrentLink = p.q('.torrent-link');
+            let torrentLink = panel.q('.torrent-link');
             if (torrentLink) {
-                torrentLink.style.display = /\/torrent\//gi.test(p.pTitle_Anchor.href) ? // is torrent link?
+                torrentLink.style.display = /\/torrent\//gi.test(panel.pTitle_Anchor.href) ? // is torrent link?
                     'inline-block' : 'none';
             }
         }
@@ -1068,7 +1115,7 @@
          * fetches and goes to the page for the current image (similar to image search but just 'more sizes of the same image')
          */
         static moreSizes() {
-            const panel = ImagePanel.focP;
+            const panel = this;
             const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
             let z = open().document;
             fetchUsingProxy(reverseImgSearchUrl, function (content) {
@@ -1520,7 +1567,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          */
         onPanelMutation(mutations) {
             // debug && console.log('panelMutation()');
-            ImagePanel.updateP(this);
+            this.update();
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
 
@@ -1621,45 +1668,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
             // TODO: move this into the ImagePanel class and use events instead of observing
-            // wait for panel to appear then start modding
-            elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(function () {
-                qa('#irc_cc > div').forEach(function (panelEl) {
-                    /**
-                     * every change that happens causes 2 data-dev mutations
-                     * first one with oldValue = <stuff saldkfjasldfkj>
-                     * second has oldValue = null
-                     */
-
-                    // make one-time modifications
-                    ImagePanel.modifyP(panelEl);
-
-                    // bind mutation observer, observes every change happening to the panels (any one of them)
-                    const mutationObserver = new MutationObserver(function (mutations, observer) {
-                        observer.disconnect(); // stop watching until changes are done
-
-                        if (mutations[0].oldValue === null) { // if this is the second mutation (only a single callback is needed for each change)
-                            const event = new Event('panelMutation');
-                            event.mutations = mutations;
-                            panelEl.dispatchEvent(event);
-                        }
-                        observer.observePanels(); // continue observing
-                    });
-
-                    // creating a function (template for observing)
-                    mutationObserver.observePanels = function () {
-                        mutationObserver.observe(panelEl, {
-                            childList: false,
-                            subtree: false,
-                            attributes: true,
-                            attributeOldValue: true,
-                            attributeFilter: ['data-ved']
-                        });
-                    };
-
-                    // start observing
-                    mutationObserver.observePanels();
-                });
-            });
+            ImagePanel.init();
 
             // wait for searchbar to load
             elementReady('#hdtb-msb').then(function () {
