@@ -197,8 +197,12 @@
              */
             forcedHostname: 'ipv4.google.com',
         },
-        defaultAnchorTarget: '_blank',
-        staticNavbar: false,
+        // these should be under "page"
+        page: {
+            defaultAnchorTarget: '_blank',
+            staticNavbar: false,
+            autoLoadMoreImages: true,
+        },
         loading: {
             successColor: 'rgb(167, 99, 255)',
             hideFailedImagesOnLoad: false,
@@ -1268,7 +1272,7 @@
             const href = '#'; //GoogleUtils.url.getGImgReverseSearchURL(this.imageUrl);
             const dataVed = ''; //()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const className = 'search-by-image';
-            var html = `<a class="o5rIVb ${className}" target="${Preferences.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;">Search&nbsp;by&nbsp;image</span></a>`;
+            var html = `<a class="o5rIVb ${className}" target="${Preferences.page.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;">Search&nbsp;by&nbsp;image</span></a>`;
 
             return this.addElementAfterSTitle(html, className, null, 'RIGHT');
         }
@@ -1322,7 +1326,7 @@
             if (this.sTitle_Anchor) {
                 // const summaryTable = this.element.querySelector('table[summary]._FKw.irc_but_r');
                 var className = 'image-host hover-click';
-                const element = createElement(`<a class="${className}" href="" target="${Preferences.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0"  data-ved="" data-ctbtn="2" 
+                const element = createElement(`<a class="${className}" href="" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0"  data-ved="" data-ctbtn="2" 
 style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 <span class="irc_ho" dir="ltr" style="text-align: center;">Image&nbsp;Host</span></a>`);
                 // const button = this.addElementAfterSTitle(html, "image-host hover-click", null, 'NONE');
@@ -1364,7 +1368,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const dataVed = '';//()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const hostname = getHostname(this.sTitle_Anchor.href);
             const spanClass = 'site-search';
-            const html = `<a class="${spanClass} _r3 hover-click o5rIVb" target="${Preferences.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`;
+            const html = `<a class="${spanClass} _r3 hover-click o5rIVb" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`;
             var siteSearch = createElement(html);
 
             let ddgSearch = siteSearch.cloneNode(false);
@@ -1674,7 +1678,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         } else {
             // bind each result to the corresponding number
             for (let i = 0, results = qa('div.srg > div'); i < results.length; i++) {
-                Mousetrap.bind(`${i + 1}`, () => {
+                Mousetrap.bind(String(i + 1), () => {
                     results[i].querySelector('a').click();
                 });
                 results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
@@ -2484,6 +2488,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         var bodyRect = document.body.getBoundingClientRect(),
             elemRect = el.getBoundingClientRect(),
             offset = (bodyRect.bottom - elemRect.bottom);
+
         if (el && (offset < screen.height + 200)) {
             console.log('clicked LoadMoreImages');
             el.click();
@@ -3673,7 +3678,7 @@ a.download-related {
     cursor: pointer;
 }
 
-.fixed-position${Preferences.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
+.fixed-position${Preferences.page.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
     position: fixed;
     top: 0;
     z-index: 1000;
