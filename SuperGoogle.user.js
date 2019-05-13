@@ -79,29 +79,10 @@
 (function () {
     'use strict';
 
-    var M = (typeof GM !== 'undefined') ? GM : {
-        getValue: function (name, alt) {
-            var value = GM_getValue(name, alt);
-            return {
-                then: function (callback) {
-                    callback(value);
-                }
-            };
-        },
-        setValue: function (name, value) {
-            GM_setValue(name, value);
-            return {
-                then: function (callback) {
-                    callback();
-                }
-            };
-        }
-    };
-
-
     // todo: replace this with importing GM_dummy_functions, and importing a polyfill
     var unsafeWindow;
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
+    unsafeWindow.unsafeWindow = unsafeWindow;
 
     // prevents duplicate instances
     if (typeof unsafeWindow.superGoogle === 'undefined') {
@@ -614,7 +595,7 @@
      * ## Injecting:
      *  Injecting elements to the panels works with 2 steps:
      *      1- An inject function: this will create the element and put it in the right place (also checks if it already exists or not)
-     *      2- An update function: this will be called everytime the panels are changed
+     *      2- An update function: this will be called every time the panels are changed
      * Abbreviations:
      *  ris: related image search
      *  fc:  focused
@@ -1621,8 +1602,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     })();
 
 
-    $('body').ready(go);
+    elementReady('body').then(go);
 
+    // click showAllSizes link when it appears
+    elementReady(Consts.Selectors.showAllSizes).then(() => {
+        const el = $(Consts.Selectors.showAllSizes);
+        if (el.length) el[0].click();
+    });
 
     setInterval(clickLoadMoreImages, 400);
 
@@ -1630,13 +1616,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
     function go() {
-
-        // click showAllSizes link when it appears
-        $(Consts.Selectors.showAllSizes).ready((jq) => {
-            const el = jq(Consts.Selectors.showAllSizes);
-            if (el.length) el[0].click();
-        });
-
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
             unsafeEval(googleDirectLinks);
 
@@ -1648,12 +1627,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if (addedImageBoxes.length) {
                     onImageBatchLoading(addedImageBoxes);
                     updateDownloadBtnText();
-
                 }
             }, {singleCallbackPerMutation: true});
 
             // automatically display originals if searching for a site:
-            if (/q=site:/i.test(location.href) && !/tbs=rimg:/i.test(location.href)) {
+            if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
                 console.log('automatically display originals for "site:" search');
                 // HACK: delaying it cuz if it's too early it'll cause issues for the first 20 images
                 setTimeout(function () {
