@@ -11,9 +11,6 @@ notes and observations:
 
 Moving scripts, collecting functions into a library or an object, renaming..
 
-- [ ] make `GoogleUtils` module. Remaining: just deploy it and make it importable, and make it complete.
-- [ ] Add a debug level logger (so that the logs can be disabled to improve performance)
-- [ ] Refactoring: Wrap the Google functions and constants in a static class. things like `getImageBoxes`, `searchBox`, etc...
 - [x] Use `Mousetrap.js` instead of keyup listener
 
 ### Fixes
@@ -32,27 +29,10 @@ Moving scripts, collecting functions into a library or an object, renaming..
 
 ### New features
 
-- [ ] put a textfield that indicates the current path of the downloads so the user can change it
-- [ ] Add an `Add to favorite` button on the thumbnails (next to the image type tag and the download btn)
-- [ ] Create function: `downloadLoaded()` to just downloaded whatever was loaded and GTFO
-- [ ] Make a `stats panel` which contains info on the number of images, `# loaded`, `highest frequency string`, `% loaded`, `% failed`, `avg size`, `%gifs`, `min size`, etc
-- [ ] Add option to download already loaded images
-- [x] `download JSON` button
-  - [ ] Add the related images
-  - [x] Remove base64 urls
 
 ### Polishing
 
 Not urgent and not important
-
-- [ ] change `Display Original Images` button to a checkbox
-- [ ] add checkbox `close tab after download`
-- [ ] Use `svg` icons instead of unicode symbols
-- [ ] Add option for auto-expanding the page
-- [ ] Make filters update when more pages load
-- [ ] Make `saveUblSites()` save data as JSON (information such as: ddgp, dimensions, #successes, #dgpSuccesses)
-- [x] Fix `zip` checkbox not updating
-- [ ] Add tooltips to the controls and checkboxes with descriptions and keyboard shortcuts.
 
 
 ## Completed
