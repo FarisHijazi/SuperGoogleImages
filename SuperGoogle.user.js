@@ -324,32 +324,12 @@
     };
 
 
-    JSZip.prototype.generateIndexHtml = function generateZipIndexHtml() {
-        let html = '';
-        for (const key of Object.keys(this.files)) {
-            try {
-                const file = this.files[key];
-                /**{url, name, page}*/
-                const data = JSON.parse(file.comment ? file.comment : '{}');
-                html += `<div>
-    <a href="${data.url || file.name}"><img src="${file.name}" alt="${file.name}"></a>
-    <div>
-        <a href="${data.page}" target="_blank">${file.name}</a>
-        <h4>${file.name}</h4>
-        <h3>${data.name || file.name}</h3>
-    </div>
-</div>`;
-            } catch (e) {
-                console.error(e);
-            }
-        }
-        return this.file('index.html', new Blob([html], {type: 'text/plain'}));
-    };
     /**
      * the zip file
      * @type {JSZip}
      */
     var zip = new JSZip();
+    zip.zipName = (document.title).replace(/site:|( - Google Search)/gi, '');
 
     var progressBar;
     var currentDownloadCount = 0;
@@ -1930,23 +1910,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
         return false;
     }
+
     //TODO: just remove this and use JSZip.genZip()
     /**
      * @param {JSZip} thisZip
+     * @param updateCallback
      */
-    function genZip(thisZip = zip) {
-        thisZip.file('index (online).html', new Blob([getIndexHtml()], {type: 'text/plain'}));
-        thisZip.generateIndexHtml();
-        return thisZip.generateAsync({type: 'blob'}).then(function (content) {
-                var zipName = (document.title).replace(/site:|( - Google Search)/gi, '');
-
-                saveAs(content, `${zipName} [${Object.keys(thisZip.files).length}].zip`);
-                unsafeWindow.zipGenerated = true;
-
-                window.removeEventListener('beforeunload', zipBeforeUnload);
-                window.onunload = null;
-            }
-        );
+    function genZip(thisZip = zip, updateCallback = null) {
+        return thisZip.genZip(updateCallback).then(function (res) {
+            window.removeEventListener('beforeunload', zipBeforeUnload);
+            window.onunload = null;
+        });
     }
 
     /**
