@@ -80,7 +80,6 @@
     'use strict';
 
     // todo: replace this with importing GM_dummy_functions, and importing a polyfill
-    var unsafeWindow;
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
     unsafeWindow.unsafeWindow = unsafeWindow;
 
@@ -625,7 +624,7 @@
                     element[key] = this[key];
                 }
 
-                ImagePanel.thePanels.add(element);
+                ImagePanel.thePanels.add(element.panel);
             }
 
             this.__modifyPanelEl();
@@ -1174,11 +1173,12 @@
         }
 
         static showRis() {
-            ImagePanel.thePanels.forEach(p => p.showRis);
+            ImagePanel.thePanels.forEach(p => p.showRis());
         }
 
         showRis() {
             for (var div of this.ris_Divs) {
+                console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
                 showImages.replaceImgSrc(div.querySelector('img'));
             }
         }
@@ -1349,8 +1349,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const dataVed = '';//()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const hostname = getHostname(this.sTitle_Anchor.href);
             const spanClass = 'site-search';
-            const html = `<a class="${spanClass} _r3 hover-click o5rIVb" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`;
-            var siteSearch = createElement(html);
+            var siteSearch = createElement(`<a class="${spanClass} _r3 hover-click o5rIVb" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`);
 
             let ddgSearch = siteSearch.cloneNode(false);
             ddgSearch.innerText = '[DDGP]';
@@ -1388,9 +1387,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
         addImageAttributes() {
             this.mainImage.setAttribute('img-title', this.pTitle_Text);
-            this.mainImage.setAttribute('img-subtitle', this.sTitle_Text);
             this.mainImage.setAttribute('description', this.descriptionText);
+            this.mainImage.setAttribute('img-subtitle', this.sTitle_Text);
             this.mainImage.setAttribute('download-name', this.sTitle_Text);
+            this.mainImage.setAttribute('alt', this.sTitle_Text);
         }
         lookupTitle() {
             console.log('lookup title:', this.bestNameFromTitle);
@@ -1848,11 +1848,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         const img = imgBox.querySelector('img.rg_ic.rg_i');
         const meta = getMeta(img);
-        const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|\?)/i);
+        const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
 
         // if (!ext) return;
-        const textBox = createElement(`<div class="text-block ext ext-${ext}"></div>`);
-        if (!ext.toUpperCase) {
+        const textBox = createElement('<div class="text-block ext ext-' + ext + '">');
+        if (!(ext && ext.toUpperCase)) {
             return;
         }
         textBox.innerText = ext.toUpperCase();
@@ -1863,12 +1863,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function addImgDownloadButton(imgBox) {
         if (imgBox.querySelector('.download-block'))
             return;
+
         const img = imgBox.querySelector('img.rg_ic.rg_i');
         const meta = getMeta(img);
-        const src = meta ? meta.ou : img.src;
+        const src = img.getAttribute('loaded') === 'true' ? img.src : meta.ou;
 
         const downloadButton = createElement(`<div class="text-block download-block"
-     href="JavaScript:void(0);" 
     style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
         downloadButton.onclick = function (e) {
             download(src, unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)));
@@ -2183,8 +2183,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 const img = a.querySelector('img');
                 const dlName = cleanGibberish(getMeta(img)['pt']);
 
-                img.setAttribute('download-name', dlName);
-                img.alt = dlName;
+                // img.setAttribute('download-name', dlName);
+                img.setAttribute('alt', dlName);
                 // ImageManager.markImageOnLoad(img, a.getAttribute('href'));
                 console.log('Preloading image:', `"${dlName}"`, !isBase64ImageData(img.src) ? img.src : 'Base64ImageData');
             }
@@ -2490,7 +2490,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const img = imageBox.querySelector('img.rg_i');
 
             img.setAttribute('alt', getGimgDescription(img));
-            img.setAttribute('download-name', getGimgDescription(img));
+            // img.setAttribute('download-name', getGimgDescription(img));
             // markImageOnLoad(img, img.closest('a').href);
         }
 
@@ -2601,7 +2601,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             try {
                 return getMetaEl(img).innerText;
             } catch (e) {
-                console.error('Error while getting metaText', e, img);
+                console.warn('Error while getting metaText', e, img);
             }
             return '{}';
         }
@@ -3946,7 +3946,7 @@ function getElementsByXPath(xpath, parent) {
 
 /** Create an element by typing it's inner HTML.
  For example:   var myAnchor = createElement('<a href="https://example.com">Go to example.com</a>');
- * @param html
+ * @param {ConstrainDOMString} html
  * @param callback optional callback, invoked once the element is created, the element is passed.
  * @return {Element}
  */
