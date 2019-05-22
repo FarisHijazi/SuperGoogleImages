@@ -162,21 +162,23 @@
 
     // TODO: add a little dropdown where it'll show you the current options and you can
     //      modify them and reload the page with your changes
-    const Preferences = $.extend({
-        // everything that has to do with the search page and url
-        location: {
-            customUrlArgs: {
+    const Preferences = (function () {
+        const DEFAULTS = {
+            // everything that has to do with the search page and url
+            location: {
+                customUrlArgs: {
                 // "tbs=isz": "lt",//
                 // islt: "2mp",    // isLargerThan
                 // tbs: "isz:l",   // l=large, m=medium...
                 // "hl": "en"
             },
-            /**
-             * @type {string|null}
-             * if this field is falsy, then there will be no changes to the url.
-             */
-            forcedHostname: 'ipv4.google.com',
-        },
+                /**
+                 * @type {string|null}
+                 * if this field is falsy, then there will be no changes to the url.
+                 * disable by prepending with '!'
+                 */
+                forcedHostname: 'ipv4.google.com',
+            },
         // these should be under "page"
         page: {
             defaultAnchorTarget: '_blank',
@@ -194,12 +196,22 @@
         panels: {
             autoShowFullresRelatedImages: true,
             loopbackWhenCyclingRelatedImages: false,
-            favoriteOnDownloads: true, // favorite any image that you download
-            invertWheelRelativeImageNavigation: false,
-        },
-    }, GM_getValue('Preferences'));
-    // write back to storage (in case the storage was empty)
-    GM_setValue('Preferences', Preferences);
+                favoriteOnDownloads: true, // favorite any image that you download
+                invertWheelRelativeImageNavigation: false,
+            },
+        };
+
+        var o = $.extend(DEFAULTS, GM_getValue('Preferences'));
+
+        o.store = () => GM_setValue('Preferences', o);
+        o.get = () => GM_getValue('Preferences');
+
+
+        // write back to storage (in case the storage was empty)
+        o.store();
+
+        return o;
+    })();
 
 
     const GoogleUtils = (function () {
@@ -513,44 +525,65 @@
      * cursor found here:   https://www.flaticon.com/free-icon/arrows_95103#
      */
 
-
-    if (Preferences.location.forcedHostname && typeof Preferences.location.forcedHostname === 'string' && Preferences.location.forcedHostname !== location.hostname) {
-        location.hostname = Preferences.location.forcedHostname;
-    }
-
-    // URL args: Modifying the URL and adding arguments, such as specifying the size
-    if (Preferences.location.customUrlArgs && Object.keys(Preferences.location.customUrlArgs).length) {
-        const url = new URL(location.href);
-        const searchParams = url.searchParams;
-
-        for (const key in Preferences.location.customUrlArgs) {
-            if (Preferences.location.customUrlArgs.hasOwnProperty(key)) {
-                if (searchParams.has(key))
-                    searchParams.set(key, Preferences.location.customUrlArgs[key]);
-                else
-                    searchParams.append(key, Preferences.location.customUrlArgs[key]);
-            }
-        }
-        console.debug('new location:', url.toString());
-
-        const areEqual = (
-            function equalUrlSearchParams(url1, url2) {
+    // return true when there will be a change
+    function processLocation() {
+        //TODO: move this to UrlUtils
+        function equalUrls(url1, url2, hashSensitive = false) {
+            const equalUrlSearchParams = function equalUrlSearchParams(url1, url2) {
                 const sp1 = url1.searchParams;
                 const sp2 = url2.searchParams;
                 sp1.sort();
                 sp2.sort();
-                console.log(
-                    sp1.toString() + ' === ' + sp2.toString(),
-                    '\n ' + sp1.toString() === sp2.toString()
+
+                const s1 = sp1.toString();
+                const s2 = sp2.toString();
+                const eq = s1 === s2;
+
+                console.debug(
+                    '\nequal: ' + eq,
+                    `\n"${s1}"\n===\n"${s2}"`
                 );
-                return sp1.toString() === sp2.toString();
+                return (eq);
+            };
+            // console.log(url1.toString() + '\n' + url2.toString());
+            return (
+                equalUrlSearchParams(url1, url2) &&
+                (url1.hostname === url2.hostname) &&
+                (!hashSensitive || url1.hash === url2.hash)
+            );
+        }
+
+        URL.prototype.equal = function (other, hashSensitive) {
+            return equalUrls(this, other, hashSensitive);
+        };
+
+
+        // switch to specific google domain/hostname (like ipv4.google.com)
+        if (typeof Preferences.location.forcedHostname === 'string' && !(Preferences.location.forcedHostname.charAt(0) === '!')) {
+            pageUrl.hostname = Preferences.location.forcedHostname;
+        }
+
+        // URL args: Modifying the URL and adding arguments, such as specifying the size
+        if (Preferences.location.customUrlArgs && Object.keys(Preferences.location.customUrlArgs).length) {
+
+            for (const key in Preferences.location.customUrlArgs) {
+                if (Preferences.location.customUrlArgs.hasOwnProperty(key)) {
+                    if (pageUrl.searchParams.has(key))
+                        pageUrl.searchParams.set(key, Preferences.location.customUrlArgs[key]);
+                    else {
+                        pageUrl.searchParams.append(key, Preferences.location.customUrlArgs[key]);
+                    }
+                }
             }
-        )(new URL(location.href), url);
 
-        if (!areEqual)
-            location.assign(url.toString());
+            console.debug('new location:', pageUrl.toString());
+        }
+
+        if (!equalUrls(new URL(location.href), pageUrl)) {
+            location.assign(pageUrl.toString());
+            return true;
+        }
     }
-
 
     // todo: move GSaves code to another script
     // if on google.com/saves, add keyboard shortcuts
@@ -1581,6 +1614,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         };
     })();
 
+    processLocation();
 
     elementReady('body').then(go);
 
@@ -1646,15 +1680,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     function bindKeys() {
 
-        // S S: SafeSearch toggle
-        Mousetrap.bind('s s', function () {
-            const $ssLink = $('#ss-bimodal-strict');
-            if ($ssLink)
-                $ssLink.click();
-            else
-                $('#ss-bimodal-default').click();
-        });
-
         Mousetrap.addKeycodes({
             96: 'numpad0',
             97: 'numpad1',
@@ -1666,6 +1691,40 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             103: 'numpad7',
             104: 'numpad8',
             105: 'numpad9'
+        });
+
+        // toggle forcedHostname
+        Mousetrap.bind('shift+f5', function (e) {
+            const wasForced = Preferences.location.forcedHostname.charAt(0) !== '!';
+            const toForced = !wasForced && pageUrl.hostname !== Preferences.location.forcedHostname;
+
+            console.log('shift+f5 [toggle forcedHostname]\nto:', toForced ? 'forced' : 'www.');
+
+            if (toForced) {
+                Preferences.location.forcedHostname = Preferences.location.forcedHostname.replace(/^!/, '');
+            } else {
+                Preferences.location.forcedHostname = '!' + Preferences.location.forcedHostname;
+                pageUrl.hostname = 'www.google.com';
+            }
+
+            Preferences.store();
+            var reload = !processLocation();
+
+            if (reload) {
+                console.log('location didn\'t change');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+            }
+        });
+
+        // S S: SafeSearch toggle
+        Mousetrap.bind('s s', function () {
+            const $ssLink = $('#ss-bimodal-strict');
+            if ($ssLink)
+                $ssLink.click();
+            else
+                $('#ss-bimodal-default').click();
         });
 
         Mousetrap.bind(['c c'], cleanupSearch);
