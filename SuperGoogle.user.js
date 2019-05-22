@@ -1844,14 +1844,16 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         if (imgBox.querySelector('.download-block'))
             return;
 
-        const img = imgBox.querySelector('img.rg_ic.rg_i');
+        const img = imgBox.querySelector('img.rg_i');
+        if (!img) return; // EXPERIMENTAL: FIXME: there were errors here
         const meta = getMeta(img);
         const src = img.getAttribute('loaded') === 'true' ? img.src : meta.ou;
 
         const downloadButton = createElement(`<div class="text-block download-block"
     style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
         downloadButton.onclick = function (e) {
-            download(src, unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)));
+            const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st));
+            download(src, fileName);
             e.preventDefault();
             e.stopImmediatePropagation();
             e.stopPropagation();
@@ -1918,7 +1920,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      */
     function genZip(thisZip = zip, updateCallback = null) {
         return thisZip.genZip(updateCallback).then(function (res) {
-            window.removeEventListener('beforeunload', zipBeforeUnload);
+            window.onbeforeunload = null;
             window.onunload = null;
         });
     }
@@ -2068,7 +2070,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         const isGif = img_bx => getMeta(img_bx).ity === 'gif' || /\.gif($|\?)/.test(getMeta(img_bx).ou);
-        const isFailedImage = (img_bx) => img_bx.classList.contains(Consts.ClassNames.FAILED_DDG) || img_bx.classList.contains(Consts.ClassNames.FAILED_DDG);
+        const isFailedImage = (img_bx) => img_bx.classList.contains(Consts.ClassNames.FAILED_PROXY) || img_bx.classList.contains(Consts.ClassNames.FAILED_PROXY);
 
 
         for (const img of getThumbnails(true)) {
@@ -2228,7 +2230,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @return {Meta[]}
      */
     function getQualifiedUblImgMetas() {
-        const condition = meta => !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_DDG) // not marked as failed
+        const condition = meta => !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_PROXY) // not marked as failed
             && meta && Math.max(meta.ow, meta.oh) >= 120); // not too small;
 
         return Array.from(getImgBoxes(' a.rg_l img[loaded="true"], a.rg_l img[loaded="true"]'))
@@ -2457,11 +2459,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         for (const imageBox of addedImageBoxes) {
             imageBox.classList.add('rg_bx_listed');
+            const img = imageBox.querySelector('img.rg_i');
+            if (!img) continue;
+
             addImgExtensionBox(imageBox);
             addImgDownloadButton(imageBox);
-
-
-            const img = imageBox.querySelector('img.rg_i');
 
             img.setAttribute('alt', getGimgDescription(img));
             // img.setAttribute('download-name', getGimgDescription(img));
@@ -2629,6 +2631,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return targetURL;
     }
 
+    /**
+     * used for trimming right and trimming left a search query
+     * @param str
+     */
     function parseSearchBarString(str) {
         if (!str)
             str = document.querySelector('input[type="text"][title="Search"]').value;
@@ -2946,11 +2952,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return progressBar;
     }
 
-    function zipBeforeUnload(e) {
-        var dialogText = 'You still didn\'t download your zipped files, are you sure you want to exit?';
-        e.returnValue = dialogText;
-        return dialogText;
-    }
+
     function gZipImages() {
         zip = zip || new JSZip();
         zip.current = 0;
@@ -2962,7 +2964,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             base64urls: false
         })], {type: 'text/plain'}));
 
-        window.addEventListener('beforeunload', zipBeforeUnload);
+        window.onbeforeunload = function zipBeforeUnload(e) {
+            var dialogText = 'You still didn\'t download your zipped files, are you sure you want to exit?';
+            e.returnValue = dialogText;
+            return dialogText;
+        };
         window.onunload = genZip;
         const selector = 'img.rg_ic.rg_i'
             // `.${TOKEN_DISPLAY}[loaded^="true"], .img-big`
@@ -3070,7 +3076,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     const isDoctype = /<!DOCTYPE html PUBLIC/.test(res.responseText);
 
                     if (wrongMime) {
-                        console.log('wrongMime type but continueing to download it:', contentType);
+                        console.log('wrongMime type but continuing to download it:', contentType);
                         ext = 'gif';
                     }
                     if (isDoctype) {
@@ -3328,24 +3334,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return sortByFrequency(wordList);
     }
 
-    //todo: make these functions in a utility class
-    /** https://stackoverflow.com/a/3579651/7771202 */
-    function sortByFrequency(array) {
-        var frequency = {};
-
-        for (const value of array) {
-            frequency[value] = 0;
-        }
-
-        var uniques = array.filter(function (value) {
-            return ++frequency[value] === 1;
-        });
-
-        return uniques.sort(function (a, b) {
-            return frequency[b] - frequency[a];
-        });
-    }
-
 
     unsafeWindow.gZipImages = gZipImages;
     unsafeWindow.zip = zip;
@@ -3471,7 +3459,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         border: 3px #ff00c5 solid;
     }
 
-    div.${showImages.ClassNames.FAILED_DDG}:not(.irc_mimg):not(.irc_mutc) {
+    div.${showImages.ClassNames.FAILED_PROXY}:not(.irc_mimg):not(.irc_mutc) {
         border: 3px #FFA500 solid;
     }`);
 
@@ -3820,6 +3808,24 @@ function cleanGibberish(str, minWgr, debug = false) {
             (str.length > 3 ? str : '');
     }
     return '';
+}
+
+//todo: make these functions in a utility class
+/** https://stackoverflow.com/a/3579651/7771202 */
+function sortByFrequency(array) {
+    var frequency = {};
+
+    for (const value of array) {
+        frequency[value] = 0;
+    }
+
+    var uniques = array.filter(function (value) {
+        return ++frequency[value] === 1;
+    });
+
+    return uniques.sort(function (a, b) {
+        return frequency[b] - frequency[a];
+    });
 }
 
 
