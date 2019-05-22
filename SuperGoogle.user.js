@@ -2607,9 +2607,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         var metaObj = {};
         if (!imageElement)
             return metaObj;
+        if(imageElement.meta)
+            return imageElement.meta;
 
+        var metaText;
         try {
-            metaObj = JSON.parse(getMetaText(imageElement));
+            metaText = getMetaText(imageElement);
+            metaObj = JSON.parse(metaText);
 
             metaObj.src = imageElement.src;
             metaObj.dim = [metaObj.ow, metaObj.oh];
@@ -2618,8 +2622,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (minified)
                 cleanMeta(metaObj);
         } catch (e) {
-            console.warn(e, imageElement);
+            console.warn(e, imageElement, metaText);
         }
+
+        imageElement.meta = metaObj;
+
 
         /** @param img
          * @return {string} */
@@ -3564,7 +3571,8 @@ input[type="range"] + label { /*The label elements displaying the slider reading
     padding: 6px;
 }
 
-a.irc_mutl, a.irc_mi {
+/*takes care of the main image link, makes sure it's exactly the same size of the image */
+div.irc_mic > a, a.irc_mutl, a.irc_mi, a.irc_mil {
     display: contents !important;
 }
 
