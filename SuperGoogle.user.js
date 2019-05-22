@@ -1119,7 +1119,7 @@
                 const href = imgDiv.querySelector('a[href]').href;
 
                 console.log('Downloading:', href, imgTitle, dir, img);
-                download(href, imgTitle, dir, img);
+                download(href, imgTitle, {directory: dir, element: img});
             }
             // anchorClick(makeTextFile(metaDataStr), dir + '/' + 'info.txt');
         }
@@ -1133,7 +1133,7 @@
                     focused_risDiv.querySelector('img').src :
                     focused_risDiv.querySelector('[href]').href;
                 console.log('Download:', name, currentImageURL);
-                download(currentImageURL, name, undefined, focused_risDiv);
+                download(currentImageURL, name, focused_risDiv);
                 panel.q('.torrent-link').click();
 
                 if (Preferences.panels.favoriteOnDownloads) {
@@ -2259,8 +2259,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     download(
                         qualifiedGImgs[i].fileURL,
                         qualifiedGImgs[i].fileName,
-                        '${location.hostname} ${document.title}',
                         {
+                            directory: '${location.hostname} ${document.title}',
                             element: qualifiedGImgs[i]
                         }
                     );
