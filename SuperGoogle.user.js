@@ -1595,7 +1595,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         if (el.length) el[0].click();
     });
 
-    setInterval(clickLoadMoreImages, 400);
+    if (Preferences.page.autoLoadMoreImages) {
+        setInterval(function () {
+            const btn = document.querySelector('#smbw');
+            if (btn) {
+                const event = new Event('click');
+                btn.dispatchEvent(event);
+            }
+        }, 1000);
+    }
 
     // === start of function definitions ===
 
@@ -2459,19 +2467,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return ublMap;
     }
 
-    function clickLoadMoreImages() {
-        // click "Load more images"
-        let el = document.querySelector('#smb');
-        if (!el) return;
-        var bodyRect = document.body.getBoundingClientRect(),
-            elemRect = el.getBoundingClientRect(),
-            offset = (bodyRect.bottom - elemRect.bottom);
-
-        if (el && (offset < screen.height + 200)) {
-            console.log('clicked LoadMoreImages');
-            el.click();
-        }
-    }
     /**
      * Called every 20 or so images, the image boxes are passed
      * @param addedImageBoxes
