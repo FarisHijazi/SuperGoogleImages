@@ -167,11 +167,11 @@
             // everything that has to do with the search page and url
             location: {
                 customUrlArgs: {
-                // "tbs=isz": "lt",//
-                // islt: "2mp",    // isLargerThan
-                // tbs: "isz:l",   // l=large, m=medium...
-                // "hl": "en"
-            },
+                    // "tbs=isz": "lt",//
+                    // islt: "2mp",    // isLargerThan
+                    // tbs: "isz:l",   // l=large, m=medium...
+                    // "hl": "en"
+                },
                 /**
                  * @type {string|null}
                  * if this field is falsy, then there will be no changes to the url.
@@ -179,23 +179,23 @@
                  */
                 forcedHostname: 'ipv4.google.com',
             },
-        // these should be under "page"
-        page: {
-            defaultAnchorTarget: '_blank',
-            staticNavbar: false,
-            autoLoadMoreImages: true,
-        },
-        loading: {
-            successColor: 'rgb(167, 99, 255)',
-            hideFailedImagesOnLoad: false,
-            useDdgProxy: true,
-        },
-        ubl: {
-            periodicUblSaving: false, // periodically save the unblocked sites list
-        },
-        panels: {
-            autoShowFullresRelatedImages: true,
-            loopbackWhenCyclingRelatedImages: false,
+            // these should be under "page"
+            page: {
+                defaultAnchorTarget: '_blank',
+                staticNavbar: false,
+                autoLoadMoreImages: true,
+            },
+            loading: {
+                successColor: 'rgb(167, 99, 255)',
+                hideFailedImagesOnLoad: false,
+                useDdgProxy: true,
+            },
+            ubl: {
+                periodicUblSaving: false, // periodically save the unblocked sites list
+            },
+            panels: {
+                autoShowFullresRelatedImages: true,
+                loopbackWhenCyclingRelatedImages: false,
                 favoriteOnDownloads: true, // favorite any image that you download
                 invertWheelRelativeImageNavigation: false,
             },
@@ -382,7 +382,21 @@
             return this.initialItem.map(item2Obj);
         }
         static get containers() {
-            return qa('div.str-clip-card-space:not(.modified)');
+            return document.querySelectorAll('div.str-clip-card-space:not(.modified)');
+        }
+        static get directUrls() {
+            return Array.from(document.querySelectorAll('a.Uc6dJc'))
+                .map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'));
+        }
+        static get jsonSummary() {
+            return Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
+                ({
+                    'title': a.getAttribute('aria-label'),
+                    'href': a.getAttribute('href'),
+                    'site': a.querySelector('.SQJAwb').innerText,
+                    'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
+                })
+            );
         }
         static removeClickListeners(container) {
             container.parentNode.appendChild(createElement(container.outerHTML));
@@ -435,7 +449,7 @@
                     }`);
         }
         static addDirectUrlsButton(mutationTarget) {
-            if (q('#add-direct-urls-button')) return;
+            if (document.querySelector('#add-direct-urls-button')) return;
             const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
 
             if (!threeDots) {
@@ -468,7 +482,7 @@
          * safe to call multiple times, it checks if the button was already added
          */
         static addDLJsonButton() {
-            if (q('#download-json-button')) // button already exists
+            if (document.querySelector('#download-json-button')) // button already exists
                 return;
 
             const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
@@ -492,21 +506,6 @@
                 }
             }
         }
-        static get directUrls() {
-            return Array.from(document.querySelectorAll('a.Uc6dJc'))
-                .map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'));
-        }
-        static get jsonSummary() {
-            return Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
-                ({
-                    'title': a.getAttribute('aria-label'),
-                    'href': a.getAttribute('href'),
-                    'site': a.querySelector('.SQJAwb').innerText,
-                    'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
-                })
-            );
-        }
-
         static downloadJson() {
             const json = JSON.stringify(Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
                 ({
@@ -642,7 +641,201 @@
 
             this.__modifyPanelEl();
         }
+        /** The big panel that holds all 3 child panels
+         * @return {HTMLDivElement|Node} */
+        static get mainPanelEl() {
+            return document.querySelector('div#irc_cc');
+        }
+        /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
+        static get focP() {
+            return this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"]').panel;
+            // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
+        }
+        static get noPanelWasOpened() {
+            return document.querySelector('#irc_cb').getAttribute('data-ved') == null;
+        }
+        static get panelCurrentlyOpen() {
+            return document.querySelector('#irc_bg').style.display !== 'none';
+        }
+        /**
+         @return {Meta}
+         */
+        get imageData() {
+            return getMeta(this.mainImage);
+        }
+        get isFocused() {
+            return this.el.style.transform === 'translate3d(0px, 0px, 0px);';
+        }
+        get panel() {
+            return this;
+        }
+        /** @return {HTMLDivElement} div.irc_it */
+        get titleAndDescriptionDiv() {
+            if (!this.el) {
+                return;
+            }
+            const titleAndDescrDiv = this.q('div.irc_b.irc_mmc div.irc_it');
+            if (!titleAndDescrDiv) {
+                console.warn('TitleAndDescription div not found!');
+            }
+            return titleAndDescrDiv;
+        }
+        /** @return {HTMLSpanElement} */
+        get descriptionEl() {
+            const titleDescrDiv = this.titleAndDescriptionDiv;
+            if (titleDescrDiv) {
+                return titleDescrDiv.querySelector('div.irc_asc span.irc_su');
+            } else {
+                console.warn('titleAndDescriptionDiv not found for image panel:', this.el);
+            }
+        }
+        get descriptionText() {
+            const descr = this.titleAndDescriptionDiv.querySelector('div.irc_asc');
 
+            return cleanGibberish((descr.innerText.length < 2) ? this.pTitle_Text : descr.innerText);
+        }
+        /** @return {HTMLAnchorElement} */
+        get pTitle_Anchor() {
+            return this.titleAndDescriptionDiv.querySelector('a.irc_pt');
+        }
+        get pTitle_Text() {
+            if (!this.pTitle_Anchor) {
+                console.warn('Title anchor not found!');
+                return;
+            }
+            return cleanGibberish(this.pTitle_Anchor.innerText.replace(getHostname(this.pTitle_Anchor.href), ''));
+        }
+        /** Secondary title
+         * @return {HTMLAnchorElement, Node} */
+        get sTitle_Anchor() {
+            return this.titleAndDescriptionDiv.querySelector('span a.irc_lth.irc_hol ');
+        }
+        get sTitle_Text() {
+            const secondaryTitle = this.sTitle_Anchor;
+            const siteHostName = getHostname(this.sTitle_Anchor.href);
+            return cleanGibberish(secondaryTitle.innerText.replace(siteHostName, ''));
+        }
+        get ris_fc_Url() {
+            return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : 'JavaScript:void(0);';
+        }
+        /** Returns that small square at the bottom right (the focused one)
+         * @return {HTMLDivElement} */
+        get ris_fc_Div() {
+            if (this.ris_Divs)
+                for (const div of this.ris_Divs)
+                    if (div.classList.contains('irc_rist'))
+                        return div;
+        }
+        /** @return {HTMLDivElement} returns only the last related image div from `ris_Divs()`*/
+        get ris_DivLast() {
+            var c = this.ris_Divs;
+            c = c && Array.from(c);
+            return c && c.pop();
+        }
+        /** @return {HTMLDivElement[]} returns all related image divs (including the "VIEW MORE" div)*/
+        get ris_DivsAll() {
+            var c = this.ris_Container;
+            if (c) return Array.from(c.querySelectorAll('div.irc_rimask'));
+        }
+        /** @return {HTMLDivElement[]} returns only related image divs (excluding the "VIEW MORE" div)*/
+        get ris_Divs() {
+            var d = this.ris_DivsAll;
+            if (d) return d.filter(div => !div.classList.contains('irc_rismo'));
+            return [];
+        }
+        /** @return {HTMLDivElement} returns related image container (div.irc-deck)*/
+        get ris_Container() {
+            return Array.from(this.qa('div.irc_ris > div > div.irc_rit.irc-deck.irc_rit')).pop();
+        }
+        /**
+         * @type {NodeListOf<HTMLAnchorElement>}
+         * @returns {Object} buttons
+         * @property {HTMLAnchorElement} buttons.Visit:       a.i3599.irc_vpl.irc_lth,
+         * @property {HTMLAnchorElement} buttons.Save:        a.i15087, (not saved: i15087 saved: i35661)
+         * @property {HTMLAnchorElement} buttons.View saved:  a.i18192.r-iXoO2jjyyEGY,
+         * @property {HTMLAnchorElement} buttons.Share:       a.i17628
+         * @property {HTMLAnchorElement} buttons.notsaved:    a.i15087
+         * @property {HTMLAnchorElement} buttons.saved:       a.i35661
+         *
+         * @property {Function} buttons.save
+         * @property {Function} buttons.unsave
+         */
+        get buttons() {
+            const buttonsContainer = this.q('.irc_but_r > tbody > tr');
+            const buttons = this.qa('.irc_but_r > tbody > tr a:first-child');
+
+            buttons.Visit = buttonsContainer.querySelector('a.i3599.irc_vpl.irc_lth');
+            buttons.Save = buttonsContainer.querySelector('a.i15087');
+            buttons.ViewSaved = buttonsContainer.querySelector('a.i18192.r-iXoO2jjyyEGY');
+            buttons.Share = buttonsContainer.querySelector('a.i17628');
+
+            buttons.notsaved = buttonsContainer.querySelector('a.i15087'); // the button that appears without a star (not saved)
+            buttons.saved = buttonsContainer.querySelector('a.i35661'); // has a star (means it's saved)
+
+            buttons.save = function () {
+                // if not saved, save
+                if (buttons.saved.style.display === 'none') {
+                    buttons.saved.click();
+                }
+            };
+            buttons.unsave = function () {
+                // if saved, unsave
+                if (buttons.notsaved.style.display === 'none') {
+                    buttons.notsaved.click();
+                }
+            };
+
+            return buttons;
+        }
+        /** @return {HTMLImageElement }
+         * '#irc_mimg > a#irc_mil > img#irc_mi' should work (but it's not working for some reason)*/
+        get mainImage() {
+            // return this.element.querySelector('#irc_mimg > a#irc_mil > img#irc_mi');
+            if (this.el) {
+                return this.q('img.irc_mi, img.irc_mut');
+            }
+        }
+
+        //get imageUrl() {return this.mainImage.src;}
+        get bestNameFromTitle() {
+            const sTitle = this.sTitle_Text;
+            const pTitle = this.pTitle_Text;
+            const description = this.descriptionText;
+            var unionPTitleAndDescrAndSTitle = unionTitleAndDescr(description, unionTitleAndDescr(pTitle, sTitle));
+
+            console.log(
+                'BestNameFromTitle:',
+                '\nsTitle:', sTitle,
+                '\npTitle:', pTitle,
+                '\ndescription:', description,
+                '\nunionPTitleAndDescrAndSTitle:', unionPTitleAndDescrAndSTitle
+            );
+
+            return unionPTitleAndDescrAndSTitle;
+        }
+        get leftPart() {
+            return this.q('.irc_t');
+        }
+        get rightPart() {
+            return this.q('.irc_b.irc_mmc');
+        }
+        /**
+         * if it does return something, then it will NOT continue to adding the new element.
+         * @return {*}
+         */
+        get sbiUrl() {
+            const risFcDiv = this.ris_fc_Div;
+            var reverseImgSearchUrl = '#';
+            if (!!risFcDiv) {
+                var imgURL = (risFcDiv.querySelector('img[oldsrc]') || {}).oldsrc || risFcDiv.querySelector('a[href]').href || this.mainImage.src;
+                reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(imgURL);
+
+                const url = new URL(reverseImgSearchUrl);
+                url.searchParams.append('allsizes', '1');
+                reverseImgSearchUrl = url.toString();
+            }
+            return reverseImgSearchUrl;
+        }
         /**
          * waits for the first panel to be in focus, then binds mutation observers to panels firing "panelMutation" events
          * Also applies modifications to panels (by calling modifyP)
@@ -698,213 +891,9 @@
                     });
             });
         }
-
-        /** The big panel that holds all 3 child panels
-         * @return {HTMLDivElement|Node} */
-        static get mainPanelEl() {
-            return q('div#irc_cc');
-        }
-        /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
-        static get focP() {
-            return this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"]').panel;
-            // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
-        }
-        static get noPanelWasOpened() {
-            return q('#irc_cb').getAttribute('data-ved') == null;
-        }
-        static get panelCurrentlyOpen() {
-            return q('#irc_bg').style.display !== 'none';
-        }
-        /**
-         @return {Meta}
-         */
-        get imageData() {
-            return getMeta(this.mainImage);
-        }
-        get isFocused() {
-            return this.el.style.transform === 'translate3d(0px, 0px, 0px);';
-        }
-
-        get panel() {
-            return this;
-        }
-
-        /** @return {HTMLDivElement} div.irc_it */
-        get titleAndDescriptionDiv() {
-            if (!this.el) {
-                return;
-            }
-            const titleAndDescrDiv = this.q('div.irc_b.irc_mmc div.irc_it');
-            if (!titleAndDescrDiv) {
-                console.warn('TitleAndDescription div not found!');
-            }
-            return titleAndDescrDiv;
-        }
-        /** @return {HTMLSpanElement} */
-        get descriptionEl() {
-            const titleDescrDiv = this.titleAndDescriptionDiv;
-            if (titleDescrDiv) {
-                return titleDescrDiv.querySelector('div.irc_asc span.irc_su');
-            } else {
-                console.warn('titleAndDescriptionDiv not found for image panel:', this.el);
-            }
-        }
-        get descriptionText() {
-            const descr = this.titleAndDescriptionDiv.querySelector('div.irc_asc');
-
-            return cleanGibberish((descr.innerText.length < 2) ? this.pTitle_Text : descr.innerText);
-        }
-        /** @return {HTMLAnchorElement} */
-        get pTitle_Anchor() {
-            return this.titleAndDescriptionDiv.querySelector('a.irc_pt');
-        }
-        get pTitle_Text() {
-            if (!this.pTitle_Anchor) {
-                console.warn('Title anchor not found!');
-                return;
-            }
-            return cleanGibberish(this.pTitle_Anchor.innerText.replace(getHostname(this.pTitle_Anchor.href), ''));
-        }
-        /** Secondary title
-         * @return {HTMLAnchorElement, Node} */
-        get sTitle_Anchor() {
-            return this.titleAndDescriptionDiv.querySelector('span a.irc_lth.irc_hol ');
-        }
-        get sTitle_Text() {
-            const secondaryTitle = this.sTitle_Anchor;
-            const siteHostName = getHostname(this.sTitle_Anchor.href);
-            return cleanGibberish(secondaryTitle.innerText.replace(siteHostName, ''));
-        }
-
-        get ris_fc_Url() {
-            return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : 'JavaScript:void(0);';
-        }
-        /** Returns that small square at the bottom right (the focused one)
-         * @return {HTMLDivElement} */
-        get ris_fc_Div() {
-            if (this.ris_Divs)
-                for (const div of this.ris_Divs)
-                    if (div.classList.contains('irc_rist'))
-                        return div;
-        }
-        /** @return {HTMLDivElement} returns only the last related image div from `ris_Divs()`*/
-        get ris_DivLast() {
-            var c = this.ris_Divs;
-            c = c && Array.from(c);
-            return c && c.pop();
-        }
-        /** @return {HTMLDivElement[]} returns all related image divs (including the "VIEW MORE" div)*/
-        get ris_DivsAll() {
-            var c = this.ris_Container;
-            if (c) return Array.from(c.querySelectorAll('div.irc_rimask'));
-        }
-        /** @return {HTMLDivElement[]} returns only related image divs (excluding the "VIEW MORE" div)*/
-        get ris_Divs() {
-            var d = this.ris_DivsAll;
-            if (d) return d.filter(div => !div.classList.contains('irc_rismo'));
-            return [];
-        }
-        /** @return {HTMLDivElement} returns related image container (div.irc-deck)*/
-        get ris_Container() {
-            return Array.from(this.qa('div.irc_ris > div > div.irc_rit.irc-deck.irc_rit')).pop();
-        }
-
-
-        /**
-         * @type {NodeListOf<HTMLAnchorElement>}
-         * @returns {Object} buttons
-         * @property {HTMLAnchorElement} buttons.Visit:       a.i3599.irc_vpl.irc_lth,
-         * @property {HTMLAnchorElement} buttons.Save:        a.i15087, (not saved: i15087 saved: i35661)
-         * @property {HTMLAnchorElement} buttons.View saved:  a.i18192.r-iXoO2jjyyEGY,
-         * @property {HTMLAnchorElement} buttons.Share:       a.i17628
-         * @property {HTMLAnchorElement} buttons.notsaved:    a.i15087
-         * @property {HTMLAnchorElement} buttons.saved:       a.i35661
-         *
-         * @property {Function} buttons.save
-         * @property {Function} buttons.unsave
-         */
-        get buttons() {
-            const buttonsContainer = this.q('.irc_but_r > tbody > tr');
-            const buttons = this.qa('.irc_but_r > tbody > tr a:first-child');
-
-            buttons.Visit = buttonsContainer.querySelector('a.i3599.irc_vpl.irc_lth');
-            buttons.Save = buttonsContainer.querySelector('a.i15087');
-            buttons.ViewSaved = buttonsContainer.querySelector('a.i18192.r-iXoO2jjyyEGY');
-            buttons.Share = buttonsContainer.querySelector('a.i17628');
-
-            buttons.notsaved = buttonsContainer.querySelector('a.i15087'); // the button that appears without a star (not saved)
-            buttons.saved = buttonsContainer.querySelector('a.i35661'); // has a star (means it's saved)
-
-            buttons.save = function () {
-                // if not saved, save
-                if (buttons.saved.style.display === 'none') {
-                    buttons.saved.click();
-                }
-            };
-            buttons.unsave = function () {
-                // if saved, unsave
-                if (buttons.notsaved.style.display === 'none') {
-                    buttons.notsaved.click();
-                }
-            };
-
-            return buttons;
-        }
-
-        //get imageUrl() {return this.mainImage.src;}
-
-        /** @return {HTMLImageElement }
-         * '#irc_mimg > a#irc_mil > img#irc_mi' should work (but it's not working for some reason)*/
-        get mainImage() {
-            // return this.element.querySelector('#irc_mimg > a#irc_mil > img#irc_mi');
-            if (this.el) {
-                return this.q('img.irc_mi, img.irc_mut');
-            }
-        }
-        get bestNameFromTitle() {
-            const sTitle = this.sTitle_Text;
-            const pTitle = this.pTitle_Text;
-            const description = this.descriptionText;
-            var unionPTitleAndDescrAndSTitle = unionTitleAndDescr(description, unionTitleAndDescr(pTitle, sTitle));
-
-            console.log(
-                'BestNameFromTitle:',
-                '\nsTitle:', sTitle,
-                '\npTitle:', pTitle,
-                '\ndescription:', description,
-                '\nunionPTitleAndDescrAndSTitle:', unionPTitleAndDescrAndSTitle
-            );
-
-            return unionPTitleAndDescrAndSTitle;
-        }
-        get leftPart() {
-            return this.q('.irc_t');
-        }
-        get rightPart() {
-            return this.q('.irc_b.irc_mmc');
-        }
-
-        /**
-         * if it does return something, then it will NOT continue to adding the new element.
-         * @return {*}
-         */
-        get sbiUrl() {
-            const risFcDiv = this.ris_fc_Div;
-            var reverseImgSearchUrl = '#';
-            if (!!risFcDiv) {
-                var imgURL = (risFcDiv.querySelector('img[oldsrc]') || {}).oldsrc || risFcDiv.querySelector('a[href]').href || this.mainImage.src;
-                reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(imgURL);
-
-                const url = new URL(reverseImgSearchUrl);
-                url.searchParams.append('allsizes', '1');
-                reverseImgSearchUrl = url.toString();
-            }
-            return reverseImgSearchUrl;
-        }
-
         /**Goes to the previous (Left) main mainImage*/
         static previousImage() {
-            const previousImageArrow = q('div#irc-lac > a');  // id that starts with "irc-la"
+            const previousImageArrow = document.querySelector('div#irc-lac > a');  // id that starts with "irc-la"
             var x = previousImageArrow && previousImageArrow.style.display !== 'none' ? // is it there?
                 !previousImageArrow.click() : // returns true
                 false;
@@ -913,14 +902,125 @@
         }
         /**Goes to the next (Right) main mainImage*/
         static nextImage() {
-            const nextImageArrow = q('div#irc-rac > a');  // id that starts with "irc-ra"
+            const nextImageArrow = document.querySelector('div#irc-rac > a');  // id that starts with "irc-ra"
             var x = nextImageArrow && nextImageArrow.style.display !== 'none' ? // is it there?
                 !nextImageArrow.click() : // returns true
                 false;
             if (!x) console.log('next arrow doesn\'t exist');
             return nextImageArrow;
         }
+        /**
+         * fixme: doesn't really work
+         * fetches and goes to the page for the current image (similar to image search but just 'more sizes of the same image')
+         */
+        static moreSizes() {
+            const panel = this;
+            const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
+            let z = open().document;
+            fetchUsingProxy(reverseImgSearchUrl, function (content) {
+                console.log('content:', content);
+                let doc = document.createElement('html');
+                doc.innerHTML = content;
+                const allSizesAnchor = doc.querySelector(Consts.Selectors.showAllSizes);
+                if (allSizesAnchor && allSizesAnchor.href) {
+                    fetchUsingProxy(allSizesAnchor.href, function (content2) {
+                        let doc2 = document.createElement('html');
+                        doc2.innerHTML = content2;
+                        z.write(content2);
+                    });
+                } else {
+                    z.write(content);
+                }
+            });
+        }
+        static download_ris() {
+            const dir = 'GImgRis ' + document.title.replace(/google|com/gi, '');
+            const relatedImageDivs = ImagePanel.focP.ris_DivsAll;
+            console.log('download related images:', relatedImageDivs);
 
+            //         var metaDataStr = `Google images data for related images
+            // Title:     ${document.title}
+            // URL:     ${location.href}
+            // Search:    ${q('#lst-ib').value}`;
+            for (const imgDiv of relatedImageDivs) {
+                var img = imgDiv.querySelector('img');
+                var metaObj = getMeta(img);
+                var imgTitle = '';
+
+                if (Object.keys(metaObj).length <= 2) {
+                    console.debug(
+                        'Found a metaObject that is too small:', metaObj,
+                        '\nReplacing with:', metaObj = getImgMetaById(metaObj.id)
+                    );
+                }
+
+                imgTitle = metaObj['pt'];
+                const href = imgDiv.querySelector('a[href]').href;
+
+                console.log('Downloading:', href, imgTitle, dir, img);
+                download(href, imgTitle, {directory: dir, element: img});
+            }
+            // anchorClick(makeTextFile(metaDataStr), dir + '/' + 'info.txt');
+        }
+        static downloadCurrentImage() {
+            try {
+                const panel = ImagePanel.focP;
+                const name = panel.bestNameFromTitle;
+                console.log('downloadCurrentImage:', name);
+                const focused_risDiv = panel.ris_fc_Div;
+                var currentImageURL = panel.mainImage.src && panel.mainImage.parentElement.classList.contains('display-original-mainImage') ?
+                    focused_risDiv.querySelector('img').src :
+                    focused_risDiv.querySelector('[href]').href;
+                console.log('Download:', name, currentImageURL);
+                download(currentImageURL, name, focused_risDiv);
+                panel.q('.torrent-link').click();
+
+                if (Preferences.panels.favoriteOnDownloads) {
+                    panel.buttons.save();
+                }
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+        static showRis() {
+            ImagePanel.thePanels.forEach(p => p.showRis());
+        }
+        static prevRelImg() {
+            ImagePanel.focP.prevRelImg();
+        }
+        static nextRelImg() {
+            ImagePanel.focP.nextRelImg();
+        }
+        //todo: rather than clicking the image when it loads, just set the className to make it selected: ".irc_rist"
+        /**
+         * keeps on trying to press the bottom related image (the last one to the bottom right) until it does.
+         * @param interval  the interval between clicks
+         */
+        static __tryToClickBottom_ris_image(interval = 30) {
+            isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
+
+            var timeout = null;
+            const recursivelyClickLastRelImg = function () {
+                console.log('recursivelyClickLastRelImg()');
+                timeout = setTimeout(function tryToClick() {
+                    const risLast = ImagePanel.focP.ris_DivLast;
+                    if (risLast && risLast.click) {
+                        risLast.click();
+                        isTryingToClickLastRelImg = false;
+                        clearTimeout(timeout);
+                        console.log('finally clicked the last related img:', risLast);
+                    } else {
+                        recursivelyClickLastRelImg();
+                    }
+                }, interval);
+            };
+            recursivelyClickLastRelImg();
+
+            while (!isTryingToClickLastRelImg) {
+                // polling
+                console.log('waiting to be done...');
+            }
+        }
         /**
          * Should be called only once for each panel
          */
@@ -1047,7 +1147,7 @@
                     ['.i18192', 'v']
                 ]);
                 for (const [selector, char] of keymap) {
-                    var bindEl = q(selector);
+                    var bindEl = document.querySelector(selector);
                     if (bindEl) {
                         bindEl.outerHTML = bindEl.outerHTML.replace(new RegExp(char, 'i'), `<u>${char}</u>`);
                     }
@@ -1064,7 +1164,6 @@
             // ImagePanel.updateP(panel);
             return panel;
         }
-
         /**
          * Called once every time the panel is changed
          * @return {boolean}
@@ -1103,99 +1202,18 @@
                     'inline-block' : 'none';
             }
         }
-        /**
-         * fixme: doesn't really work
-         * fetches and goes to the page for the current image (similar to image search but just 'more sizes of the same image')
-         */
-        static moreSizes() {
-            const panel = this;
-            const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
-            let z = open().document;
-            fetchUsingProxy(reverseImgSearchUrl, function (content) {
-                console.log('content:', content);
-                let doc = document.createElement('html');
-                doc.innerHTML = content;
-                const allSizesAnchor = doc.querySelector(Consts.Selectors.showAllSizes);
-                if (allSizesAnchor && allSizesAnchor.href) {
-                    fetchUsingProxy(allSizesAnchor.href, function (content2) {
-                        let doc2 = document.createElement('html');
-                        doc2.innerHTML = content2;
-                        z.write(content2);
-                    });
-                } else {
-                    z.write(content);
-                }
-            });
-        }
-        static download_ris() {
-            const dir = 'GImgRis ' + document.title.replace(/google|com/gi, '');
-            const relatedImageDivs = ImagePanel.focP.ris_DivsAll;
-            console.log('download related images:', relatedImageDivs);
-
-            //         var metaDataStr = `Google images data for related images
-            // Title:     ${document.title}
-            // URL:     ${location.href}
-            // Search:    ${q('#lst-ib').value}`;
-            for (const imgDiv of relatedImageDivs) {
-                var img = imgDiv.querySelector('img');
-                var metaObj = getMeta(img);
-                var imgTitle = '';
-
-                if (Object.keys(metaObj).length <= 2) {
-                    console.debug(
-                        'Found a metaObject that is too small:', metaObj,
-                        '\nReplacing with:', metaObj = getImgMetaById(metaObj.id)
-                    );
-                }
-
-                imgTitle = metaObj['pt'];
-                const href = imgDiv.querySelector('a[href]').href;
-
-                console.log('Downloading:', href, imgTitle, dir, img);
-                download(href, imgTitle, {directory: dir, element: img});
-            }
-            // anchorClick(makeTextFile(metaDataStr), dir + '/' + 'info.txt');
-        }
-        static downloadCurrentImage() {
-            try {
-                const panel = ImagePanel.focP;
-                const name = panel.bestNameFromTitle;
-                console.log('downloadCurrentImage:', name);
-                const focused_risDiv = panel.ris_fc_Div;
-                var currentImageURL = panel.mainImage.src && panel.mainImage.parentElement.classList.contains('display-original-mainImage') ?
-                    focused_risDiv.querySelector('img').src :
-                    focused_risDiv.querySelector('[href]').href;
-                console.log('Download:', name, currentImageURL);
-                download(currentImageURL, name, focused_risDiv);
-                panel.q('.torrent-link').click();
-
-                if (Preferences.panels.favoriteOnDownloads) {
-                    panel.buttons.save();
-                }
-            } catch (e) {
-                console.warn(e);
-            }
-        }
-
         q() {
             return this.el.querySelector(...arguments);
         }
-
         qa() {
             return this.el.querySelectorAll(...arguments);
         }
-
-        static showRis() {
-            ImagePanel.thePanels.forEach(p => p.showRis());
-        }
-
         showRis() {
             for (var div of this.ris_Divs) {
                 console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
                 showImages.replaceImgSrc(div.querySelector('img'));
             }
         }
-
         linkifyDescription() {
             var self = this;
             const descriptionEl = self.descriptionEl;
@@ -1259,7 +1277,6 @@
                 return this.q('.view-image').parentNode.after(tb);
             }
         }
-
         /** Inject the SearchByImage anchor
          * @return {Node} */
         inject_sbi() {
@@ -1279,7 +1296,6 @@
                 console.warn('SearchByImage element not found:', sbi);
             }
         }
-
         inject_ViewImage() {
             const text = 'View&nbsp;image';
             if (this.sTitle_Anchor) {
@@ -1312,7 +1328,6 @@
                 console.warn('viewImage element not found:', viewImage);
             }
         }
-
         inject_ImageHost() {
             // console.debug('this.qa(".irc_msc"):', this.qa('.irc_msc, .irc_ris'));
             let container = this.q('.irc_msc, .irc_ris');
@@ -1346,7 +1361,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }
             }
         }
-
         siteSearch() {
             try {
                 const hostname = getHostname(this.sTitle_Anchor.href);
@@ -1356,7 +1370,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 console.warn(e);
             }
         }
-
         inject_SiteSearch() {
             const href = '#'; //GoogleUtils.url.getGImgReverseSearchURL(this.imageUrl);
             const dataVed = '';//()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
@@ -1390,7 +1403,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (ublSitesSet.has(hostname))
                 setStyleInHTML(this.sTitle_Anchor, 'color', `${Preferences.loading.successColor} !important`);
         }
-
         /** Removes the annoying image link when the panel is open */
         removeLink() {
             const image = this.mainImage;
@@ -1409,7 +1421,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             console.log('lookup title:', this.bestNameFromTitle);
             openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent(cleanSymbols(this.bestNameFromTitle)));
         }
-
         /**
          * Creates an element from the given html and appends it next to the sTitle in the image panel
          * @param html
@@ -1454,14 +1465,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
             return containerEl;
         }
-
-        static prevRelImg() {
-            ImagePanel.focP.prevRelImg();
-        }
-        static nextRelImg() {
-            ImagePanel.focP.nextRelImg();
-        }
-
         /**
          * Navigates to the previous related image in the irc_ris in the main panel.
          * @return {boolean} returns true if the successful (no errors occur)
@@ -1499,38 +1502,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 console.warn(e);
             }
         }
-
-        //todo: rather than clicking the image when it loads, just set the className to make it selected: ".irc_rist"
-        /**
-         * keeps on trying to press the bottom related image (the last one to the bottom right) until it does.
-         * @param interval  the interval between clicks
-         */
-        static __tryToClickBottom_ris_image(interval = 30) {
-            isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
-
-            var timeout = null;
-            const recursivelyClickLastRelImg = function () {
-                console.log('recursivelyClickLastRelImg()');
-                timeout = setTimeout(function tryToClick() {
-                    const risLast = ImagePanel.focP.ris_DivLast;
-                    if (risLast && risLast.click) {
-                        risLast.click();
-                        isTryingToClickLastRelImg = false;
-                        clearTimeout(timeout);
-                        console.log('finally clicked the last related img:', risLast);
-                    } else {
-                        recursivelyClickLastRelImg();
-                    }
-                }, interval);
-            };
-            recursivelyClickLastRelImg();
-
-            while (!isTryingToClickLastRelImg) {
-                // polling
-                console.log('waiting to be done...');
-            }
-        }
-
         /**
          * Navigates to the next related image in the irc_ris in the main panel.
          * @return {boolean} returns true if the successful (no errors occur)
@@ -1579,13 +1550,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
                 const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
 
-                const minImgSizeSlider = q('#minImgSizeSlider');
+                const minImgSizeSlider = document.querySelector('#minImgSizeSlider');
                 if (minImgSizeSlider) {
                     minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
                     minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
                 }
 
-                const dlLimitSlider = q('#dlLimitSlider');
+                const dlLimitSlider = document.querySelector('#dlLimitSlider');
                 if (dlLimitSlider) {
                     dlLimitSlider.setAttribute('max', metaDatas.length.toString());
                     dlLimitSlider.value = metaDatas.length;
@@ -1669,7 +1640,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         } else {
             // bind each result to the corresponding number
-            for (let i = 0, results = qa('div.srg > div'); i < results.length; i++) {
+            for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
                 Mousetrap.bind(String(i + 1), () => {
                     results[i].querySelector('a').click();
                 });
@@ -1740,16 +1711,16 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         Mousetrap.bind(['alt+a'], () => {
-            (!q('#itp_animated').firstElementChild ? q('#itp_').firstElementChild : q('#itp_animated').firstElementChild).click();
+            (!document.querySelector('#itp_animated').firstElementChild ? document.querySelector('#itp_').firstElementChild : document.querySelector('#itp_animated').firstElementChild).click();
         });
         Mousetrap.bind(['D'], () => {
-            q('#downloadBtn').click();
+            document.querySelector('#downloadBtn').click();
         });
         Mousetrap.bind(['h'], () => {
-            q('#hideFailedImagesBox').click();
+            document.querySelector('#hideFailedImagesBox').click();
         });
         Mousetrap.bind(['g'], () => {
-            q('#GIFsOnlyBox').click();
+            document.querySelector('#GIFsOnlyBox').click();
         });
         Mousetrap.bind(['esc', 'escape'], removeHash);
 
@@ -1761,7 +1732,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             mi.images.firstElementChild && mi.images.firstElementChild.click();
         });
         Mousetrap.bind(['/'], function (e) { // focus search box
-            const searchBar = q(Consts.Selectors.searchBox);
+            const searchBar = document.querySelector(Consts.Selectors.searchBox);
             if (!$(searchBar).is(':focus')) {
                 searchBar.focus();
                 searchBar.scrollIntoView();
@@ -1785,10 +1756,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
         Mousetrap.bind(['['], function (e) {
-            q('#minImgSizeSlider').stepDown()
+            document.querySelector('#minImgSizeSlider').stepDown()
         });
         Mousetrap.bind([']'], function (e) {
-            q('#minImgSizeSlider').stepUp();
+            document.querySelector('#minImgSizeSlider').stepUp();
         });
 
 
@@ -1848,7 +1819,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }, 'keydown');
         Mousetrap.bind(['o'], ImagePanel.showRis);
         Mousetrap.bind(['h'], function (e) {
-            q('#rcnt').style.visibility = (/hidden/i).test(q('#rcnt').style.visibility) ? 'visible' : 'hidden';
+            document.querySelector('#rcnt').style.visibility = (/hidden/i).test(document.querySelector('#rcnt').style.visibility) ? 'visible' : 'hidden';
             e.preventDefault();
         });
         Mousetrap.bind(['m'], ImagePanel.download_ris);
@@ -1873,7 +1844,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     // attach chgMon to document.body
     function cleanupSearch() {
         console.log('cleanupSearch()');
-        const searchBar = q(Consts.Selectors.searchBox);
+        const searchBar = document.querySelector(Consts.Selectors.searchBox);
         searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
     }
 
@@ -1959,7 +1930,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function getImgMetaById(id) {
-        for (const metaEl of qa('div.rg_meta')) {
+        for (const metaEl of document.querySelectorAll('div.rg_meta')) {
             if (metaEl.innerText.indexOf(id) > -1) {
                 try {
                     return JSON.parse(metaEl.innerText);
@@ -2003,24 +1974,25 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
             (visibleThumbnailsOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
         ;
-        return qa(selector);
+        return document.querySelectorAll(selector);
     }
 
     function updateQualifiedImagesLabel(value) {
-        value = value != null ? value : Array.from(getQualifiedGImgs()).length;
-        const satCondLabel = q('#satCondLabel');
+        const qualifiedGImgs = getQualifiedGImgs(); //FIXME: this is a waste of resources, we're only using the length
+        value = value !== null ? value : qualifiedGImgs.length;
+        const satCondLabel = document.querySelector('#satCondLabel');
         if (satCondLabel)
             satCondLabel.innerHTML = value + ' images satisfying conditions';
 
-        const dlLimitSlider = q('#dlLimitSlider');
+        const dlLimitSlider = document.querySelector('#dlLimitSlider');
         if (dlLimitSlider && dlLimitSlider.value < value) {
             dlLimitSlider.setAttribute('value', value);
-            q('#dlLimitSliderValue').innerText = value;
+            document.querySelector('#dlLimitSliderValue').innerText = value;
         }
     }
     function highlightSelection() {
         const sliderValueDlLimit = this.value;
-        q('#dlLimitSliderValue').innerHTML = sliderValueDlLimit;
+        document.querySelector('#dlLimitSliderValue').innerHTML = sliderValueDlLimit;
 
         // Highlighting images that will be downloaded
         var i = 0;
@@ -2046,13 +2018,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
 
         const navbar = createAndGetNavbar(function (topnavContentDiv) {
-            const gNavbar = q('#rshdr');
-            topnavContentDiv.before(gNavbar, q('#searchform'));
+            const gNavbar = document.querySelector('#rshdr');
+            topnavContentDiv.before(gNavbar, document.querySelector('#searchform'));
             topnavContentDiv.appendChild(controlsContainer);
         });
 
         // auto-click on "tools" if on Google Images @google-specific
-        const toolsButton = q('.hdtb-tl');
+        const toolsButton = document.querySelector('.hdtb-tl');
         if (!!toolsButton) {
             if (!toolsButton.classList.contains('hdtb-tl-sel')) { // if the tools bar is not already visible (not already clicked)
                 toolsButton.click();
@@ -2098,22 +2070,22 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         // Check boxes
         const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
-            const checked = q('#hideFailedImagesBox').checked;
+            const checked = document.querySelector('#hideFailedImagesBox').checked;
             setVisibilityForImages(!checked, isFailedImage);
             Preferences.loading.hideFailedImagesOnLoad = !checked; // remember the preference
         }, Preferences.loading.hideFailedImagesOnLoad);
         const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
-            setVisibilityForImages(!q('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
+            setVisibilityForImages(!document.querySelector('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
         }, false);
         const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy',
             () => {
-                Preferences.loading.useDdgProxy = q('#useDdgProxyBox').checked;
+                Preferences.loading.useDdgProxy = document.querySelector('#useDdgProxyBox').checked;
                 updateQualifiedImagesLabel();
             },
             Preferences.loading.useDdgProxy
         );
         const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs',
-            () => GM_setValue('GIFsException', q('#GIFsExceptionBox').checked),
+            () => GM_setValue('GIFsException', document.querySelector('#GIFsExceptionBox').checked),
             GM_getValue('GIFsException', true)
         );
         const cbox_OnlyShowQualifiedImages = createGCheckBox('OnlyShowQualifiedImages', 'Only show qualified images',
@@ -2163,7 +2135,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     }
                 }
                 updateQualifiedImagesLabel(getQualifiedGImgs({
-                    ogs: qa('img.rg_ic.rg_i'),
+                    ogs: document.querySelectorAll('img.rg_ic.rg_i'),
                     exception4smallGifs: null,
                     ignoreDlLimit: true
                 }).size);
@@ -2208,10 +2180,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             showImages.displayImages();
         });
         const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
-            q('#itp_animated').firstElementChild.click();
+            document.querySelector('#itp_animated').firstElementChild.click();
         });
         const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
-            const imgLinks = Array.from(qa('a.rg_l[href]'));
+            const imgLinks = Array.from(document.querySelectorAll('a.rg_l[href]'));
             console.log('imgLinks:', imgLinks);
 
             for (const a of imgLinks) {
@@ -2298,7 +2270,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function downloadImages() {
-        const zipBox = q('#zipInsteadOfDownload');
+        const zipBox = document.querySelector('#zipInsteadOfDownload');
         if (zipBox && zipBox.checked) {
             if (!zip || Object.keys(zip.files).length < 1) {
                 gZipImages();
@@ -2306,7 +2278,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 genZip();
             }
         } else {
-            if (currentDownloadCount >= q('#dlLimitSlider').value) {
+            if (currentDownloadCount >= document.querySelector('#dlLimitSlider').value) {
                 currentDownloadCount = 0;
             } else {
                 console.log('currentDownloadCount >= dlNumSlider.value');
@@ -2332,14 +2304,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
     }
 
+    //FIXME: this is ugly
+    //  - fix the entire structure of selecting and querying qualified images
+    //  - fix params
     /**
-     * @returns {Set<{fileURL: string, fileName: string, img: HTMLImageElement}>}
-     * to get images that only satisfy the dimensions condition:    getQualifiedGImgs(null, null, true)
      * @param imgs
      * @param exception4smallGifs
      * @param ignoreDlLimit
+     * @returns {Set<{fileURL: string, fileName: string, img: HTMLImageElement}>}
+     *
+     * @example: to get images that only satisfy the dimensions condition: getQualifiedGImgs(null, null, true)
      */
-    function getQualifiedGImgs(imgs, exception4smallGifs, ignoreDlLimit) {
+    function getQualifiedGImgs(imgs, exception4smallGifs, ignoreDlLimit = false) {
         var ogs = [];
         if (typeof imgs === 'object'
             && imgs.hasOwnProperty('ogs')
@@ -2350,10 +2326,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             exception4smallGifs = imgs.exception4smallGifs;
             ignoreDlLimit = imgs.ignoreDlLimit;
         }
-        ogs = ogs.length <= 0 ? qa('img.rg_ic.rg_i') : ogs;
+        ogs = ogs.length ? document.querySelectorAll('img.rg_ic.rg_i') : ogs;
 
-        const minImgSizeSlider = q('#minImgSizeSlider');
-        const dlLimitSlider = q('#dlLimitSlider');
+        const minImgSizeSlider = document.querySelector('#minImgSizeSlider');
+        const dlLimitSlider = document.querySelector('#dlLimitSlider');
 
         const minImgSize = minImgSizeSlider ? minImgSizeSlider.value : 0;
         const dlLimit = dlLimitSlider ? dlLimitSlider.value : 0;
@@ -2483,20 +2459,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return ublMap;
     }
 
-    /** @param selector
-     * @return {NodeListOf<Node>|null}*/
-    function qa(selector) {
-        return document.querySelectorAll(selector);
-    }
-    /** @param selector
-     * @return {HTMLElement|null} */
-    function q(selector) {
-        return document.querySelector(selector);
-    }
-
     function clickLoadMoreImages() {
         // click "Load more images"
-        let el = q('#smb');
+        let el = document.querySelector('#smb');
         if (!el) return;
         var bodyRect = document.body.getBoundingClientRect(),
             elemRect = el.getBoundingClientRect(),
@@ -2530,7 +2495,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
 
         (function updateDlLimitSliderMax() {
-            const dlLimitSlider = q('#dlLimitSlider');
+            const dlLimitSlider = document.querySelector('#dlLimitSlider');
             if (dlLimitSlider) {
                 const tmpValue = dlLimitSlider.getAttribute('value');
                 const numImages = getImgBoxes().length;
@@ -2538,7 +2503,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 const newValue = Math.min(numImages, parseFloat(tmpValue));
                 dlLimitSlider.setAttribute('value', newValue.toString());
-                const sliderValueEl = q('#dlLimitSliderValue');
+                const sliderValueEl = document.querySelector('#dlLimitSliderValue');
                 if (sliderValueEl) sliderValueEl.setAttribute('value', newValue.toString());
             }
         })();
@@ -2607,7 +2572,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         var metaObj = {};
         if (!imageElement)
             return metaObj;
-        if(imageElement.meta)
+        if (imageElement.meta)
             return imageElement.meta;
 
         var metaText;
@@ -2776,7 +2741,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * thumbnails.example.com -> .example.com
      */
     function siteSearch_TrimLeft() {
-        const searchBox = q(Consts.Selectors.searchBox);
+        const searchBox = document.querySelector(Consts.Selectors.searchBox);
 
         const trimmedSiteSearch = parseSearchBarString(searchBox.value).trimLeft();
 
@@ -2791,7 +2756,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function siteSearch_TrimRight() {
-        const searchBox = q(Consts.Selectors.searchBox);
+        const searchBox = document.querySelector(Consts.Selectors.searchBox);
 
         // for regex breakdown, see https://regex101.com/r/gq9In1/1
         const trimmedSiteSearch = parseSearchBarString(searchBox.value).trimRight();
@@ -2831,8 +2796,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function updateDownloadBtnText() {
-        const downloadBtn = q('#downloadBtn');
-        const zipCbox = q('#zipInsteadOfDownload');
+        const downloadBtn = document.querySelector('#downloadBtn');
+        const zipCbox = document.querySelector('#zipInsteadOfDownload');
         if (zipCbox && downloadBtn) {
             downloadBtn.innerHTML = zipCbox.checked ?
                 (!downloadBtn.classList.contains('genzip-possible') ? 'ZIP' : 'Download&nbsp;ZIP&nbsp;⇓') : // "zip" or "download zip"
@@ -2968,7 +2933,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @deprecated
      */
     function safeSearchOffUrl() {
-        var safeSearchButton = q('#ss-bimodal-default');
+        var safeSearchButton = document.querySelector('#ss-bimodal-default');
         if (safeSearchButton) return safeSearchButton.href;
     }
 
@@ -2980,7 +2945,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             console.warn('ProgressBar is not defined.');
             return;
         }
-        if (!q('#progressbar-container'))
+        if (!document.querySelector('#progressbar-container'))
             document.body.firstElementChild.before(createElement(`<header id="progressbar-container" style="
     position: fixed !important;
     top: 0;
@@ -3012,7 +2977,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         );
         console.log('progressBar:', progressBar);
         progressBar.set(0);
-        const progressbarText = q('.progressbar-text');
+        const progressbarText = document.querySelector('.progressbar-text');
         progressbarText.style.display = 'inline';
         progressbarText.style.position = 'relative';
         return progressBar;
@@ -3041,10 +3006,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // '.rg_ic.rg_i.display-original-mainImage:not(.display-original-mainImage-failed)'
         ;
         /** type {HTMLAnchorElement} */
-        const ogs = qa(selector);
+        const ogs = document.querySelectorAll(selector);
 
 
-        const qualImgs = getQualifiedGImgs(ogs, null, q('#GIFsExceptionBox').checked);
+        const qualImgs = getQualifiedGImgs(ogs, null, document.querySelector('#GIFsExceptionBox').checked);
         zip.zipTotal = qualImgs.size;
 
         progressBar = setupProgressBar();
@@ -3174,7 +3139,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     zip.current++;
 
                     // fixing the download button text
-                    q('#downloadBtn') && q('#downloadBtn').classList.add('genzip-possible');
+                    document.querySelector('#downloadBtn') && document.querySelector('#downloadBtn').classList.add('genzip-possible');
                     updateDownloadBtnText();
 
 
@@ -3356,7 +3321,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * menuItemNames = [ "all", "images", "videos", "news", "maps", "more" ]
      */
     function getMenuItems() {
-        const menuItems = qa('.hdtb-mitem');
+        const menuItems = document.querySelectorAll('.hdtb-mitem');
         const menuItemNames = [
             'all',
             'images',
@@ -3375,7 +3340,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }
             }
         }
-        menuItemsObj.selected = q('.hdtb-mitem.hdtb-imb');
+        menuItemsObj.selected = document.querySelector('.hdtb-mitem.hdtb-imb');
 
         console.log('menuItemsObj=', menuItemsObj);
         return menuItemsObj;
@@ -3753,7 +3718,7 @@ a.download-related {
         }`, 'navbar-css');
 
         function adjustTopMargin() {
-            document.body.style.top = `${q('#topnav').offsetHeight}px`;
+            document.body.style.top = `${document.querySelector('#topnav').offsetHeight}px`;
         }
 
         const navbar = document.createElement(`div`);
@@ -3771,7 +3736,7 @@ a.download-related {
 
         // keep trying to use the callback, works when the navbarContentDiv is finally added
         var interval = setInterval(function () {
-            const topnavContentDiv = q('#topnav-content');
+            const topnavContentDiv = document.querySelector('#topnav-content');
             if (topnavContentDiv) {
                 clearInterval(interval);
                 if (callback)
