@@ -1100,7 +1100,7 @@
                                     irc_ris = ImagePanel.focP.q('.irc_ris'), // the relative images panel
                                     onLeftSide = isOrContains(leftPart, elUnderMouse), //containsClassName(elUnderMouse, '.irc_t');// on left half of panel
                                     onRightPart = isOrContains(rightPart, elUnderMouse), // on RIGHT half of panel
-                                    delta = getWheelDelta(wheelEvent);
+                                    delta = Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail))); // getting wheel delta
 
                                 if (Math.abs(delta) < 0.1) { // Do nothing if didn't scroll
                                     console.debug('Mousewheel didn\'t move');
@@ -1615,13 +1615,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             bindKeys();
 
             // observe new image boxes that load
-            observeDocument(function (mutationTarget, addedNodes) {
-                const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
+            observeDocument(mutations => {
+                // const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
+                const addedImageBoxes = [].map.call(mutations, m => m.addedNodes[0])
+                    .filter(div => div && div.matches && div.matches('div.rg_bx:not(.rg_bx_listed)'));
+
                 if (addedImageBoxes.length) {
-                    onImageBatchLoading(addedImageBoxes);
+                    onImageBatchLoaded(addedImageBoxes);
                     updateDownloadBtnText();
                 }
-            }, {singleCallbackPerMutation: true});
+
+            }, {callbackMode: 0});
 
             // automatically display originals if searching for a site:
             if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
@@ -1734,7 +1738,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         // keys that don't need a focusedPanel and all those other variables
-        Mousetrap.bind(['ctrl+alt+r'], toggleEncryptedGoogle);
+        Mousetrap.bind(['ctrl+alt+r'], function () {
+            // not implemented
+            console.log('not implemented, find something to put here');
+        });
         Mousetrap.bind(['i'], function (e) {
             var mi = getMenuItems();
             mi.images.firstElementChild && mi.images.firstElementChild.click();
@@ -1856,50 +1863,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
     }
 
-
-    /**
-     * Add small text box containing image extension
-     * @param {HTMLDivElement} imgBox
-     */
-    function addImgExtensionBox(imgBox) {
-        if (imgBox.querySelector('.text-block')) return;
-
-        const img = imgBox.querySelector('img.rg_ic.rg_i');
-        const meta = getMeta(img);
-        const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
-
-        // if (!ext) return;
-        const textBox = createElement('<div class="text-block ext ext-' + ext + '">');
-        if (!(ext && ext.toUpperCase)) {
-            return;
-        }
-        textBox.innerText = ext.toUpperCase();
-        // textBox.style["background-color"] = (ext === 'gif') ? "magenta" : "#83a3ff";
-        img.after(textBox);
-        imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
-    }
-    function addImgDownloadButton(imgBox) {
-        if (imgBox.querySelector('.download-block'))
-            return;
-
-        const img = imgBox.querySelector('img.rg_i');
-        if (!img) return; // EXPERIMENTAL: FIXME: there were errors here
-        const meta = getMeta(img);
-        const src = img.getAttribute('loaded') === 'true' ? img.src : meta.ou;
-
-        const downloadButton = createElement(`<div class="text-block download-block"
-    style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
-        downloadButton.onclick = function (e) {
-            const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st));
-            download(src, fileName);
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            e.stopPropagation();
-        };
-
-        img.after(downloadButton);
-        img.classList.add('has-dl');
-    }
 
     /**
      * Checks that the `window` object contains the properties in `importNames`
@@ -2358,7 +2321,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 // adding new property names to the img object
                 img['fileURL'] = fileURL;
                 img['fileName'] = fileName;
-                img['meta'] = meta;
+                // img['meta'] = meta;
 
                 const isBig = w >= minImgSize || h >= minImgSize;
                 const qualDim = isBig || exception4smallGifs && /\.gif\?|$/i.test(fileURL);
@@ -2467,26 +2430,122 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return ublMap;
     }
 
+
+    function enhanceImageBox(imageBox) {
+        imageBox.classList.add('rg_bx_listed');
+        const img = imageBox.querySelector('img.rg_i');
+        if (!img) return;
+
+        // defining properties
+        imageBox.img = img;
+        img.showOriginal = () => showImages.replaceImgSrc(img, img.closest('a'));
+        img.__defineGetter__('meta', () => getMeta(img));
+
+
+        /**
+         * Adds a mouseover listener to showOriginal if you hover over an image for a moment
+         */
+        const addHoverListener = (function () {
+            let pageX = 0;
+            let pageY = 0;
+
+            return function addHoverListener(imgBx) {
+                let timeout = null;
+                const checkAndResetTimer = e => {
+                    if (!(pageX === e.pageX && pageY === e.pageY)) {
+                        // console.log(`mouse has moved, is: (${e.clientX}, ${e.clientY}) was: (${pageX}, ${pageY})`);
+                        clearTimeout(timeout);
+                    }
+                };
+                const onMouseUpdate = (e) => {
+                    checkAndResetTimer(e);
+                    timeout = setTimeout(function () {
+                        checkAndResetTimer(e);
+                        imgBx.img.showOriginal();
+                    }, 250);
+                    imgBx.mouseX = e.clientX;
+                    imgBx.mouseY = e.clientY;
+                };
+
+                imgBx.addEventListener('mousemove', onMouseUpdate, false);
+                imgBx.addEventListener('mouseenter', onMouseUpdate, false);
+                imgBx.addEventListener('mouseout', () => {
+                    clearTimeout(timeout);
+                });
+            }
+        })();
+
+        /**
+         * Add small text box containing image extension
+         * @param {HTMLDivElement} imgBox
+         */
+        function addImgExtensionBox(imgBox) {
+            if (imgBox.querySelector('.text-block')) return;
+
+            const img = imgBox.querySelector('img.rg_ic.rg_i');
+            const meta = getMeta(img);
+            const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
+
+            // if (!ext) return;
+            const textBox = createElement('<div class="text-block ext ext-' + ext + '">');
+            if (!(ext && ext.toUpperCase)) {
+                return;
+            }
+            textBox.innerText = ext.toUpperCase();
+            // textBox.style["background-color"] = (ext === 'gif') ? "magenta" : "#83a3ff";
+            img.after(textBox);
+            imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
+        }
+        function addImgDownloadButton(imgBox) {
+            if (imgBox.querySelector('.download-block'))
+                return;
+
+            const img = imgBox.querySelector('img.rg_i');
+            const meta = getMeta(img);
+            const src = img.getAttribute('loaded') === 'true' ? img.src : meta.ou;
+
+            const downloadButton = createElement(`<div class="text-block download-block"
+    style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
+            downloadButton.onclick = function (e) {
+                const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st));
+                download(src, fileName);
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                e.stopPropagation();
+            };
+
+            img.after(downloadButton);
+            img.classList.add('has-dl');
+        }
+
+        // just wait a bit before using `meta`, cuz some of them didn't load yet
+        setTimeout(function () {
+            addImgExtensionBox(imageBox);
+            addImgDownloadButton(imageBox);
+
+            const title = img.meta.pt + '_' + img.meta.s; // choosing one of them (prioritizing the description over the title)
+            img.setAttribute('alt', title);
+            // img.setAttribute('download-name', title);
+            img.name = title;
+
+        }, 50);
+
+        //TODO: move GoogleDirectLink functions calls here, no need for 2 observers, this will do everything
+
+
+        addHoverListener(imageBox);
+    }
     /**
      * Called every 20 or so images, the image boxes are passed
      * @param addedImageBoxes
      */
-    function onImageBatchLoading(addedImageBoxes) {
-        console.log('onImageBatchLoading()');
+    function onImageBatchLoaded(addedImageBoxes) {
+        console.log('onImageBatchLoaded()');
         // if (imageSet.contains(addedImageBoxes)) return;
         // else imageSet.add(addedImageBoxes);
 
         for (const imageBox of addedImageBoxes) {
-            imageBox.classList.add('rg_bx_listed');
-            const img = imageBox.querySelector('img.rg_i');
-            if (!img) continue;
-
-            addImgExtensionBox(imageBox);
-            addImgDownloadButton(imageBox);
-
-            img.setAttribute('alt', getGimgDescription(img));
-            // img.setAttribute('download-name', getGimgDescription(img));
-            // markImageOnLoad(img, img.closest('a').href);
+            enhanceImageBox(imageBox);
         }
 
         (function updateDlLimitSliderMax() {
@@ -2503,42 +2562,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
         })();
 
-        /**
-         * Adds a mouseover listener so the image will be replaced with it's original if you hover over an image for a moment
-         */
-        (function addHoverListener() {
-            let pageX = 0;
-            let pageY = 0;
-
-
-            for (const bx of addedImageBoxes) {
-                let timeout = null;
-                const checkAndResetTimer = e => {
-                    if (!(pageX === e.pageX && pageY === e.pageY)) {
-                        // console.log(`mouse has moved, is: (${e.clientX}, ${e.clientY}) was: (${pageX}, ${pageY})`);
-                        clearTimeout(timeout);
-                    }
-                };
-                const replaceWithOriginal = (e) => {
-                    checkAndResetTimer(e);
-                    showImages.replaceImgSrc(bx.querySelector('img'), bx.querySelector('a'));
-                };
-
-                const onMouseUpdate = (e) => {
-                    checkAndResetTimer(e);
-                    timeout = setTimeout(() => replaceWithOriginal(e), 250);
-                    bx.mouseX = e.clientX;
-                    bx.mouseY = e.clientY;
-                };
-                bx.addEventListener('mousemove', onMouseUpdate, false);
-                bx.addEventListener('mouseenter', onMouseUpdate, false);
-
-                bx.addEventListener('mouseout', (e) => {
-                    clearTimeout(timeout);
-                });
-            }
-        })();
-
         try {
             updateQualifiedImagesLabel();
         } catch (e) {
@@ -2547,65 +2570,46 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     /**
-     * @param {HTMLImageElement} img
-     * @return {string}
-     */
-    function getGimgDescription(img) {
-        let meta = getMeta(img);
-        let title = meta.pt,
-            desc = meta.s;
-        return title + '_' + desc; // choosing one of them (prioritizing the description over the title)
-    }
-
-    /**
-     * @param imageElement image element, either <img class="rg_ic rg_i" ....> in .rg_bx
-     * todo: make this function detect if the image is a thumbnail or inside the panel, also make it work by getting the "id" and finding the meta through that
+     * TODO: maybe turn this to a promise?
+     * @param img image element, either <img class="rg_ic rg_i" ....> in .rg_bx
      * @param minified
      * @return {Meta}
      */
-    function getMeta(imageElement, minified = false) {
-        var metaObj = {};
-        if (!imageElement)
-            return metaObj;
-        if (imageElement.meta)
-            return imageElement.meta;
+    function getMeta(img, minified = false) {
 
-        var metaText;
-        try {
-            metaText = getMetaText(imageElement);
-            metaObj = JSON.parse(metaText);
-
-            metaObj.src = imageElement.src;
-            metaObj.dim = [metaObj.ow, metaObj.oh];
-            metaObj.imgEl = imageElement;
-
-            if (minified)
-                cleanMeta(metaObj);
-        } catch (e) {
-            console.warn(e, imageElement, metaText);
+        var div;
+        if (img.tagName === 'DIV') {
+            div = img;
+            img = div.querySelector('img');
+        } else {
+            div = img.closest('div.irc_rimask, div.rg_bx');
+            // nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
         }
 
-        imageElement.meta = metaObj;
+
+        var metaObj = {};
+        if (!img)
+            return metaObj;
+        if (img._meta && Object.keys(img._meta).length !== 0)
+            return img._meta;
 
 
-        /** @param img
-         * @return {string} */
-        function getMetaText(img) {
-            //[Google.com images]
-            /** @param thumbnail
-             * @return {HTMLDivElement } */
-            const getMetaEl = thumbnail => {
-                const div = thumbnail.tagName === 'DIV' ? thumbnail :
-                    thumbnail.closest('div.rg_bx, div.irc_rimask');// nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
-                return div.querySelector('.rg_meta');
-            }; // look for div.rg_meta, that should have the meta data
+        try {
+            metaObj = JSON.parse(div.querySelector('.rg_meta').innerText);
 
-            try {
-                return getMetaEl(img).innerText;
-            } catch (e) {
-                console.warn('Error while getting metaText', e, img);
-            }
-            return '{}';
+            metaObj.src = img.src;
+            metaObj.dim = [metaObj.ow, metaObj.oh];
+            metaObj.imgEl = img;
+            img._meta = metaObj;
+
+        } catch (e) {
+            console.warn(e, img);
+            setTimeout(() => getMeta(img), 50);
+        }
+
+
+        if (minified) {
+            metaObj = cleanMeta(metaObj);
         }
 
         return metaObj;
@@ -2627,34 +2631,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function saveUblSites() {
         storeUblSitesSet();
         console.log('Site links of unblocked images:', Array.from(ublSitesSet));
-    }
-
-    /**
-     * cross-browser wheel delta
-     * Returns the mousewheel scroll delta as -1 (wheelUp) or 1 (wheelDown) (cross-browser support)
-     * @param {MouseWheelEvent} wheelEvent
-     * @return {number} -1 or 1
-     */
-    function getWheelDelta(wheelEvent) {
-        // cross-browser wheel delta
-        wheelEvent = window.event || wheelEvent; // old IE support
-        return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
-    }
-
-    function toggleEncryptedGoogle(doNotChangeLocation) {
-        console.log('Toggle encrypted google');
-        const onEncrGoogle = new RegExp('encrypted\\.google\\.com').test(location.hostname);
-
-        var targetURL;
-
-        targetURL = location.href;
-        targetURL = !onEncrGoogle ?
-            targetURL.replace(/www\.google\.[\w.]+/i, 'encrypted.google.com') :
-            targetURL.replace(/encrypted\.google\.[\w.]+/i, 'www.google.com');
-        console.log('Target URL:', targetURL);
-        if (!doNotChangeLocation)
-            location.assign(targetURL);
-        return targetURL;
     }
 
     /**
@@ -3374,8 +3350,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     unsafeWindow.GSaves = GSaves;
 
     unsafeWindow.getImgMetaById = getImgMetaById;
-    // unsafeWindow.getGimgTitle = getGimgTitle;
-    unsafeWindow.getGimgDescription = getGimgDescription;
 
     unsafeWindow.geResultsData = getResultsData;
     unsafeWindow.downloadJSON = downloadJSON;
@@ -3859,7 +3833,7 @@ function sortByFrequency(array) {
 /**
  * @param {function} callback -
  * @param {Object=} options
- * @param {boolean} [options.singleCallbackPerMutation=false]
+ * @param {number} [options.callbackMode=0] - 0: single callback per batch (pass `mutations`), 1: callback for each added node
  *
  * @param {string[]} [options.attributeFilter=[]] Optional - An array of specific attribute names to be monitored. If this property isn't included, changes to all attributes cause mutation notifications. No default value.
  * @param {boolean} [options.attributeOldValue=false] Optional - Set to true to record the previous value of any attribute that changes when monitoring the node or nodes for attribute changes; see Monitoring attribute values in MutationObserver for details on watching for attribute changes and value recording. No default value.
@@ -3868,11 +3842,13 @@ function sortByFrequency(array) {
  * @param {boolean} [options.characterDataOldValue=false] Optional - Set to true to record the previous value of a node's text whenever the text changes on nodes being monitored. For details and an example, see Monitoring text content changes in MutationObserver. No default value.
  * @param {boolean} [options.childList=false] Optional - Set to true to monitor the target node (and, if subtree is true, its descendants) for the addition or removal of new child nodes. The default is false.
  * @param {boolean} [options.subtree=false] Optional -
+ *
+ * @returns {MutationObserver}
  */
 function observeDocument(callback, options = {}) {
     if ($ && typeof ($.extend) === 'function') {
         options = $.extend({
-            singleCallbackPerMutation: false,
+            callbackMode: 0, // 0: single callback per batch (pass `mutations`), 1: callback for each added node
 
             attributeFilter: [],
             attributeOldValue: true,
@@ -3884,27 +3860,36 @@ function observeDocument(callback, options = {}) {
         }, options);
     }
 
+    var observer = {};
+    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+
     elementReady('body').then((body) => {
         callback(document.documentElement);
-
-        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
-        if (MutationObserver) {
-            var observer = new MutationObserver(function mutationCallback(mutations) {
-                for (const mutation of mutations) {
-                    if (mutation.addedNodes.length) {
-                        callback(mutation.target);
-                        if (options.singleCallbackPerMutation === true) {
-                            break;
-                        }
-                    }
-                }
-            });
-            return observer.observe(document.documentElement, options);
-        } else {
+        if (!MutationObserver) {
             document.addEventListener('DOMAttrModified', callback, false);
             document.addEventListener('DOMNodeInserted', callback, false);
+        } else {
+            observer = new MutationObserver(function (mutations, me) {
+                observer.disconnect();
+
+                if (options.callbackMode === 0) {
+                    callback(mutations, me);
+                } else for (const mutation of mutations) {
+                    if (mutation.addedNodes.length) {
+                        callback(mutation, me);
+                    }
+                }
+                observer.continue();
+            });
+            observer.continue = () => observer.observe(document.documentElement, options);
+
+            observer.continue();
+
+            return observer;
+
         }
     });
+    return observer;
 }
 
 function elementReady(selector, timeoutInMs = -1) {
