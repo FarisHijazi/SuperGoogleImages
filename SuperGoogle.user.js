@@ -124,7 +124,16 @@
 
 
     var debug = true;
-    var showImages = new ShowImages({});
+    var showImages = new ShowImages({
+        loadMode: 'serial',
+        imagesFilter: (img, anchor) => (
+            !img.classList.contains(showImages.ClassNames.DISPLAY_ORIGINAL) &&
+            // !img.closest('.' + this.ClassNames.DISPLAY_ORIGINAL) &&
+            // /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(anchor.href) &&
+            !img.classList.contains('irc_mut') && !img.closest('div.irc_rismo') &&
+            !/^data:/.test(anchor.href || img.src)
+        ),
+    });
     console.log('SuperGoogle showImages:', showImages);
     unsafeWindow.showImagesSuperGoogle = showImages;
 
@@ -2163,7 +2172,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 // img.setAttribute('download-name', dlName);
                 img.setAttribute('alt', dlName);
-                // ImageManager.markImageOnLoad(img, a.getAttribute('href'));
                 console.log('Preloading image:', `"${dlName}"`, !isBase64ImageData(img.src) ? img.src : 'Base64ImageData');
             }
         });
@@ -2337,6 +2345,22 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return qualImgs;
     }
 
+    /**
+     * Deletes unwanted properties of the meta object (the object containing)
+     * @param {Meta} meta - the meta is mutated
+     * @return {Meta|Object} the same object is returned for convenience
+     */
+    function cleanMeta(meta) {
+        if (!meta)
+            return ({});
+
+        for (const prop of ['clt', 'cl', 'cb', 'cr', 'sc', 'tu', 'th', 'tw', 'rh', 'rid', 'rt', 'itg', 'imgEl'])
+            if (meta.hasOwnProperty(prop))
+                delete meta[prop];
+
+        return meta
+    }
+
 
     /**
      * occumulates the unblocked site hostnames to the global `ublSitesSet`
@@ -2377,22 +2401,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return ublSitesSet;
     }
 
-    /**
-     * Deletes unwanted properties of the meta object (the object containing)
-     * @param {Meta} meta - the meta is mutated
-     * @return {Meta|Object} the same object is returned for convenience
-     */
-    function cleanMeta(meta) {
-        if (!meta)
-            return ({});
-
-        for (const prop of ['clt', 'cl', 'cb', 'cr', 'sc', 'tu', 'th', 'tw', 'rh', 'rid', 'rt', 'itg', 'imgEl'])
-            if (meta.hasOwnProperty(prop))
-                delete meta[prop];
-
-        return meta
-    }
-
     function storeUblMetas() {
         ublMetas.addAll(getQualifiedUblImgMetas());
 
@@ -2430,6 +2438,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return ublMap;
     }
 
+    function saveUblSites() {
+        storeUblSitesSet();
+        console.log('Site links of unblocked images:', Array.from(ublSitesSet));
+    }
 
     function enhanceImageBox(imageBox) {
         imageBox.classList.add('rg_bx_listed');
@@ -2628,10 +2640,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return message;
     };*/
 
-    function saveUblSites() {
-        storeUblSitesSet();
-        console.log('Site links of unblocked images:', Array.from(ublSitesSet));
-    }
 
     /**
      * used for trimming right and trimming left a search query
@@ -2740,8 +2748,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         searchBox.form.submit();
     }
 
-    function openInTab(url, target) {
-        window.open(url, target || '_blank');
+    function openInTab(url, target = '_blank') {
+        window.open(url, target);
     }
     function cleanDates(str) {
         return !str ? str : removeDoubleSpaces(str.replace(/\d+([.\-])(\d+)([.\-])\d*/g, ' '));
@@ -2776,6 +2784,16 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
     }
 
+    function downloadJSON() {
+        let text = getResultsJSON({
+            minify: true,
+            stringify: true,
+            base64urls: false
+        });
+        let name = 'GImg data_' + document.title;
+        anchorClick(makeTextFile(text), name + '.json');
+    }
+
     /**
      * @param minified: delete unneeded meta attributes?
      * @returns {Array} an array containing the meta objects of the images
@@ -2803,16 +2821,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             set.add(meta);
         }
         return Array.from(set);
-    }
-
-    function downloadJSON() {
-        let text = getResultsJSON({
-            minify: true,
-            stringify: true,
-            base64urls: false
-        });
-        let name = 'GImg data_' + document.title;
-        anchorClick(makeTextFile(text), name + '.json');
     }
 
     /**
@@ -2852,47 +2860,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return options.stringify ? JSON.stringify(o, null, 4) : o;
     }
 
-    function getIndexHtml() {
-        return Array.from(getImgBoxes()).map(bx => {
-            const meta = getMeta(bx);
-            return `<div>
-<img src="${meta.ou}" class="src-img" alt="${meta.pt}">
-	<div>
-    <a href="${meta.ru}" target="_blank">${meta.ru}</a>
-    <h3>${meta.pt} ${meta.st}</h3>
-    <h4>${meta.s}</h4>
-	</div>
-</div>`;
-        }).join('\n');
-    }
-
-    /**
-     * adds an attribute "load" indicating the load status
-     *  load = "true":      image loaded successfully
-     *  load = "loading":     image still loading
-     *  load = "error":     image failed to load
-     * @param imgUrl
-     * @param imgEl
-     */
-    function markImageOnLoad(imgEl, imgUrl) {
-        if (!imgEl) return;
-        imgUrl = !!imgUrl ? imgUrl : imgEl.src;
-        if (imgEl.getAttribute('loaded') === 'loading') {
-            return;
-        }
-
-        var imgObj = new Image();
-        imgEl.setAttribute('loaded', 'loading');
-        imgObj.onerror = function () {
-            imgEl.setAttribute('loaded', 'error');
-            console.debug('onerror:', imgEl);
-        };
-        imgObj.onload = function () {
-            console.debug('onload:', imgEl);
-            imgEl.setAttribute('loaded', 'true');
-        };
-        imgObj.src = imgUrl;
-    }
 
     /**
      * This is the URL with safe search off
@@ -3110,7 +3077,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     zip.current++;
 
                     // fixing the download button text
-                    document.querySelector('#downloadBtn') && document.querySelector('#downloadBtn').classList.add('genzip-possible');
+                    const dlBtn = document.querySelector('#downloadBtn');
+                    if (dlBtn) dlBtn.classList.add('genzip-possible');
                     updateDownloadBtnText();
 
 
@@ -3666,7 +3634,10 @@ a.download-related {
      *  @return {HTMLDivElement|HTMLElement} returns the parent navbar element
      */
     function createAndGetNavbar(callback) {
+        //TODO: replace this with jQuery
+
         // Settings up the navbar
+
         // language=CSS
         addCss(`div#topnav {
             position: fixed;
@@ -3686,19 +3657,18 @@ a.download-related {
             font-size: 20px;*/
         }`, 'navbar-css');
 
-        function adjustTopMargin() {
-            document.body.style.top = `${document.querySelector('#topnav').offsetHeight}px`;
-        }
-
         const navbar = document.createElement(`div`);
+
         navbar.id = 'topnav';
         const navbarContentDiv = document.createElement('div');
         navbarContentDiv.id = 'topnav-content';
-
         navbar.appendChild(navbarContentDiv);
 
         document.body.firstElementChild.before(navbar);
 
+        function adjustTopMargin() {
+            document.body.style.top = `${document.querySelector('#topnav').offsetHeight}px`;
+        }
         window.addEventListener('resize', adjustTopMargin);
 
         document.body.style.position = 'relative';
