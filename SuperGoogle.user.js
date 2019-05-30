@@ -2514,11 +2514,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             const img = imgBox.querySelector('img.rg_i');
             const meta = getMeta(img);
-            const src = img.getAttribute('loaded') === 'true' ? img.src : meta.ou;
 
-            const downloadButton = createElement(`<div class="text-block download-block"
-    style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
+            const downloadButton = createElement(`<div class="text-block download-block" style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
             downloadButton.onclick = function (e) {
+                const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou;
                 const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st));
                 download(src, fileName);
                 e.preventDefault();
