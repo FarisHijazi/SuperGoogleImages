@@ -166,6 +166,11 @@
     };
     Consts.ClassNames = $.extend(showImages.ClassNames, Consts.ClassNames);
 
+    const Components = {
+        minImgSizeSlider: {},
+
+    };
+
 
     // OPTIONS:
 
@@ -529,69 +534,10 @@
     }
 
 
-    /** change mouse cursor when hovering over elements for scroll navigation
+    /* change mouse cursor when hovering over elements for scroll navigation
      * cursor found here:   https://www.flaticon.com/free-icon/arrows_95103#
      */
 
-    // return true when there will be a change
-    function processLocation() {
-        //TODO: move this to UrlUtils
-        function equalUrls(url1, url2, hashSensitive = false) {
-            const equalUrlSearchParams = function equalUrlSearchParams(url1, url2) {
-                const sp1 = url1.searchParams;
-                const sp2 = url2.searchParams;
-                sp1.sort();
-                sp2.sort();
-
-                const s1 = sp1.toString();
-                const s2 = sp2.toString();
-                const eq = s1 === s2;
-
-                console.debug(
-                    '\nequal: ' + eq,
-                    `\n"${s1}"\n===\n"${s2}"`
-                );
-                return (eq);
-            };
-            // console.log(url1.toString() + '\n' + url2.toString());
-            return (
-                equalUrlSearchParams(url1, url2) &&
-                (url1.hostname === url2.hostname) &&
-                (!hashSensitive || url1.hash === url2.hash)
-            );
-        }
-
-        URL.prototype.equal = function (other, hashSensitive) {
-            return equalUrls(this, other, hashSensitive);
-        };
-
-
-        // switch to specific google domain/hostname (like ipv4.google.com)
-        if (typeof Preferences.location.forcedHostname === 'string' && !(Preferences.location.forcedHostname.charAt(0) === '!')) {
-            pageUrl.hostname = Preferences.location.forcedHostname;
-        }
-
-        // URL args: Modifying the URL and adding arguments, such as specifying the size
-        if (Preferences.location.customUrlArgs && Object.keys(Preferences.location.customUrlArgs).length) {
-
-            for (const key in Preferences.location.customUrlArgs) {
-                if (Preferences.location.customUrlArgs.hasOwnProperty(key)) {
-                    if (pageUrl.searchParams.has(key))
-                        pageUrl.searchParams.set(key, Preferences.location.customUrlArgs[key]);
-                    else {
-                        pageUrl.searchParams.append(key, Preferences.location.customUrlArgs[key]);
-                    }
-                }
-            }
-
-            console.debug('new location:', pageUrl.toString());
-        }
-
-        if (!equalUrls(new URL(location.href), pageUrl)) {
-            location.assign(pageUrl.toString());
-            return true;
-        }
-    }
 
     // todo: move GSaves code to another script
     // if on google.com/saves, add keyboard shortcuts
@@ -953,21 +899,32 @@
             // Search:    ${q('#lst-ib').value}`;
             for (const imgDiv of relatedImageDivs) {
                 var img = imgDiv.querySelector('img');
-                var metaObj = getMeta(img);
+                var meta = getMeta(img);
                 var imgTitle = '';
 
-                if (Object.keys(metaObj).length <= 2) {
+                if (Object.keys(meta).length <= 2) {
                     console.debug(
-                        'Found a metaObject that is too small:', metaObj,
-                        '\nReplacing with:', metaObj = getImgMetaById(metaObj.id)
+                        'Found a metaObject that is too small:', meta,
+                        '\nReplacing with:', meta = getImgMetaById(meta.id)
                     );
                 }
 
-                imgTitle = metaObj['pt'];
+                imgTitle = meta['pt'];
                 const href = imgDiv.querySelector('a[href]').href;
 
-                console.log('Downloading:', href, imgTitle, dir, img);
-                download(href, imgTitle, {directory: dir, element: img});
+                console.log('Downloading:', {
+                    url: href,
+                    name: imgTitle,
+                    directory: dir,
+                    element: img
+                });
+
+                download({
+                    url: href,
+                    name: imgTitle,
+                    directory: dir,
+                    element: img
+                });
             }
             // anchorClick(makeTextFile(metaDataStr), dir + '/' + 'info.txt');
         }
@@ -1185,6 +1142,9 @@
 
             // make sure that main image link points to the main image (and not to the website)
             var imgAnchor = panel.q('a.irc_mutl');
+            imgAnchor.__defineSetter__('href', function (value) {
+                this.setAttribute('href', value);
+            });
             imgAnchor.__defineGetter__('href', function () {
                 imgAnchor.href = imgAnchor.querySelector('img').src || '#';
                 return this.getAttribute('href');
@@ -1219,7 +1179,7 @@
         }
         showRis() {
             for (var div of this.ris_Divs) {
-                console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
+                // debug && console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
                 showImages.replaceImgSrc(div.querySelector('img'));
             }
         }
@@ -1872,6 +1832,65 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
     }
 
+    // return true when there will be a change
+    function processLocation() {
+        //TODO: move this to UrlUtils
+        function equalUrls(url1, url2, hashSensitive = false) {
+            const equalUrlSearchParams = function equalUrlSearchParams(url1, url2) {
+                const sp1 = url1.searchParams;
+                const sp2 = url2.searchParams;
+                sp1.sort();
+                sp2.sort();
+
+                const s1 = sp1.toString();
+                const s2 = sp2.toString();
+                const eq = s1 === s2;
+
+                console.debug(
+                    '\nequal: ' + eq,
+                    `\n"${s1}"\n===\n"${s2}"`
+                );
+                return (eq);
+            };
+            // console.log(url1.toString() + '\n' + url2.toString());
+            return (
+                equalUrlSearchParams(url1, url2) &&
+                (url1.hostname === url2.hostname) &&
+                (!hashSensitive || url1.hash === url2.hash)
+            );
+        }
+
+        URL.prototype.equal = function (other, hashSensitive) {
+            return equalUrls(this, other, hashSensitive);
+        };
+
+
+        // switch to specific google domain/hostname (like ipv4.google.com)
+        if (typeof Preferences.location.forcedHostname === 'string' && !(Preferences.location.forcedHostname.charAt(0) === '!')) {
+            pageUrl.hostname = Preferences.location.forcedHostname;
+        }
+
+        // URL args: Modifying the URL and adding arguments, such as specifying the size
+        if (Preferences.location.customUrlArgs && Object.keys(Preferences.location.customUrlArgs).length) {
+
+            for (const key in Preferences.location.customUrlArgs) {
+                if (Preferences.location.customUrlArgs.hasOwnProperty(key)) {
+                    if (pageUrl.searchParams.has(key))
+                        pageUrl.searchParams.set(key, Preferences.location.customUrlArgs[key]);
+                    else {
+                        pageUrl.searchParams.append(key, Preferences.location.customUrlArgs[key]);
+                    }
+                }
+            }
+
+            console.debug('new location:', pageUrl.toString());
+        }
+
+        if (!equalUrls(new URL(location.href), pageUrl)) {
+            location.assign(pageUrl.toString());
+            return true;
+        }
+    }
 
     /**
      * Checks that the `window` object contains the properties in `importNames`
@@ -2227,11 +2246,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      */
     function clearAllEffects() { // remove highlighting of elements
         console.warn('clearAllEffects()');
-        for (const effectClassName of ['highlight', 'drop-shadow', 'transparent', 'sg-too-small', /*'qualified-dimensions',*/ 'sg-too-small-hide', 'in']) {
-            for (const el of document.getElementsByClassName(effectClassName)) {
-                el.classList.remove(effectClassName);
-                el.classList.add('out');
-            }
+
+        const effectClassNames = ['highlight', 'drop-shadow', 'transparent', 'sg-too-small', /*'qualified-dimensions',*/ 'sg-too-small-hide', 'in'];
+
+        const selector = '.' + effectClassNames.join(', .');
+        for (const el of document.querySelectorAll(selector)) {
+            el.classList.remove(...effectClassNames); // remove all effect effectClassNames
+            el.classList.add('out');
         }
     }
 
@@ -2260,28 +2281,30 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (currentDownloadCount >= document.querySelector('#dlLimitSlider').value) {
                 currentDownloadCount = 0;
             } else {
-                console.log('currentDownloadCount >= dlNumSlider.value');
+                console.log('currentDownloadCount < dlNumSlider.value');
             }
-            const qualifiedGImgs = Array.from(getQualifiedGImgs());
+            const qualifiedGImgs = Array.from(getQualifiedGImgs({}));
+
             let i = 0;
-            const downloadInterval = setInterval(function () {
-                if (i < qualifiedGImgs.length) {
-                    download(
-                        qualifiedGImgs[i].fileURL,
-                        qualifiedGImgs[i].fileName,
-                        {
-                            directory: '${location.hostname} ${document.title}',
-                            element: qualifiedGImgs[i]
-                        }
-                    );
-                    currentDownloadCount++;
-                    i++;
-                } else {
-                    clearInterval(downloadInterval);
-                }
-            }, 300);
+            const btns = document.querySelectorAll('.text-block.download-block');
+            var interval = setInterval(function () {
+                if (i < Math.min(btns.length, document.querySelector('#minImgSizeSlider').value))
+                    btns[i++].click();
+                else
+                    clearInterval(interval);
+            }, 100)
         }
     }
+
+    /**
+     * @param {(Element|Meta)} img_bx - image box or image or meta
+     * @returns {boolean}
+     */
+    function isGif(img_bx) {
+        const meta = (img_bx instanceof Element) ? getMeta(img_bx) : img_bx;
+        return meta.ity === 'gif' || /\.gif($|\?)/.test(meta.ou);
+        }
+
 
     //FIXME: this is ugly
     //  - fix the entire structure of selecting and querying qualified images
@@ -2290,7 +2313,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @param imgs
      * @param exception4smallGifs
      * @param ignoreDlLimit
-     * @returns {Set<{fileURL: string, fileName: string, img: HTMLImageElement}>}
+     * @returns {({fileURL: string, fileName: string, img: HTMLImageElement})[]}
      *
      * @example: to get images that only satisfy the dimensions condition: getQualifiedGImgs(null, null, true)
      */
@@ -2305,43 +2328,38 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             exception4smallGifs = imgs.exception4smallGifs;
             ignoreDlLimit = imgs.ignoreDlLimit;
         }
-        ogs = ogs.length ? document.querySelectorAll('img.rg_ic.rg_i') : ogs;
+        ogs = ogs.length ? ogs : document.querySelectorAll('img.rg_ic.rg_i');
 
-        const minImgSizeSlider = document.querySelector('#minImgSizeSlider');
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
 
-        const minImgSize = minImgSizeSlider ? minImgSizeSlider.value : 0;
-        const dlLimit = dlLimitSlider ? dlLimitSlider.value : 0;
-        const qualImgs = new Set();
+        const minImgSize = Components.minImgSizeSlider.value || 0;
+        const dlLimit = dlLimitSlider.value || 0;
+        const qualImgs = [];
+
+
 
         for (const img of ogs) {
             try {
-                const fileName = img.getAttribute('download-name') || img.alt;
-
-                if (zip.file(fileName))
+                if (zip.file(img.name))
                     continue;
 
                 const meta = getMeta(img);
-                const fileURL = meta.ou;
-                const w = meta.ow;
-                const h = meta.oh;
-
                 // adding new property names to the img object
-                img['fileURL'] = fileURL;
-                img['fileName'] = fileName;
-                // img['meta'] = meta;
+                img.url = meta.ou;
+                // img.meta = meta;
 
-                const isBig = w >= minImgSize || h >= minImgSize;
-                const qualDim = isBig || exception4smallGifs && /\.gif\?|$/i.test(fileURL);
-                const underDlLimit = qualImgs.size < dlLimit;
+                const isBig = meta.ow >= minImgSize || meta.oh >= minImgSize;
+                const qualDim = isBig || exception4smallGifs && isGif(meta);
+                const underDlLimit = qualImgs.length < dlLimit;
 
                 if (qualDim && (ignoreDlLimit || underDlLimit)) {
-                    qualImgs.add(img);
+                    qualImgs.push(img);
                 }
             } catch (e) {
                 console.warn(e);
             }
         }
+
         return qualImgs;
     }
 
@@ -2626,19 +2644,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return metaObj;
     }
 
-    /*window.onbeforeunload = function (e) { // on tab exit
-        ublSites = new Set(ublSites, GM_getValue('unblocked sites of og images'));
-        console.log('ublSites:', ublSites);
-        GM_setValue('unblocked sites of og images', Array.from(ublSites));
-        var message = "Saving unblocked sites (confirmation).", e = e || window.event;
-        // For IE and Firefox
-        if(e) {
-            e.returnValue = message;
-        }
-        // For Safari
-        return message;
-    };*/
-
 
     /**
      * used for trimming right and trimming left a search query
@@ -2920,23 +2925,22 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return progressBar;
     }
 
-
     function gZipImages() {
         zip = zip || new JSZip();
-        zip.current = 0;
-        zip.totalSize = 0;
-        zip.totalLoaded = 0;
         zip.file('info.json', new Blob([getResultsJSON({
             minify: true,
             stringify: true,
             base64urls: false
         })], {type: 'text/plain'}));
 
-        window.onbeforeunload = function zipBeforeUnload(e) {
-            var dialogText = 'You still didn\'t download your zipped files, are you sure you want to exit?';
-            e.returnValue = dialogText;
-            return dialogText;
-        };
+        // fixing the download button text
+        const dlBtn = document.querySelector('#downloadBtn');
+        if (dlBtn) dlBtn.classList.add('genzip-possible');
+        updateDownloadBtnText();
+    }
+
+    function gZipImages() {
+
         window.onunload = genZip;
         const selector = 'img.rg_ic.rg_i'
             // `.${TOKEN_DISPLAY}[loaded^="true"], .img-big`
@@ -2946,215 +2950,18 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const ogs = document.querySelectorAll(selector);
 
 
-        const qualImgs = getQualifiedGImgs(ogs, null, document.querySelector('#GIFsExceptionBox').checked);
-        zip.zipTotal = qualImgs.size;
-
-        progressBar = setupProgressBar();
+        const qualImgs = getQualifiedGImgs({
+            imgs: ogs,
+            exception4smallGifs: null,
+            ignoreDlLimit: document.querySelector('#GIFsExceptionBox').checked
+        });
 
         console.debug('Original images to be downloaded:', ogs);
-        let activeZipThreads = 0;
 
         for (const qualifiedImgArgs of qualImgs) {
-            requestAndZipImage(qualifiedImgArgs.fileURL, qualifiedImgArgs.fileName, qualifiedImgArgs.img);
+            qualifiedImgArgs.img.url = qualifiedImgArgs.url;
+            zip.requestAndZip(qualifiedImgArgs.img);
         }
-        /**
-         * Takes a name and returns the same name and iterates it if it already exists in the zip
-         * @param fname
-         * @return {string}
-         */
-        function getValidIteratedName(fname) {
-            if (!zip.file(fname)) {
-                return fname;
-            } else {
-                var numberStr = (fname).match(/\d+/g);
-                var newName = fname;
-                if (numberStr) {
-                    numberStr = numberStr.pop();
-                    var number = parseInt(numberStr);
-                    newName = fname.replace(numberStr, ++number)
-                } else {
-                    var split = newName.split('.');
-                    newName = split.slice(0, -1).join('.') + (' 1.') + split.slice(-1);
-                }
-                return getValidIteratedName(newName);
-            }
-        }
-
-        function requestAndZipImage(fileUrl, fileName, img) {
-            let fileSize = 0,
-                loadedLast = 0
-            ;
-            activeZipThreads++;
-            const meta = getMeta(img);
-
-            fileName = getValidIteratedName(removeDoubleSpaces(fileName.replace(/\//g, ' ')));
-
-            function onBadResult(res) {
-                console.debug('onBadResult:', 'fileURL:', fileUrl, 'response.finalURL:', res.finalUrl);
-
-                if (!PProxy.DDG.test(res.finalUrl)) {
-                    console.debug(
-                        'retrying with ddgproxy',
-                        '\nddgpURL:', PProxy.DDG.proxy(fileUrl),
-                        '\nfileURL:', fileUrl,
-                        '\nresponse.finalURL:', res.finalUrl
-                    );
-
-                    if (/<!DOCTYPE/.test(res.responseText)) {
-                        console.error('Not image data!', res.responseText);
-                        zip.current++;
-                        return;
-                    }
-                    requestAndZipImage(PProxy.DDG.proxy(fileUrl), fileName, img);
-                } else {
-                    return true;
-                }
-            }
-
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: fileUrl || 'https://i.ytimg.com/vi/RO90omga8D4/maxresdefault.jpg',
-                responseType: 'arraybuffer',
-                binary: true,
-                onload: res => {
-                    if (zip.file(fileName)) {
-                        return;
-                    }
-                    try {
-                        /*
-                        console.debug(
-                            `onload:
-    readyState: ${res.readyState}
-    respHeaders: ${res.responseHeaders}
-    status:     ${res.status}
-    statusText: ${res.statusText}
-    finalUrl:   ${res.finalUrl}
-    respText:   ${res.responseText.slice(0, 100)}...`
-                        ); */
-                    } catch (e) {
-                    }
-
-                    const [t, fullMatch, mimeType1, mimeType2] = res.responseHeaders.match(/(content-type: )([\w]+)\/([\w\-]+)/);
-                    const contentType = [mimeType1, mimeType2].join('/');
-                    let ext = mimeTypes.hasOwnProperty(contentType) && mimeTypes[contentType] ?
-                        mimeTypes[contentType].extensions[0] :
-                        mimeType2;
-                    console.debug(fullMatch);
-                    const wrongMime = !/image/i.test(mimeType1);
-                    const isDoctype = /<!DOCTYPE html PUBLIC/.test(res.responseText);
-
-                    if (wrongMime) {
-                        console.log('wrongMime type but continuing to download it:', contentType);
-                        ext = 'gif';
-                    }
-                    if (isDoctype) {
-                        console.error(
-                            'Not image data!: ',
-                            isDoctype ?
-                                'matches "<!DOCTYPE html PUBLIC"' :
-                                wrongMime ? `Wrong mime: ${contentType}` :
-                                    'idk',
-                            '\n' + fileUrl,
-                            `${res.responseText.slice(0, 100)}...`
-                        );
-                        if (onBadResult(res) || isDoctype) {
-                            return;
-                        }
-                    }
-                    var blob = new Blob([res.response], {type: contentType});
-
-                    responseBlobs.add(blob);
-                    zip.file(`${fileName}.${ext || 'image/gif'}`, blob, {
-                            comment: JSON.stringify({
-                                url: fileUrl,
-                                name: `${meta.pt} ${meta.st}`,
-                                page: meta.ru
-                            }, null, 4)
-                        }
-                    );
-                    console.log('Added file to zip:', fileName, fileUrl);
-                    zip.current++;
-
-                    // fixing the download button text
-                    const dlBtn = document.querySelector('#downloadBtn');
-                    if (dlBtn) dlBtn.classList.add('genzip-possible');
-                    updateDownloadBtnText();
-
-
-                    if (zip.current < zip.zipTotal || zip.zipTotal <= 0) {
-                        return;
-                    }
-
-                    if (zip.current >= zip.zipTotal - 1) {
-                        console.log('Generating ZIP...', '\nFile count:', Object.keys(zip.files).length);
-                        zip.zipTotal = 0;
-                        progressBar.destroy();
-                        genZip();
-                    }
-                    activeZipThreads--;
-                },
-                onreadystatechange: res => {
-                    // console.debug('Request state changed to: ' + res.readyState);
-                    if (res.readyState === 4) {
-                        console.debug('ret.readyState === 4');
-                    }
-                },
-                onerror: res => {
-                    if (onBadResult(res)) {
-                        return;
-                    }
-                    console.error('An error occurred.' +
-                        '\nreadyState: ' + res.readyState +
-                        '\nresponseHeaders: ' + res.responseHeaders +
-                        '\nstatus: ' + res.status +
-                        '\nstatusText: ' + res.statusText +
-                        '\nfinalUrl: ' + res.finalUrl +
-                        '\nresponseText: ' + res.responseText
-                    );
-                    activeZipThreads--;
-                },
-                onprogress: res => {
-                    if (zip.file(fileName) || zip.current < zip.zipTotal || zip.zipTotal <= 0) {
-                        //TODO: stop the GM_xmlrequest at this point
-
-                        /*if(res.abort)
-                            res.abort();
-                        else
-                            console.error('res.abort not defined');
-                        if(this.abort)
-                            this.abort();
-                        else
-                            console.error('this.abort not defined');
-                        return;*/
-                    }
-
-                    if (res.lengthComputable) {
-                        if (fileSize === 0) { // happens once
-                            fileSize = res.total;
-                            zip.totalSize += fileSize;
-                        }
-                        const loadedSoFar = res.loaded;
-                        const justLoaded = loadedSoFar - loadedLast;    // What has been added since the last progress call
-                        const fileprogress = loadedSoFar / res.total;
-
-                        zip.totalLoaded += justLoaded;
-                        const totalProgress = zip.totalLoaded / zip.totalSize;
-
-                        if (false) {
-                            console.debug(`loadedSoFar = ${res.loaded}\njustLoaded = ${loadedSoFar - loadedLast}\nfileprogress = ${loadedSoFar / res.total}`);
-                        }
-                        if (progressBar) {
-                            progressBar.set(totalProgress);
-                            progressBar.setText(`Files in ZIP: (${Object.keys(zip.files).length} / ${zip.zipTotal}) Active threads: ${activeZipThreads}     (${zip.totalLoaded} / ${zip.totalSize})`);
-                        }
-
-                        loadedLast = loadedSoFar;
-                    }
-                }
-            });
-        }
-
-        return zip;
     }
 
     function unionTitleAndDescr(str1, str2) {
@@ -3971,7 +3778,7 @@ function googleDirectLinks() {
      * - set rel="noreferrer", referrerpolicy="no-referrer"
      * - stopImmediatePropagation onclick */
     var enhanceLink = function (a) {
-
+        // at this point, href= the gimg search page url
         /** stop propagation onclick */
         var purifyLink = function (a) {
             if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
@@ -4051,13 +3858,12 @@ function googleDirectLinks() {
             a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
             enhanceLink(a);
         }
+
         restore(a);
     };
 
 
     // observe
-
-
     var checkNewNodes = function (mutations) {
         debug && console.log('State:', document.readyState);
         if (mutations.target) {
