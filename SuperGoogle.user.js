@@ -1518,11 +1518,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
                 const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
 
-                const minImgSizeSlider = document.querySelector('#minImgSizeSlider');
-                if (minImgSizeSlider) {
-                    minImgSizeSlider.max = maxDimension + minDimension % minImgSizeSlider.step;
-                    minImgSizeSlider.min = minDimension - minDimension % minImgSizeSlider.step;
-                }
+                Components.minImgSizeSlider.max = maxDimension + minDimension % Components.minImgSizeSlider.step;
+                Components.minImgSizeSlider.min = minDimension - minDimension % Components.minImgSizeSlider.step;
 
                 const dlLimitSlider = document.querySelector('#dlLimitSlider');
                 if (dlLimitSlider) {
@@ -1739,10 +1736,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
         Mousetrap.bind(['['], function (e) {
-            document.querySelector('#minImgSizeSlider').stepDown()
+            Components.minImgSizeSlider.stepDown()
         });
         Mousetrap.bind([']'], function (e) {
-            document.querySelector('#minImgSizeSlider').stepUp();
+            Components.minImgSizeSlider.stepUp();
         });
 
 
@@ -1975,16 +1972,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return document.querySelectorAll(selector);
     }
 
-    function updateQualifiedImagesLabel(value) {
-        const qualifiedGImgs = getQualifiedGImgs(); //FIXME: this is a waste of resources, we're only using the length
-        value = value !== null ? value : qualifiedGImgs.length;
+    function updateQualifiedImagesLabel(value = 0) {
+        //FIXME: this is a waste of resources, we're only using the length
+        if (!value) value = getQualifiedGImgs({}).length;
+
         const satCondLabel = document.querySelector('#satCondLabel');
         if (satCondLabel)
             satCondLabel.innerHTML = value + ' images satisfying conditions';
 
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
         if (dlLimitSlider && dlLimitSlider.value < value) {
-            dlLimitSlider.setAttribute('value', value);
+            dlLimitSlider.value = value;
             document.querySelector('#dlLimitSliderValue').innerText = value;
         }
     }
@@ -2098,23 +2096,17 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         cbox_ZIP.style.padding = '0px';
 
 
-        const isGif = img_bx => getMeta(img_bx).ity === 'gif' || /\.gif($|\?)/.test(getMeta(img_bx).ou);
-        const isFailedImage = (img_bx) => img_bx.classList.contains(Consts.ClassNames.FAILED_PROXY) || img_bx.classList.contains(Consts.ClassNames.FAILED_PROXY);
-
-
-        for (const img of getThumbnails(true)) {
-            img.classList.add('blur');
-        }
+        const isFailedImage = (img_bx) => img_bx.getAttribute('loaded') === 'false' || img_bx.classList.contains(Consts.ClassNames.FAILED_PROXY);
 
 
         const constraintsContainer = (function () {
             // todo: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
 
             const default_slider_minImgSize_value = 250;
-            const slider_minImgSize = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
+            Components.minImgSizeSlider = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
 
-            var sliderReading_minImgSize = createElement(`<label for="minImgSizeSlider" id="minImgSizeSliderValue">${slider_minImgSize.value}x${slider_minImgSize.value}</label>`);
-            slider_minImgSize.oninput = function () {
+            const sliderReading_minImgSize = createElement(`<label for="minImgSizeSlider" id="minImgSizeSliderValue">${Components.minImgSizeSlider.value}x${Components.minImgSizeSlider.value}</label>`);
+            Components.minImgSizeSlider.oninput = function () {
                 sliderReading_minImgSize.innerHTML = /*'Min Dimensions<br>' +*/ (`${this.value}x${this.value}`);
 
                 // Highlighting images that will be downloaded
@@ -2132,13 +2124,16 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         img.classList.remove('qualified-dimensions');
                     }
                 }
+
                 updateQualifiedImagesLabel(getQualifiedGImgs({
-                    ogs: document.querySelectorAll('img.rg_ic.rg_i'),
-                    exception4smallGifs: null,
-                    ignoreDlLimit: true
-                }).size);
+                    imgs: {
+                        ogs: document.querySelectorAll('img.rg_ic.rg_i'),
+                        exception4smallGifs: null,
+                        ignoreDlLimit: true
+                    }
+                }).length);
             };
-            slider_minImgSize.onchange = function () {
+            Components.minImgSizeSlider.onchange = function () {
                 // todo: maybe this can be done using a CSS, rather than manually changing it every time
                 // hide images that are too small
                 setVisibilityForImages(false, '.sg-too-small-hide', false);
@@ -2153,7 +2148,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
             var tr1 = document.createElement('tr');
-            tr1.appendChild(slider_minImgSize);
+            tr1.appendChild(Components.minImgSizeSlider);
             tr1.appendChild(sliderReading_minImgSize);
 
             var tr2 = document.createElement('tr');
@@ -2309,57 +2304,22 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     //  - fix the entire structure of selecting and querying qualified images
     //  - fix params
     /**
-     * @param imgs
-     * @param exception4smallGifs
-     * @param ignoreDlLimit
+     * @param parameters
+     * @param parameters.exception4smallGifs
+     * @param parameters.ignoreDlLimit
      * @returns {({fileURL: string, fileName: string, img: HTMLImageElement})[]}
      *
-     * @example: to get images that only satisfy the dimensions condition: getQualifiedGImgs(null, null, true)
      */
-    function getQualifiedGImgs(imgs, exception4smallGifs, ignoreDlLimit = false) {
-        var ogs = [];
-        if (typeof imgs === 'object'
-            && imgs.hasOwnProperty('ogs')
-            && imgs.hasOwnProperty('exception4smallGifs')
-            && imgs.hasOwnProperty('ignoreDlLimit')
-        ) {
-            ogs = imgs.ogs;
-            exception4smallGifs = imgs.exception4smallGifs;
-            ignoreDlLimit = imgs.ignoreDlLimit;
-        }
-        ogs = ogs.length ? ogs : document.querySelectorAll('img.rg_ic.rg_i');
+    function getQualifiedGImgs(parameters = {}) {
+        let {exception4smallGifs, ignoreDlLimit = false} = parameters;
 
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
+        const dlLimit = dlLimitSlider ? dlLimitSlider.value : Number.MAX_SAFE_INTEGER;
 
-        const minImgSize = Components.minImgSizeSlider.value || 0;
-        const dlLimit = dlLimitSlider.value || 0;
-        const qualImgs = [];
-
-
-
-        for (const img of ogs) {
-            try {
-                if (zip.file(img.name))
-                    continue;
-
-                const meta = getMeta(img);
-                // adding new property names to the img object
-                img.url = meta.ou;
-                // img.meta = meta;
-
-                const isBig = meta.ow >= minImgSize || meta.oh >= minImgSize;
-                const qualDim = isBig || exception4smallGifs && isGif(meta);
-                const underDlLimit = qualImgs.length < dlLimit;
-
-                if (qualDim && (ignoreDlLimit || underDlLimit)) {
-                    qualImgs.push(img);
-                }
-            } catch (e) {
-                console.warn(e);
-            }
-        }
-
-        return qualImgs;
+        return [].filter.call(document.querySelectorAll('img.rg_ic.rg_i'), (img, i) => {
+            const qualDim = img.satisfiesDimensions || exception4smallGifs && isGif(img.meta);
+            return (qualDim && (ignoreDlLimit || i < dlLimit))
+        });
     }
 
     /**
@@ -2469,6 +2429,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         imageBox.img = img;
         img.showOriginal = () => showImages.replaceImgSrc(img, img.closest('a'));
         img.__defineGetter__('meta', () => getMeta(img));
+        img.__defineGetter__('satisfiesDimensions', () =>
+            img.meta.ow >= Components.minImgSizeSlider.value && img.meta.oh >= Components.minImgSizeSlider.value
+        );
 
 
         /**
@@ -2535,15 +2498,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const downloadButton = createElement(`<div class="text-block download-block" style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
             downloadButton.onclick = function (e) {
                 const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou;
-                const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st));
-                download(src, fileName);
+                const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity;
+                download(src, fileName, {fileExtension: meta.ity});
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 e.stopPropagation();
             };
 
             img.after(downloadButton);
-            img.classList.add('has-dl');
         }
 
         // just wait a bit before using `meta`, cuz some of them didn't load yet
@@ -2551,18 +2513,28 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             addImgExtensionBox(imageBox);
             addImgDownloadButton(imageBox);
 
-            const title = img.meta.pt + '_' + img.meta.s; // choosing one of them (prioritizing the description over the title)
-            img.setAttribute('alt', title);
-            // img.setAttribute('download-name', title);
-            img.name = title;
+
+            // choosing one of them (prioritizing the description over the title)
+            img.__defineGetter__('alt', () => {
+                var title = img.meta.pt + '_' + img.meta.s;
+                img.setAttribute('alt', title);
+                return title;
+            });
+            img.__defineGetter__('name', () => {
+                var title = img.meta.pt + '_' + img.meta.s;
+                img.setAttribute('name', title);
+                return title;
+            });
 
         }, 50);
 
         //TODO: move GoogleDirectLink functions calls here, no need for 2 observers, this will do everything
 
+        img.classList.add('blur');
 
         addHoverListener(imageBox);
     }
+
     /**
      * Called every 20 or so images, the image boxes are passed
      * @param addedImageBoxes
@@ -2577,16 +2549,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
 
         (function updateDlLimitSliderMax() {
-            const dlLimitSlider = document.querySelector('#dlLimitSlider');
-            if (dlLimitSlider) {
-                const tmpValue = dlLimitSlider.getAttribute('value');
-                const numImages = getImgBoxes().length;
-                dlLimitSlider.setAttribute('max', numImages.toString());
+            const numImages = getImgBoxes().length;
 
-                const newValue = Math.min(numImages, parseFloat(tmpValue));
-                dlLimitSlider.setAttribute('value', newValue.toString());
-                const sliderValueEl = document.querySelector('#dlLimitSliderValue');
-                if (sliderValueEl) sliderValueEl.setAttribute('value', newValue.toString());
+            const dlLimitSlider = $('#dlLimitSlider');
+
+            if (dlLimitSlider) {
+                dlLimitSlider.max = numImages;
+                dlLimitSlider.value = numImages;
+
+                $('#dlLimitSliderValue').innerHTML = numImages;
             }
         })();
 
@@ -2631,8 +2602,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             img._meta = metaObj;
 
         } catch (e) {
+            metaObj = getImgMetaById(img.id);
             console.warn(e, img);
-            setTimeout(() => getMeta(img), 50);
         }
 
 
@@ -2886,8 +2857,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             console.warn('ProgressBar is not defined.');
             return;
         }
-        if (!document.querySelector('#progressbar-container'))
-            document.body.firstElementChild.before(createElement(`<header id="progressbar-container" style="
+        var container = document.querySelector('#progressbar-container');
+        if (!container) {
+            container = createElement(`<header id="progressbar-container" style="
     position: fixed !important;
     top: 0;
     left: 0;
@@ -2897,23 +2869,39 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     background-color: #36465d;
     box-shadow: 0 0 0 1px hsla(0,0%,100%,.13);
     z-index: 100;"
-/>`));
+/>`);
+            document.body.firstElementChild.before(container);
+        }
 
-        // noinspection JSUnresolvedVariable
-        // noinspection ES6ModulesDependencies
-        var progressBar = new ProgressBar.Line('#progressbar-container', {
+        var progressBar = new ProgressBar.Line(container, {
+                strokeWidth: 4,
                 easing: 'easeInOut',
+                duration: 1400,
                 color: '#FCB03C',
-                strokeWidth: 1,
+                trailColor: '#eee',
                 trailWidth: 1,
+                svgStyle: {width: '100%', height: '100%'},
                 text: {
                     value: '0',
-                    alignToBottom: false
+                    style: {
+                        // Text color.
+                        // Default: same as stroke color (options.color)
+                        color: '#999',
+                        position: 'absolute',
+                        right: '0',
+                        top: '30px',
+                        padding: 0,
+                        margin: 0,
+                        transform: null
+                    },
+                    alignToBottom: false,
+                    autoStyleContainer: false,
                 },
-
-                trailColor: '#eee',
-                duration: 1400,
-                svgStyle: null
+                from: {color: '#FFEA82'},
+                to: {color: '#ED6A5A'},
+                step: (state, bar) => {
+                    // bar.setText(Math.round(bar.value() * 100) + ' %');
+                },
             }
         );
         console.log('progressBar:', progressBar);
@@ -3758,6 +3746,9 @@ function googleDirectLinks() {
         var matches = newUrl.match(re);
         if (matches) {
             debug && console.log('restoring', link._x_id, newUrl);
+
+            link.phref = oldUrl;
+            link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
 
             link.href = decodeURIComponent(matches[2]);
             enhanceLink(link);
