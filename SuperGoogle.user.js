@@ -1035,8 +1035,7 @@
             (function injectRarbgButton() {
                 const rarbg_tl = createElement(`<a class="_r3 hover-click o5rIVb torrent-link"
    style=" float: left; padding: 4px; display: inline-block; font-size: 10px; color: white;">
-    <img src="https://dyncdn.me/static/20/img/16x16/download.png" alt="Rarbg torrent link" border="0"
-         style=" width: 25px; height: 25px; ">
+    <img src="https://dyncdn.me/static/20/img/16x16/download.png" alt="Rarbg torrent link" border="0" style=" width: 25px; height: 25px; display: none;">
     <label style=" display: list-item; ">Torrent link</label></a>`);
                 rarbg_tl.onclick = () => {
                     if (/\/torrent\/|rarbg/i.test(panel.pTitle_Anchor.href)) {
