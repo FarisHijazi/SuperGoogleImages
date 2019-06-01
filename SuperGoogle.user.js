@@ -2297,7 +2297,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function isGif(img_bx) {
         const meta = (img_bx instanceof Element) ? getMeta(img_bx) : img_bx;
         return meta.ity === 'gif' || /\.gif($|\?)/.test(meta.ou);
-        }
+    }
 
 
     //FIXME: this is ugly
@@ -3792,14 +3792,17 @@ function googleDirectLinks() {
      *  @faris: storing "fullres-src" attribute to images
      */
     var enhanceThumbnail = function (link, url) {
+        const phref = link.getAttribute('phref');
+
         // @faris, storing fullres-src attribute to images
         var imgs = [].slice.call(link.querySelectorAll('div~img'));
         imgs.length && imgs.forEach(function (img) {
             debug && console.log('img fullres-src="' + link.href + '"');
-            img.setAttribute('fullres-src', link.href);
+            img.setAttribute('fullres-src', link.href); //@faris
+            // img.phref = phref; //@faris
         });
 
-        var infos = [].slice.call(link.querySelectorAll('img~div'));
+        var infos = [].slice.call(link.querySelectorAll('img~div.rg_ilmbg'));
         if (infos.length > 0) {
             var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
             infos.forEach(function (info) {
@@ -3811,8 +3814,45 @@ function googleDirectLinks() {
                 info.textContent = '';
                 info.appendChild(pagelink);
             });
+
         }
+
+        //@faris
+        var footLink = link.parentElement.querySelector('a.irc-nic');
+        if (footLink)
+            if (!footLink.parentElement.querySelector('.phref')) {
+                // splitting the 2 lines of the footlink to 2 links, one with the phref
+                const footLinkTop = footLink.cloneNode();
+                footLinkTop.classList.add('phref');
+
+                enhanceLink(footLink);
+
+                footLinkTop.phref = phref;
+                footLinkTop.setAttribute('phref', phref);
+                footLinkTop.href = phref;
+                footLinkTop.setAttribute('href', phref);
+
+                footLink.phref = phref;
+                footLink.setAttribute('phref', phref);
+                footLink.href = phref;
+                footLink.setAttribute('href', phref);
+
+                enhanceLink(footLinkTop);
+
+
+                // get first div and move it up
+                footLinkTop.appendChild(footLink.querySelector('div'));
+                footLink.before(footLinkTop);
+            }
     };
+
+
+    function filter(a) {
+        return !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
+            /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
+            a.matches('.rg_l')
+            ;
+    }
 
     /** returns full path, not just partial path */
     var normalizeUrl = (function () {
@@ -3825,10 +3865,14 @@ function googleDirectLinks() {
     })();
 
     var handler = function (a) {
+        if (!filter(a)) //@faris
+            return;
+
         if (a._x_id) {
             restore(a);
             return;
         }
+        console.log('Anchor passed the test with href="' + a.href + '"', a);
 
         a._x_id = ++count;
         debug && a.setAttribute('x-id', a._x_id);
@@ -3864,8 +3908,6 @@ function googleDirectLinks() {
     };
     var checkAttribute = function (mutation) {
         var target = mutation.target;
-        if (target.parentElement && target.parentElement.classList.contains('text-block')) // faris special blacklist
-            return;
 
         if (target && target.tagName === 'A') {
             if ((mutation.attributeName || mutation.attrName) === 'href') {
