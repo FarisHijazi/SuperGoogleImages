@@ -76,6 +76,17 @@
  */
 
 
+/** returns full path, not just partial path */
+var normalizeUrl = (function () {
+    const fakeLink = document.createElement('a');
+
+    return function (url) {
+        fakeLink.href = url;
+        return fakeLink.href;
+    }
+})();
+
+// main
 (function () {
     'use strict';
 
@@ -84,11 +95,11 @@
     unsafeWindow.unsafeWindow = unsafeWindow;
 
     // prevents duplicate instances
-    if (typeof unsafeWindow.superGoogle === 'undefined') {
-        unsafeWindow.superGoogle = this;
-    } else {
+    if (typeof unsafeWindow.superGoogle !== 'undefined')
         return;
-    }
+
+    unsafeWindow.superGoogle = this;
+
 
     // REFACTOR: TODO: group this into an import-able that will do this simply by importing
     Set.prototype.addAll = function (range) {
@@ -355,9 +366,8 @@
      * @type {JSZip}
      */
     var zip = new JSZip();
-    zip.zipName = (document.title).replace(/site:|( - Google Search)/gi, '');
+    zip.name = (document.title).replace(/site:|( - Google Search)/gi, '');
 
-    var progressBar;
     var currentDownloadCount = 0;
     var isTryingToClickLastRelImg = false;
 
@@ -1576,6 +1586,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function go() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
             unsafeEval(googleDirectLinks);
+
 
             bindKeys();
 
@@ -3659,7 +3670,7 @@ function getElementsByXPath(xpath, parent) {
 
 /** Create an element by typing it's inner HTML.
  For example:   var myAnchor = createElement('<a href="https://example.com">Go to example.com</a>');
- * @param {ConstrainDOMString} html
+ * @param {ConstrainDOMString|string} html
  * @param callback optional callback, invoked once the element is created, the element is passed.
  * @return {Element}
  */
@@ -3678,6 +3689,26 @@ function unsafeEval(func, ...arguments) {
     unsafeWindow.Function(body).apply(unsafeWindow, arguments);
 }
 
+function enhanceLink(a) {
+    // at this point, href= the gimg search page url
+    /** stop propagation onclick */
+    var purifyLink = function (a) {
+        if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
+            a.removeAttribute('onmousedown');
+        }
+        if (a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
+            a.addEventListener('click', function (e) {
+                e.stopImmediatePropagation();
+                e.stopPropagation();
+            }, true);
+        }
+    };
+
+    purifyLink(a);
+    a.setAttribute('rel', 'noreferrer');
+    a.setAttribute('referrerpolicy', 'no-referrer');
+}
+
 /**
  * @author: https://greasyfork.org/en/scripts/19210-google-direct-links-for-pages-and-images/code
  * Google: Direct Links for Pages and Images
@@ -3691,6 +3722,16 @@ function googleDirectLinks() {
     // custom search engine: [2] url?q=
     // malware:              [3] interstitial?url=
     var re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
+
+    /** returns full path, not just partial path */
+    var normalizeUrl = (function () {
+        const fakeLink = document.createElement('a');
+
+        return function (url) {
+            fakeLink.href = url;
+            return fakeLink.href;
+        }
+    })();
 
     /** replace redirect and dataUris
      *
@@ -3732,8 +3773,7 @@ function googleDirectLinks() {
             if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
                 a.removeAttribute('onmousedown');
             }
-            if (a.parentElement &&
-                /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
+            if (a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
                 a.addEventListener('click', function (e) {
                     e.stopImmediatePropagation();
                     e.stopPropagation();
@@ -3812,15 +3852,6 @@ function googleDirectLinks() {
             ;
     }
 
-    /** returns full path, not just partial path */
-    var normalizeUrl = (function () {
-        var fakeLink = document.createElement('a');
-
-        return function (url) {
-            fakeLink.href = url;
-            return fakeLink.href;
-        }
-    })();
 
     var handler = function (a) {
         if (!filter(a)) //@faris
