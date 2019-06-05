@@ -1613,6 +1613,19 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // wait for searchbar to load
             elementReady('#hdtb-msb').then(function () {
                 injectGoogleButtons();
+
+                // setting unsafe search URL
+                const ssDefault = document.querySelector('#ss-bimodal-default');
+                if (ssDefault) {
+                    enhanceLink(ssDefault);
+                    ssDefault.href = unsafeSearchUrl();
+                    ssDefault.onclick = function () {
+                        location.assign(unsafeSearchUrl());
+                    };
+                    console.log('ssDefault', ssDefault);
+                }
+
+
             });
 
         } else {
@@ -1668,17 +1681,24 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         // S S: SafeSearch toggle
         Mousetrap.bind('s s', function () {
-            const $ssLink = $('#ss-bimodal-strict');
-            if ($ssLink)
-                $ssLink.click();
-            else
-                $('#ss-bimodal-default').click();
+            console.log('safeSearch toggle');
+            const ssLink = document.querySelector('#ss-bimodal-strict');
+            // const ussLink = document.querySelector('#ss-bimodal-default');
+
+            if (ssLink) {
+                console.log('sslink', ssLink.href, ssLink);
+                ssLink.click(); // to safe search
+            } else {
+                // to unsafe search
+                location.assign(unsafeSearchUrl());
+            }
+        });
+
+        Mousetrap.bind(['u'], () => {
+            location.assign(unsafeSearchUrl());
         });
 
         Mousetrap.bind(['c c'], cleanupSearch);
-        Mousetrap.bind(['u'], () => {
-            location.assign(safeSearchOffUrl());
-        });
         // to https://yandex.com/images/search?text=
         Mousetrap.bind('y d x', () => {
             var x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
@@ -1752,7 +1772,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             console.debug('Torrent search');
             openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(ImagePanel.focP.bestNameFromTitle)));
         });
-        Mousetrap.bind(['s'], function (e) {
+        Mousetrap.bind(['v'], function (e) {
             var btn_Save = ImagePanel.focP.q('.i15087');
             console.debug('btn_Save', btn_Save);
             if (!!btn_Save) btn_Save.click();
@@ -2842,74 +2862,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * '#ss-bimodal-default' to go from strict to unsafe
      *
      * @returns {string|null} the unsafe url, otherwise returns nothing
-     * @deprecated
      */
-    function safeSearchOffUrl() {
-        var safeSearchButton = document.querySelector('#ss-bimodal-default');
-        if (safeSearchButton) return safeSearchButton.href;
-    }
-
-    const responseBlobs = new Set();
-
-    function setupProgressBar() {
-        // noinspection JSUnresolvedVariable
-        if (typeof (ProgressBar) == 'undefined') {
-            console.warn('ProgressBar is not defined.');
-            return;
-        }
-        var container = document.querySelector('#progressbar-container');
-        if (!container) {
-            container = createElement(`<header id="progressbar-container" style="
-    position: fixed !important;
-    top: 0;
-    left: 0;
-    width: 100%;
-    min-height: 30px;
-    padding: 10px 0;
-    background-color: #36465d;
-    box-shadow: 0 0 0 1px hsla(0,0%,100%,.13);
-    z-index: 100;"
-/>`);
-            document.body.firstElementChild.before(container);
-        }
-
-        var progressBar = new ProgressBar.Line(container, {
-                strokeWidth: 4,
-                easing: 'easeInOut',
-                duration: 1400,
-                color: '#FCB03C',
-                trailColor: '#eee',
-                trailWidth: 1,
-                svgStyle: {width: '100%', height: '100%'},
-                text: {
-                    value: '0',
-                    style: {
-                        // Text color.
-                        // Default: same as stroke color (options.color)
-                        color: '#999',
-                        position: 'absolute',
-                        right: '0',
-                        top: '30px',
-                        padding: 0,
-                        margin: 0,
-                        transform: null
-                    },
-                    alignToBottom: false,
-                    autoStyleContainer: false,
-                },
-                from: {color: '#FFEA82'},
-                to: {color: '#ED6A5A'},
-                step: (state, bar) => {
-                    // bar.setText(Math.round(bar.value() * 100) + ' %');
-                },
-            }
-        );
-        console.log('progressBar:', progressBar);
-        progressBar.set(0);
-        const progressbarText = document.querySelector('.progressbar-text');
-        progressbarText.style.display = 'inline';
-        progressbarText.style.position = 'relative';
-        return progressBar;
+    function unsafeSearchUrl() {
+        const url = new URL(location.href);
+        url.hostname = 'ipv4.google.com';
+        url.searchParams.set('safe', 'off');
+        return url.toString();
     }
 
     function gZipImages() {
