@@ -209,6 +209,7 @@ var normalizeUrl = (function () {
                 defaultAnchorTarget: '_blank',
                 staticNavbar: false,
                 autoLoadMoreImages: true,
+                showImgHoverPeriod: 50,
             },
             loading: {
                 successColor: 'rgb(167, 99, 255)',
@@ -871,7 +872,7 @@ var normalizeUrl = (function () {
             var x = nextImageArrow && nextImageArrow.style.display !== 'none' ? // is it there?
                 !nextImageArrow.click() : // returns true
                 false;
-            if (!x) console.log('next arrow doesn\'t exist');
+            if (!x) debug && console.log('next arrow doesn\'t exist');
             return nextImageArrow;
         }
         /**
@@ -1583,6 +1584,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     // === start of function definitions ===
 
 
+    function showOgImageBoxes() {
+        return [].map.call(getThumbnails(), img => showImages.replaceImgSrc(img));
+    }
+
     function go() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
             unsafeEval(googleDirectLinks);
@@ -1608,7 +1613,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 console.log('automatically display originals for "site:" search');
                 // HACK: delaying it cuz if it's too early it'll cause issues for the first 20 images
                 setTimeout(function () {
-                    showImages.displayImages();
+                    showOgImageBoxes();
                 }, 3500);
             }
 
@@ -2059,8 +2064,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         } else console.warn('tools button not found');
 
 
-        // var linkAnimated = createElement('<a style="display:" class="hdtb-tl" href="#" onclick="alert("finally"); document.getElementById("itp_animated").firstElementChild.click();">Animated</a>');
-
         // buttons
         const createGButton = (id, innerText, onClick) => {
             const button = createElement(`<button class="${Consts.ClassNames.buttons} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
@@ -2201,7 +2204,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // == creating buttons ==
 
         const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
-            showImages.displayImages();
+            showOgImageBoxes();
         });
         const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
             document.querySelector('#itp_animated').firstElementChild.click();
@@ -2485,7 +2488,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     timeout = setTimeout(function () {
                         checkAndResetTimer(e);
                         imgBx.img.showOriginal();
-                    }, 250);
+                    }, Preferences.page.showImgHoverPeriod);
                     imgBx.mouseX = e.clientX;
                     imgBx.mouseY = e.clientY;
                 };
@@ -3861,7 +3864,7 @@ function googleDirectLinks() {
             restore(a);
             return;
         }
-        console.log('Anchor passed the test with href="' + a.href + '"', a);
+        // console.log('Anchor passed the test with href="' + a.href + '"', a);
 
         a._x_id = ++count;
         debug && a.setAttribute('x-id', a._x_id);
