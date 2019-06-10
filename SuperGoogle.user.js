@@ -2676,7 +2676,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         try {
-            metaObj = JSON.parse(div.querySelector('.rg_meta').innerText);
+            var rg_meta = div.querySelector('.rg_meta');
+            if(!rg_meta) {// this is probably gonna be the case for ris
+                var selector = '[data-ved="'+ $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx div.rg_meta';
+                rg_meta = document.querySelector(selector);
+            }
+
+            metaObj = JSON.parse(rg_meta.innerText);
 
             metaObj.src = img.src;
             metaObj.dim = [metaObj.ow, metaObj.oh];
