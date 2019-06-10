@@ -760,11 +760,15 @@ var normalizeUrl = (function () {
             return buttons;
         }
         /** @return {HTMLImageElement }
-         * '#irc_mimg > a#irc_mil > img#irc_mi' should work (but it's not working for some reason)*/
+         * img.irc_mi is the actual main image, , img.irc_mut is the loader image (the thumbnail when it didn't load yet)*/
         get mainImage() {
-            // return this.element.querySelector('#irc_mimg > a#irc_mil > img#irc_mi');
             if (this.el) {
-                return this.q('img.irc_mi, img.irc_mut');
+                return this.q('a.irc_mil > img.irc_mi');
+            }
+        }
+        get loaderImage() {
+            if (this.el) {
+                return this.q('a.irc_mutl  > img.irc_mut');
             }
         }
 
