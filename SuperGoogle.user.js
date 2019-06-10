@@ -3621,40 +3621,42 @@ function sortByFrequency(array) {
 
 
 /**
- * @param {function} callback -
- * @param {Object=} options
+ * @param {function} callback
+ * @param {MutationObserverInit=} options
  * @param {number} [options.callbackMode=0] - 0: single callback per batch (pass `mutations`), 1: callback for each added node
+ * @param {(Element|String)} [options.baseNode='body'] - 0: selector for the baseNode
  *
- * @param {string[]} [options.attributeFilter=[]] Optional - An array of specific attribute names to be monitored. If this property isn't included, changes to all attributes cause mutation notifications. No default value.
- * @param {boolean} [options.attributeOldValue=false] Optional - Set to true to record the previous value of any attribute that changes when monitoring the node or nodes for attribute changes; see Monitoring attribute values in MutationObserver for details on watching for attribute changes and value recording. No default value.
- * @param {boolean} [options.attributes=false] Optional - Set to true to watch for changes to the value of attributes on the node or nodes being monitored. The default value is false.
- * @param {boolean} [options.characterData=false] Optional - Set to true to monitor the specified target node or subtree for changes to the character data contained within the node or nodes. No default value.
- * @param {boolean} [options.characterDataOldValue=false] Optional - Set to true to record the previous value of a node's text whenever the text changes on nodes being monitored. For details and an example, see Monitoring text content changes in MutationObserver. No default value.
- * @param {boolean} [options.childList=false] Optional - Set to true to monitor the target node (and, if subtree is true, its descendants) for the addition or removal of new child nodes. The default is false.
- * @param {boolean} [options.subtree=false] Optional -
+ * @param {string[]} [options.attributeFilter=[]] Optional
+ * @param {boolean} [options.attributeOldValue=false] Optional
+ * @param {boolean} [options.attributes=false] Optional
+ * @param {boolean} [options.characterData=false] Optional
+ * @param {boolean} [options.characterDataOldValue=false] Optional
+ * @param {boolean} [options.childList=false] Optional
+ * @param {boolean} [options.subtree=false] Optional
  *
  * @returns {MutationObserver}
  */
 function observeDocument(callback, options = {}) {
-    if ($ && typeof ($.extend) === 'function') {
-        options = $.extend({
-            callbackMode: 0, // 0: single callback per batch (pass `mutations`), 1: callback for each added node
+    options = $.extend({
+        callbackMode: 0, // 0: single callback per batch (pass `mutations`), 1: callback for each added node
+        baseNode: 'body',
 
-            attributeFilter: [],
-            attributeOldValue: true,
+        attributeFilter: [],
+        attributeOldValue: true,
             attributes: true,
             characterData: false,
             characterDataOldValue: false,
-            childList: true,
-            subtree: true,
-        }, options);
-    }
+        childList: true,
+        subtree: true,
+    }, options);
 
     var observer = {};
     var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 
-    elementReady('body').then((body) => {
-        callback(document.documentElement);
+    const baseNode = options.baseNode instanceof Element ? () => options.baseNode : options.baseNode;
+
+    elementReady((mutationRecords) => $(baseNode).length !== 0 ? mutationRecords : null).then((mutationRecords) => {
+        callback(mutationRecords);
         if (!MutationObserver) {
             document.addEventListener('DOMAttrModified', callback, false);
             document.addEventListener('DOMNodeInserted', callback, false);
@@ -3662,12 +3664,17 @@ function observeDocument(callback, options = {}) {
             observer = new MutationObserver(function (mutations, me) {
                 observer.disconnect();
 
-                if (options.callbackMode === 0) {
-                    callback(mutations, me);
-                } else for (const mutation of mutations) {
-                    if (mutation.addedNodes.length) {
-                        callback(mutation, me);
-                    }
+                switch (options.callbackMode) {
+                    case 0:
+                        callback(mutations, me);
+                        break;
+                    case 1:
+                        for (const mutation of mutations) {
+                            if (mutation.addedNodes.length) {
+                                callback(mutation, me);
+                            }
+                        }
+                        break;
                 }
                 observer.continue();
             });
@@ -3682,33 +3689,60 @@ function observeDocument(callback, options = {}) {
     return observer;
 }
 
-function elementReady(selector, timeoutInMs = -1) {
+/**
+ *
+ * @param {(String|String[]|Function)} getter -
+ *      string: selector to return a single element
+ *      string[]: selector to return multiple elements (only the first selector will be taken)
+ *      function: getter(mutationRecords|{})-> Element[]
+ *          a getter function returning an array of elements (the return value will be directly passed back to the promise)
+ *          the function will be passed the `mutationRecords`
+ * @param {Number=0} timeout - timeout in milliseconds, how long to wait before throwing an error (default is 0, meaning no timeout (infinite))
+ * @returns {Promise<Element|any>} the value passed will be a single element matching the selector, or whatever the function returned
+ */
+function elementReady(getter, timeout = 0) {
     return new Promise((resolve, reject) => {
-        var getter = typeof selector === 'function' ?
-            () => selector() :
-            () => document.querySelectorAll(selector)
+        var returnMultipleElements = getter instanceof Array && getter.length === 1;
+        var _timeout;
+        var _getter = typeof getter === 'function' ?
+            (mutationRecords) => {
+                try {
+                    return getter(mutationRecords) || [];
+                } catch (e) {
+                    return false;
+                }
+            } :
+            () => returnMultipleElements ? document.querySelectorAll(getter[0]) : document.querySelector(getter)
         ;
-        var els = getter();
-        if (els && els.length) {
-            resolve(els[0]);
+        var computeResolveValue = function (mutationRecords) {
+            // see if it already exists
+            const ret = _getter(mutationRecords || {});
+            if (ret && (!returnMultipleElements || ret.length)) {
+                resolve(ret);
+                clearTimeout(_timeout);
+                console.debug('resolve(value):', ret);
+
+                return true;
+            }
+        };
+
+        if (computeResolveValue(_getter())) {
+            return;
         }
-        if (timeoutInMs > 0)
-            var timeout = setTimeout(() => {
-                reject(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
-                console.warn(`elementReady(${selector}) timed out at ${timeoutInMs}ms`);
-            }, timeoutInMs);
+
+        if (timeout)
+            _timeout = setTimeout(() => {
+                const error = new Error(`elementReady(${getter}) timed out at ${timeout}ms`);
+                reject(error);
+                console.warn(error);
+            }, timeout);
 
 
         new MutationObserver((mutationRecords, observer) => {
-            const elements = getter() || [];
-            Array.from(elements).forEach((element) => {
-                clearTimeout(timeout);
-                resolve(elements);
-                resolve(element); // this doesn't even do anything, there will be only a single call to resolve()
-                console.debug('resolve(element):', element);
+            var completed = computeResolveValue(_getter(mutationRecords));
+            if (completed) {
                 observer.disconnect();
-            });
-
+            }
         }).observe(document.documentElement, {
             childList: true,
             subtree: true
