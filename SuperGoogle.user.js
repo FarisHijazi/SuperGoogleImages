@@ -2437,7 +2437,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
         const dlLimit = dlLimitSlider ? dlLimitSlider.value : Number.MAX_SAFE_INTEGER;
 
-        return [].filter.call(document.querySelectorAll('img.rg_ic.rg_i'), (img, i) => {
+        return [].filter.call(document.querySelectorAll('img.rg_ic.rg_i:not([loaded="error"])'), (img, i) => {
             const qualDim = img.satisfiesDimensions || exception4smallGifs && isGif(img.meta);
             return (qualDim && (ignoreDlLimit || i < dlLimit))
         });
