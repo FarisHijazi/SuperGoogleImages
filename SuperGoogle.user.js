@@ -1210,6 +1210,8 @@ var normalizeUrl = (function () {
             }
 
 
+            // update sTitle href to point to the panel page
+            panel.sTitle_Anchor.href = getPanelPage(getMeta(panel.ris_fc_Div));
 
 
             // rarbg torrent link
