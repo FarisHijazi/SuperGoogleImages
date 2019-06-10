@@ -2214,7 +2214,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 updateQualifiedImagesLabel(getQualifiedGImgs({
                     exception4smallGifs: null,
-                        ignoreDlLimit: true
+                    ignoreDlLimit: true
                 }).length);
             };
             Components.minImgSizeSlider.onchange = function () {
@@ -2256,9 +2256,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
             showOriginals();
         });
-        const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
-            document.querySelector('#itp_animated').firstElementChild.click();
-        });
+
+        const link_animated = createElement(`<a class="sg q qs" href="${location.pathname + location.search + '&tbs=itp:animated'}"><u>A</u>nimated</a>`);
         const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
             const imgLinks = Array.from(document.querySelectorAll('a.rg_l[href]'));
             console.log('imgLinks:', imgLinks);
@@ -2275,7 +2274,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
         const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
 
-        const btn_download = createGButton('downloadBtn', 'Download ⇓', downloadImages);
+        const btn_download = createGButton('downloadBtn', 'Download EVERYTHING ⇓', downloadImages);
         btn_download.style.margin = '20px';
         btn_download.style.border = '20px';
         btn_download.innerHTML = cbox_ZIP.checked ? 'ZIP&nbsp;images' : `Download&nbsp;⇓`;
@@ -2314,7 +2313,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         controlsContainer.appendChild(divider);
 
         // appending buttons and controls
-        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, btn_animated, searchEngineSelect, pathBox, downloadPanel);
+        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, downloadPanel);
         constraintsContainer.after(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
 
@@ -3687,9 +3686,9 @@ function observeDocument(callback, options = {}) {
 
         attributeFilter: [],
         attributeOldValue: true,
-            attributes: true,
-            characterData: false,
-            characterDataOldValue: false,
+        attributes: true,
+        characterData: false,
+        characterDataOldValue: false,
         childList: true,
         subtree: true,
     }, options);
@@ -3943,17 +3942,17 @@ function googleDirectLinksInit() {
             const footLinkTop = footLink.cloneNode();
             footLinkTop.classList.add('phref');
 
-                enhanceLink(footLink);
+            enhanceLink(footLink);
 
-                footLinkTop.phref = phref;
-                footLinkTop.setAttribute('phref', phref);
-                footLinkTop.href = phref;
-                footLinkTop.setAttribute('href', phref);
+            footLinkTop.phref = phref;
+            footLinkTop.setAttribute('phref', phref);
+            footLinkTop.href = phref;
+            footLinkTop.setAttribute('href', phref);
 
-                footLink.phref = phref;
-                footLink.setAttribute('phref', phref);
-                footLink.href = phref;
-                footLink.setAttribute('href', phref);
+            footLink.phref = phref;
+            footLink.setAttribute('phref', phref);
+            footLink.href = phref;
+            footLink.setAttribute('href', phref);
 
             enhanceLink(footLinkTop);
 
