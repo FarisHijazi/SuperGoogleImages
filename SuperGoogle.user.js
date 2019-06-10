@@ -2186,11 +2186,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }
 
                 updateQualifiedImagesLabel(getQualifiedGImgs({
-                    imgs: {
-                        ogs: document.querySelectorAll('img.rg_ic.rg_i'),
-                        exception4smallGifs: null,
+                    exception4smallGifs: null,
                         ignoreDlLimit: true
-                    }
                 }).length);
             };
             Components.minImgSizeSlider.onchange = function () {
