@@ -2997,12 +2997,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         const qualImgs = getQualifiedGImgs({
-            imgs: ogs,
-            exception4smallGifs: null,
-            ignoreDlLimit: document.querySelector('#GIFsExceptionBox').checked
+            exception4smallGifs: document.querySelector('#GIFsExceptionBox').checked
         });
 
-        console.debug('Original images to be downloaded:', ogs);
+        return zip.zipFiles(qualImgs);
 
         for (const qualifiedImgArgs of qualImgs) {
             qualifiedImgArgs.img.url = qualifiedImgArgs.url;
