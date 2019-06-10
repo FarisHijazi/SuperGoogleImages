@@ -1584,16 +1584,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         };
     })();
 
-    processLocation();
-
-    elementReady('body').then(go);
-
-    // click showAllSizes link when it appears
-    elementReady(Consts.Selectors.showAllSizes).then(() => {
-        const el = $(Consts.Selectors.showAllSizes);
-        if (el.length) el[0].click();
-    });
-
     if (Preferences.page.autoLoadMoreImages) {
         setInterval(function () {
             const btn = document.querySelector('#smbw');
@@ -1604,41 +1594,32 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }, 1000);
     }
 
+    processLocation();
+
+    elementReady('body').then(go);
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!(GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel)) return;
+
+        // automatically display originals if searching for a site:
+        if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
+            console.log('automatically display originals for "site:" search');
+            shouldShowOriginals = true;
+            showOriginals()
+        }
+    }, false);
+
+    // click showAllSizes link when it appears
+    elementReady(Consts.Selectors.showAllSizes).then(el => el.click());
+
     // === start of function definitions ===
-
-
-    function showOgImageBoxes() {
-        return [].map.call(getThumbnails(), img => showImages.replaceImgSrc(img));
-    }
 
     function go() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
-            unsafeEval(googleDirectLinks);
-
+            // directLinkReplacer.observe();
 
             bindKeys();
 
-            // observe new image boxes that load
-            observeDocument(mutations => {
-                // const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
-                const addedImageBoxes = [].map.call(mutations, m => m.addedNodes[0])
-                    .filter(div => div && div.matches && div.matches('div.rg_bx:not(.rg_bx_listed)'));
-
-                if (addedImageBoxes.length) {
-                    onImageBatchLoaded(addedImageBoxes);
-                    updateDownloadBtnText();
-                }
-
-            }, {callbackMode: 0});
-
-            // automatically display originals if searching for a site:
-            if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
-                console.log('automatically display originals for "site:" search');
-                // HACK: delaying it cuz if it's too early it'll cause issues for the first 20 images
-                setTimeout(function () {
-                    showOgImageBoxes();
-                }, 3500);
-            }
 
             // // iterating over the stored ubl sites
             // for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
