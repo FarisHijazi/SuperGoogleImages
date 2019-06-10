@@ -373,6 +373,7 @@ var normalizeUrl = (function () {
     var zip = new JSZip();
     zip.name = (document.title).replace(/site:|( - Google Search)/gi, '');
 
+    var shouldShowOriginals = false;
     var currentDownloadCount = 0;
     var isTryingToClickLastRelImg = false;
 
@@ -2232,7 +2233,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // == creating buttons ==
 
         const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
-            showOgImageBoxes();
+            showOriginals();
         });
         const btn_animated = createGButton('AnimatedBtn', '<u>A</u>nimated', function () {
             document.querySelector('#itp_animated').firstElementChild.click();
@@ -2302,6 +2303,23 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             topnavContentDiv.before(gNavbar, document.querySelector('#searchform'));
             topnavContentDiv.appendChild(controlsContainer);
         });
+    }
+
+    /**
+     * @param {HTMLImageElement[]=} thumbnails - optional
+     * @returns {Promise[]}
+     */
+    function showOriginals(thumbnails) {
+        thumbnails = thumbnails || getThumbnails();
+
+        return [].map.call(
+            thumbnails,
+            // some may not have been replaced with direct links yet, so wait until that happens then showImages
+            img => img && img.matches('img[fullres-src]') ? // HACK: we shouldn't need this, elementReady should handle this but ok fine it works...
+                showImages.replaceImgSrc(img) :
+                elementReady(img => img && img.matches('img[fullres-src]'))
+                    .then(() => showImages.replaceImgSrc(img))
+        );
     }
 
     /**
