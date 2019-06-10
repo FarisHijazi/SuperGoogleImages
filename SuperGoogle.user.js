@@ -1195,6 +1195,18 @@ var normalizeUrl = (function () {
             panel.update_ImageHost();
             panel.update_sbi();
 
+            // the focused ris img
+            const img_ris = panel.ris_fc_Div.querySelector('img');
+            const tu = getMeta(img_ris).tu; //thumbnail url
+            if (tu)
+                panel.loaderImage.src = tu;
+            if (img_ris.getAttribute('loaded') === 'error') {
+                if (tu)
+                    panel.mainImage.src = tu;
+            }
+
+
+
 
             // rarbg torrent link
             let torrentLink = panel.q('.torrent-link');
@@ -1212,7 +1224,24 @@ var normalizeUrl = (function () {
         showRis() {
             for (const div of this.ris_Divs) {
                 // debug && console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
-                showImages.replaceImgSrc(div.querySelector('img'));
+                const img = div.querySelector('img');
+                showImages.replaceImgSrc(img).then(e => {
+                    if (isLoaded(img) && div.matches('.irc_rist')) { // if is the focused ris
+                        const mainImage = this.mainImage;
+                        if (mainImage.src !== img.src)
+                            console.log(
+                                'haha!! got the mainImage to update when the ris loaded',
+                                mainImage, img,
+                                '\n', mainImage.src + '->\n    ' + img.src
+                            );
+
+
+                        mainImage.src = img.src;
+                        mainImage.setAttribute('loaded', 'true');
+                    }
+                }).catch(e => {
+                    console.warn('showRis failed', this.mainImage, img);
+                });
             }
         }
         linkifyDescription() {
