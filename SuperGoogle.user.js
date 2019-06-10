@@ -14,6 +14,7 @@
 // @grant        GM_setValue
 // @grant        GM_getValue
 // @grant        unsafeWindow
+// @grant        window.close
 // @require      https://code.jquery.com/jquery-3.4.0.min.js
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
@@ -2042,18 +2043,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return false;
     }
 
-    //TODO: just remove this and use JSZip.genZip()
-    /**
-     * @param {JSZip} thisZip
-     * @param updateCallback
-     */
-    function genZip(thisZip = zip, updateCallback = null) {
-        return thisZip.genZip(updateCallback).then(function (res) {
-            window.onbeforeunload = null;
-            window.onunload = null;
-        });
-    }
-
     /**
      * @param {string} torrentName
      * @param {string} torrentPageURL
@@ -2191,6 +2180,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }, GM_getValue('zipInsteadOfDownload', true));
         cbox_ZIP.style.padding = '0px';
 
+        const cbox_closeAfterDownload = createGCheckBox('closeAfterDownload', 'close after download', null, true);
+
 
         const isFailedImage = (img_bx) => img_bx.getAttribute('loaded') === 'false' || img_bx.classList.contains(Consts.ClassNames.FAILED_PROXY);
 
@@ -2292,7 +2283,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         var downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
 
         // Appending buttons to downloadPanel
-        for (const el of [cbox_ZIP, btn_download, btn_preload, btn_downloadJson, constraintsContainer]) {
+        for (const el of [cbox_ZIP, cbox_closeAfterDownload, btn_download, btn_preload, btn_downloadJson, constraintsContainer]) {
             downloadPanel.appendChild(el);
         }
 
@@ -2386,7 +2377,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (!zip || Object.keys(zip.files).length < 1) {
                 gZipImages();
             } else {
-                genZip();
+                zip && zip.genZip();
             }
         } else {
             if (currentDownloadCount >= document.querySelector('#dlLimitSlider').value) {
@@ -3014,34 +3005,30 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             base64urls: false
         })], {type: 'text/plain'}));
 
+        window.onunload = () => zip.genZip();
+
+        zip.onGenZip = e => {
+            window.onbeforeunload = null;
+            window.onunload = null;
+            var closeAfterZip = document.querySelector('#closeAfterDownload');
+            if(closeAfterZip && closeAfterZip.checked) {
+                console.log('close on zip');
+                window.close();
+            }
+        };
+
         // fixing the download button text
         const dlBtn = document.querySelector('#downloadBtn');
         if (dlBtn) dlBtn.classList.add('genzip-possible');
         updateDownloadBtnText();
-    }
-
-    function gZipImages() {
-
-        window.onunload = genZip;
-        const selector = 'img.rg_ic.rg_i'
-            // `.${TOKEN_DISPLAY}[loaded^="true"], .img-big`
-            // '.rg_ic.rg_i.display-original-mainImage:not(.display-original-mainImage-failed)'
-        ;
-        /** type {HTMLAnchorElement} */
-        const ogs = document.querySelectorAll(selector);
-
 
         const qualImgs = getQualifiedGImgs({
             exception4smallGifs: document.querySelector('#GIFsExceptionBox').checked
         });
 
         return zip.zipFiles(qualImgs);
-
-        for (const qualifiedImgArgs of qualImgs) {
-            qualifiedImgArgs.img.url = qualifiedImgArgs.url;
-            zip.requestAndZip(qualifiedImgArgs.img);
-        }
     }
+
 
     function unionTitleAndDescr(str1, str2) {
         if (!str1) return str2;
@@ -3192,7 +3179,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     unsafeWindow.gZipImages = gZipImages;
     unsafeWindow.zip = zip;
-    unsafeWindow.genZip = genZip;
     unsafeWindow.ImagePanel = ImagePanel;
     unsafeWindow.IP = ImagePanel;
     unsafeWindow.successfulUrlsSet = ublSitesSet;
