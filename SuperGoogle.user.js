@@ -2563,6 +2563,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 };
 
                 const onMouseUpdate = (e) => {
+                    if (e.ctrlKey || e.shiftKey) {
+                        imgBx.img.showOriginal();
+                    }
+
                     checkAndResetTimer(e);
                     timeout = setTimeout(function () {
                         checkAndResetTimer(e);
