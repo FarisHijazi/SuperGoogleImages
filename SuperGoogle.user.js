@@ -377,6 +377,9 @@ var normalizeUrl = (function () {
     var currentDownloadCount = 0;
     var isTryingToClickLastRelImg = false;
 
+    var directLinkReplacer = googleDirectLinksInit();
+    unsafeWindow.directLinkReplacer = directLinkReplacer;
+
     class GSaves {
         static get initialItem() {
             return google.pmc.colmob.initial_item.map(item => JSON.parse(item));
@@ -3820,22 +3823,26 @@ function enhanceLink(a) {
     a.setAttribute('referrerpolicy', 'no-referrer');
 }
 
+
+
 /**
  * @author: https://greasyfork.org/en/scripts/19210-google-direct-links-for-pages-and-images/code
+ * I just changed it to a module so I could call the methods at multiple places
  * Google: Direct Links for Pages and Images
  */
-function googleDirectLinks() {
-    var debug = false;
-    var count = 0;
+function googleDirectLinksInit() {
+    var o = {};
+    o.count = 0;
+    o.debug = false;
 
     // web pages:            [0] url?url=
     // images:               [1] imgres?imgurl=
     // custom search engine: [2] url?q=
     // malware:              [3] interstitial?url=
-    var re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
+    const re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
 
     /** returns full path, not just partial path */
-    var normalizeUrl = (function () {
+    const normalizeUrl = (function () {
         const fakeLink = document.createElement('a');
 
         return function (url) {
@@ -3844,40 +3851,11 @@ function googleDirectLinks() {
         }
     })();
 
-    /** replace redirect and dataUris
-     *
-     * @param {*|HTMLAnchorElement} link
-     * @param {string=} url
-     */
-    var restore = function (link, url) {
-        var oldUrl = link.getAttribute('href') || '';
-        var newUrl = url || oldUrl;
-
-        var matches = newUrl.match(re);
-        if (matches) {
-            debug && console.log('restoring', link._x_id, newUrl);
-
-            link.phref = oldUrl;
-            link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
-
-            link.href = decodeURIComponent(matches[2]);
-            enhanceLink(link);
-            if (matches[1] === 'imgres') {
-                if (link.querySelector('img[src^="data:"]')) {
-                    link._x_href = newUrl;
-                }
-                enhanceThumbnail(link, newUrl);
-            }
-        } else if (url != null) {
-            link.setAttribute('href', newUrl);
-        }
-    };
-
     /**
      * - purifyLink
      * - set rel="noreferrer", referrerpolicy="no-referrer"
      * - stopImmediatePropagation onclick */
-    var enhanceLink = function (a) {
+    const enhanceLink = function (a) {
         // at this point, href= the gimg search page url
         /** stop propagation onclick */
         var purifyLink = function (a) {
@@ -3900,14 +3878,24 @@ function googleDirectLinks() {
     /** make thumbnail info-bar clickable
      *  @faris: storing "fullres-src" attribute to images
      */
-    var enhanceThumbnail = function (link, url) {
+    const enhanceThumbnail = function (link, url) {
         const phref = link.getAttribute('phref');
 
         // @faris, storing fullres-src attribute to images
         var imgs = [].slice.call(link.querySelectorAll('div~img'));
         imgs.length && imgs.forEach(function (img) {
-            debug && console.log('img fullres-src="' + link.href + '"');
+            o.debug && console.log('img fullres-src="' + link.href + '"');
             img.setAttribute('fullres-src', link.href); //@faris
+
+            //DEBUG: checking what the hell is causing "&reload=on"
+            img.__defineGetter__('src', () => img.getAttribute('src'));
+            img.__defineSetter__('src', (value) => {
+                if (/&reload=on/.test(value))
+                    o.debug && console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
+
+                return img.setAttribute('src', value.replace(/&reload=on$/, ''));
+            });
+
             // img.phref = phref; //@faris
         });
 
@@ -3923,16 +3911,15 @@ function googleDirectLinks() {
                 info.textContent = '';
                 info.appendChild(pagelink);
             });
-
         }
+
 
         //@faris
         var footLink = link.parentElement.querySelector('a.irc-nic');
-        if (footLink)
-            if (!footLink.parentElement.querySelector('.phref')) {
-                // splitting the 2 lines of the footlink to 2 links, one with the phref
-                const footLinkTop = footLink.cloneNode();
-                footLinkTop.classList.add('phref');
+        if (footLink && !footLink.parentElement.querySelector('.phref')) {
+            // splitting the 2 lines of the footlink to 2 links, one with the phref
+            const footLinkTop = footLink.cloneNode();
+            footLinkTop.classList.add('phref');
 
                 enhanceLink(footLink);
 
@@ -3946,43 +3933,72 @@ function googleDirectLinks() {
                 footLink.href = phref;
                 footLink.setAttribute('href', phref);
 
-                enhanceLink(footLinkTop);
+            enhanceLink(footLinkTop);
+
+            // get first div and move it up
+            footLinkTop.appendChild(footLink.querySelector('div'));
+            footLink.before(footLinkTop);
+        }
 
 
-                // get first div and move it up
-                footLinkTop.appendChild(footLink.querySelector('div'));
-                footLink.before(footLinkTop);
+    };
+
+    /**
+     * replace redirect and dataUris
+     *
+     * @param {*|HTMLAnchorElement} link
+     * @param {string=} url
+     */
+    o.restore = function (link, url) {
+        var oldUrl = link.getAttribute('href') || '';
+        var newUrl = url || oldUrl;
+        newUrl = newUrl.replace(/&reload=on/, '');
+
+        var matches = newUrl.match(re);
+        if (matches) {
+            o.debug && console.log('restoring', link._x_id, newUrl);
+
+            link.phref = oldUrl;
+            link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
+
+            link.href = decodeURIComponent(matches[2]);
+            enhanceLink(link);
+            if (matches[1] === 'imgres') {
+                if (link.querySelector('img[src^="data:"]')) {
+                    link._x_href = newUrl;
+                }
+                enhanceThumbnail(link, newUrl);
             }
+        } else if (url != null) {
+            link.setAttribute('href', newUrl);
+        }
     };
 
 
-    function filter(a) {
-        return !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
-            /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
-            a.matches('.rg_l')
-            ;
-    }
+    const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
+        // /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
+        a.matches('.rg_l')
+    ;
 
-
-    var handler = function (a) {
+    const handler = function (a) {
         if (!filter(a)) //@faris
             return;
 
         if (a._x_id) {
-            restore(a);
+            o.restore(a);
             return;
         }
         // console.log('Anchor passed the test with href="' + a.href + '"', a);
 
-        a._x_id = ++count;
-        debug && a.setAttribute('x-id', a._x_id);
+        a._x_id = ++o.count;
+        o.debug && a.setAttribute('x-id', a._x_id);
 
         a.__defineSetter__('href', function setter(v) {
             // in case an object is passed by clever Google
-            restore(this, String(v));
+            o.restore(this, String(v));
         });
         a.__defineGetter__('href', function getter() {
-            debug && console.log('get', this._x_id, this.getAttribute('href'), this);
+            o.debug && console.log('get', this._x_id, this.getAttribute('href'), this);
             return normalizeUrl(this.getAttribute('href'));
         });
 
@@ -3993,25 +4009,24 @@ function googleDirectLinks() {
             enhanceLink(a);
         }
 
-        restore(a);
+        o.restore(a);
     };
-
 
     // observe
-    var checkNewNodes = function (mutations) {
-        debug && console.log('State:', document.readyState);
+    o.checkNewNodes = function (mutations) {
+        o.debug && console.log('State:', document.readyState);
         if (mutations.target) {
-            checkAttribute(mutations);
+            o.checkAttribute(mutations);
         } else {
-            mutations.forEach && mutations.forEach(checkAttribute);
+            mutations.forEach && mutations.forEach(o.checkAttribute);
         }
     };
-    var checkAttribute = function (mutation) {
+    o.checkAttribute = function (mutation) {
         var target = mutation.target;
 
         if (target && target.tagName === 'A') {
             if ((mutation.attributeName || mutation.attrName) === 'href') {
-                debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
+                o.debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
             }
             handler(target);
         } else if (target instanceof Element) {
@@ -4019,18 +4034,24 @@ function googleDirectLinks() {
         }
     };
 
-    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
-    if (MutationObserver) {
-        debug && console.log('MutationObserver: true');
-        new MutationObserver(checkNewNodes).observe(document.documentElement, {
-            childList: true,
-            attributes: true,
-            attributeFilter: ['href'],
-            subtree: true
-        });
-    } else {
-        debug && console.log('MutationEvent: true');
-        document.addEventListener('DOMAttrModified', checkAttribute, false);
-        document.addEventListener('DOMNodeInserted', checkNewNodes, false);
-    }
+
+    o.observe = () => {
+        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+        if (MutationObserver) {
+            o.debug && console.log('MutationObserver: true');
+            new MutationObserver(o.checkNewNodes).observe(document.documentElement, {
+                childList: true,
+                attributes: true,
+                attributeFilter: ['href'],
+                subtree: true
+            });
+        } else {
+            o.debug && console.log('MutationEvent: true');
+            document.addEventListener('DOMAttrModified', o.checkAttribute, false);
+            document.addEventListener('DOMNodeInserted', o.checkNewNodes, false);
+        }
+    };
+
+    return o;
 }
+
