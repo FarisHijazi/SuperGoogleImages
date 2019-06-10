@@ -2083,12 +2083,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const controlsContainer = createElement('<div id="google-controls-container"</div>');
         /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
 
-        const navbar = createAndGetNavbar(function (topnavContentDiv) {
-            const gNavbar = document.querySelector('#rshdr');
-            topnavContentDiv.before(gNavbar, document.querySelector('#searchform'));
-            topnavContentDiv.appendChild(controlsContainer);
-        });
-
         // auto-click on "tools" if on Google Images @google-specific
         const toolsButton = document.querySelector('.hdtb-tl');
         if (!!toolsButton) {
@@ -2301,6 +2295,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, btn_animated, searchEngineSelect, pathBox, downloadPanel);
         constraintsContainer.after(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
+
+
+        return createAndGetNavbar().then(function (topnavContentDiv) {
+            const gNavbar = document.querySelector('#rshdr');
+            topnavContentDiv.before(gNavbar, document.querySelector('#searchform'));
+            topnavContentDiv.appendChild(controlsContainer);
+        });
     }
 
     /**
@@ -3430,13 +3431,10 @@ a.download-related {
     /**
      * Creates a static navbar at the top of the page.
      * Useful for adding buttons and controls to it
-     * @param callback - this callback should be used when instantly adding content to the navbar,
      *  do NOT just take the returned value and start adding elements.
-     *  @return {HTMLDivElement|HTMLElement} returns the parent navbar element
+     *  @return {Promise<(HTMLDivElement|HTMLElement)>} returns the parent navbar element
      */
-    function createAndGetNavbar(callback) {
-        //TODO: replace this with jQuery
-
+    function createAndGetNavbar() {
         // Settings up the navbar
 
         // language=CSS
@@ -3458,33 +3456,24 @@ a.download-related {
             font-size: 20px;*/
         }`, 'navbar-css');
 
-        const navbar = document.createElement(`div`);
+        const $navbar = $('<div id="topnav"><div id="topnav-content"></div></div>');
 
-        navbar.id = 'topnav';
-        const navbarContentDiv = document.createElement('div');
-        navbarContentDiv.id = 'topnav-content';
-        navbar.appendChild(navbarContentDiv);
-
-        document.body.firstElementChild.before(navbar);
+        document.body.firstElementChild.before($navbar[0]);
 
         function adjustTopMargin() {
-            document.body.style.top = `${document.querySelector('#topnav').offsetHeight}px`;
+            document.body.style.top = document.querySelector('#topnav').offsetHeight.toString() + 'px';
         }
+
         window.addEventListener('resize', adjustTopMargin);
+        // observe for elements being added, need to readjust topmargine
+        observeDocument(adjustTopMargin, {baseNode: '#topnav'});
 
         document.body.style.position = 'relative';
 
-        // keep trying to use the callback, works when the navbarContentDiv is finally added
-        var interval = setInterval(function () {
-            const topnavContentDiv = document.querySelector('#topnav-content');
-            if (topnavContentDiv) {
-                clearInterval(interval);
-                if (callback)
-                    callback(topnavContentDiv);
-                adjustTopMargin();
-            }
-        }, 100);
-        return navbar;
+        return elementReady('#topnav-content').then((topnavContent) => {
+            adjustTopMargin();
+            return topnavContent;
+        });
     }
 
     function removeHash() {
