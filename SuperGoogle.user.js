@@ -137,13 +137,17 @@ var normalizeUrl = (function () {
     var debug = true;
     var showImages = new ShowImages({
         loadMode: 'serial',
-        imagesFilter: (img, anchor) => (
-            !img.classList.contains(showImages.ClassNames.DISPLAY_ORIGINAL) &&
-            // !img.closest('.' + this.ClassNames.DISPLAY_ORIGINAL) &&
-            // /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(anchor.href) &&
-            !img.classList.contains('irc_mut') && !img.closest('div.irc_rismo') &&
-            !/^data:/.test(anchor.href || img.src)
-        ),
+        imagesFilter: (img, anchor) => {
+            var conditions = [
+                // !img.classList.contains(showImages.ClassNames.DISPLAY_ORIGINAL),
+                // !img.closest('.' + this.ClassNames.DISPLAY_ORIGINAL),
+                // /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(anchor.href),
+                !img.classList.contains('irc_mut'),
+                !img.closest('div.irc_rismo'),
+                !/^data:/.test(anchor.href || img.src),
+            ];
+            return conditions.reduce((a, b) => a && b);
+        },
     });
     console.log('SuperGoogle showImages:', showImages);
     unsafeWindow.showImagesSuperGoogle = showImages;
@@ -209,7 +213,7 @@ var normalizeUrl = (function () {
                 defaultAnchorTarget: '_blank',
                 staticNavbar: false,
                 autoLoadMoreImages: true,
-                showImgHoverPeriod: 50,
+                showImgHoverPeriod: 350,
             },
             loading: {
                 successColor: 'rgb(167, 99, 255)',
@@ -279,7 +283,7 @@ var normalizeUrl = (function () {
         );
         o.__defineGetter__('isOnGoogleImagesPanel', () => {
                 const url1 = new URL(location.href);
-                return url1.searchParams.has('imgurl') && url1.pathname.split('/').pop() === 'imgres';
+                return url1.searchParams.has('imgrefurl') && url1.pathname.split('/').pop() === 'imgres';
             }
         );
 
@@ -545,7 +549,8 @@ var normalizeUrl = (function () {
     }
 
 
-    /* change mouse cursor when hovering over elements for scroll navigation
+    /*
+     * change mouse cursor when hovering over elements for scroll navigation
      * cursor found here:   https://www.flaticon.com/free-icon/arrows_95103#
      */
 
@@ -740,13 +745,13 @@ var normalizeUrl = (function () {
 
             buttons.save = function () {
                 // if not saved, save
-                if (buttons.saved.style.display === 'none') {
+                if (buttons.saved && buttons.saved.style.display === 'none') {
                     buttons.saved.click();
                 }
             };
             buttons.unsave = function () {
                 // if saved, unsave
-                if (buttons.notsaved.style.display === 'none') {
+                if (buttons.notsaved && buttons.notsaved.style.display === 'none') {
                     buttons.notsaved.click();
                 }
             };
@@ -786,6 +791,7 @@ var normalizeUrl = (function () {
             return this.q('.irc_b.irc_mmc');
         }
         /**
+         * Search-By-Image URL
          * if it does return something, then it will NOT continue to adding the new element.
          * @return {*}
          */
@@ -810,36 +816,36 @@ var normalizeUrl = (function () {
             // wait for panel to appear then start modding
             elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(function () {
 
-                // make the X button on the image panel remove the hash from the address bar
+                // bind clicking the image panel 'X' button remove the hash from the address bar
                 // there exists only a single X button common for all 3 image panels
                 $('a#irc_cb').click(removeHash);
 
-                // instantiate the panels and thus causing modifications
+                // instantiate the panels and (which call modPanel() and updatePanel(), which do the modifying)
                 $('#irc_cc > div').toArray()
                     .map(panelEl => new ImagePanel(panelEl))
-                    // for each panel, create an observer and start observing
-                    .forEach(panel => {
-                        /**
-                         * every change that happens causes 2 data-dev mutations
-                         * first one with oldValue = <stuff saldkfjasldfkj>
-                         * second has oldValue = null
+                    .forEach(panel => {// observe each panel
+                        /* @info
+                         * in the website, every change that happens causes 2 data-dev mutations
+                         * - first one with oldValue = <stuff saldkfjasldfkj>
+                         * - second has oldValue = null
+                         * only a single callback is needed for each change, so I'll call it on the second mutation when (oldValue=null)
                          */
 
-                            // bind mutation observer, observes every change happening to the panels (any one of them)
-                        const mutationObserver = new MutationObserver(function (mutations, observer) {
+                        // bind mutation observer, observes every change happening to the panels (any one of them)
+                        const mutationObserver = new MutationObserver((mutations, observer) => {
+                            if (mutations[0].oldValue === null) { // if this is the second mutation
                                 observer.disconnect(); // stop watching until changes are done
 
-                                if (mutations[0].oldValue === null) { // if this is the second mutation (only a single callback is needed for each change)
-                                    const event = new Event('panelMutation');
-                                    event.mutations = mutations;
-                                    panel.el.dispatchEvent(event);
-                                }
+                                const event = new Event('panelMutation');
+                                event.mutations = mutations;
+                                panel.el.dispatchEvent(event);
 
-                                observer.observePanel(); // continue observing
-                            });
+                                observePanel(); // continue observing
+                            }
+                        });
 
                         // creating a function (template for observing)
-                        mutationObserver.observePanel = function () {
+                        const observePanel = () =>
                             mutationObserver.observe(panel.el, {
                                 childList: false,
                                 subtree: false,
@@ -847,13 +853,9 @@ var normalizeUrl = (function () {
                                 attributeOldValue: true,
                                 attributeFilter: ['data-ved']
                             });
-                        };
-
-                        // save a reference
-                        panel.observer = mutationObserver;
 
                         //start observing
-                        mutationObserver.observePanel();
+                        observePanel();
                     });
             });
         }
@@ -882,6 +884,16 @@ var normalizeUrl = (function () {
         static moreSizes() {
             const panel = this;
             const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
+
+            //FIXME: what the hell is this?! fetchUsingProxy() doesn't exist
+            const fetchUsingProxy = (url, callback) => {
+                const proxyurl = 'https://cors-anywhere.herokuapp.com/';
+                callback = callback || (contents => console.log(contents));
+                return fetch(proxyurl + url) // https://cors-anywhere.herokuapp.com/https://example.com
+                    .then(response => response.text())
+                    .then(callback)
+                    .catch(() => console.error(`Can’t access ${url} response. Blocked by browser?`))
+            };
             let z = open().document;
             fetchUsingProxy(reverseImgSearchUrl, function (content) {
                 console.log('content:', content);
@@ -998,14 +1010,19 @@ var normalizeUrl = (function () {
                 console.log('waiting to be done...');
             }
         }
-        /**
-         * Should be called only once for each panel
-         */
+
+        /** Should be called only once for each panel */
         __modifyPanelEl() {
-            var panel = this;
-            console.debug('Modifying panelEl:', panel.el);
+            const panel = this;
+            if (panel.el.classList.contains('modified-panel')) {
+                console.warn('panel already modified, do not try to modify it again');
+                return panel;
+            }
+
+            debug && console.debug('Modifying panelEl:', panel.el);
 
             panel.el.addEventListener('panelMutation', () => panel.onPanelMutation());
+            panel.el.classList.add('modified-panel');
 
             panel.rightPart.classList.add('scroll-nav');
 
@@ -1144,11 +1161,13 @@ var normalizeUrl = (function () {
          * Called once every time the panel is changed
          * @return {boolean}
          */
-        update() {
+        __update() {
             let panel = this;
             // panel.removeLink();
             // panel.injectSearchByImage();
             // panel.addDownloadRelatedImages();
+
+            //TODO: maybe this is what's preventing the main image from changing even when the ris loads
 
             // make sure that main image link points to the main image (and not to the website)
             var imgAnchor = panel.q('a.irc_mutl');
@@ -1165,6 +1184,7 @@ var normalizeUrl = (function () {
                 e.preventDefault();
                 e.stopImmediatePropagation();
             });
+
 
             panel.linkifyDescription();
             panel.addImageAttributes();
@@ -1188,7 +1208,7 @@ var normalizeUrl = (function () {
             return this.el.querySelectorAll(...arguments);
         }
         showRis() {
-            for (var div of this.ris_Divs) {
+            for (const div of this.ris_Divs) {
                 // debug && console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
                 showImages.replaceImgSrc(div.querySelector('img'));
             }
@@ -1221,8 +1241,9 @@ var normalizeUrl = (function () {
                 });
         }
         inject_Download_ris() {
+            var panel = this;
             // const risContainer = this.relatedImage_Container.parentNode;
-            const targetEl = this.q('.irc_msc, .irc_ris');//this.q('div.irc_ris');
+            const targetEl = panel.q('.irc_msc, .irc_ris');//this.q('div.irc_ris');
             if (!targetEl) {
                 console.error('q(\'.irc_msc\') element not found and is needed in inject_Download_ris');
                 return;
@@ -1358,26 +1379,26 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             let ddgSearch = siteSearch.cloneNode(false);
             ddgSearch.innerText = '[DDGP]';
-            ddgSearch.id = 'ddgSearch';
+            ddgSearch.className = 'ddgSearch';
 
             siteSearch = this.addElementAfterSTitle(siteSearch, '', null, 'BOTTOM', 'div');
             siteSearch.appendChild(ddgSearch);
             return siteSearch;
         }
+
         update_SiteSearch() {
             const siteSearchAnchor = this.q('a.site-search');
             const hostname = getHostname(this.sTitle_Anchor.href);
             if (siteSearchAnchor) {
-                siteSearchAnchor.innerText = hostname;
+                siteSearchAnchor.innerText = 'site:' + hostname;
                 siteSearchAnchor.href = (GoogleUtils.url.siteSearchUrl(getHostname(ImagePanel.focP.q('span a.irc_lth.irc_hol').href)));
             } else {
                 console.warn('Site Search element not found:', siteSearchAnchor);
             }
 
-            const ddgAnchor = this.q('#ddgSearch');
-            if (ddgAnchor) {
-                ddgAnchor.href = PProxy.DDG.proxy(this.pTitle_Anchor.href);
-            }
+            $('.ddgSearch').attr({
+                'href': PProxy.DDG.proxy(this.pTitle_Anchor.href)
+            });
 
             if (ublSitesSet.has(hostname))
                 setStyleInHTML(this.sTitle_Anchor, 'color', `${Preferences.loading.successColor} !important`);
@@ -1405,12 +1426,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          * @param html
          * @param {string} containerClassName   className attribute to add to the parent of the created element
          * @param {function} clickListener      the click listener to add to the element
-         * @param position BOTTOM, LEFT, RIGHT, NONE
+         * @param position - "BOTTOM", "LEFT", "RIGHT", "NONE"
          * @param parentTagName
-         * @return {Node}
+         * @return {Element}
+         * @private
          */
-        addElementAfterSTitle(html, containerClassName, clickListener, position, parentTagName) {
-            // if (!position) position = 'BOTTOM';
+        addElementAfterSTitle(html, containerClassName, clickListener, position = 'BOTTOM', parentTagName = '') {
+            // TODO: use jQuery here
 
             const element = (typeof html === 'string') ? createElement(html) : html;
             parentTagName = parentTagName ? parentTagName : 'span';
@@ -1436,6 +1458,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 default:
                     console.warn('Invalid position passed:', position);
             }
+
             if (clickListener) {
                 element.addEventListener('click', function (element) {
                     clickListener(element);
@@ -1513,7 +1536,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          */
         onPanelMutation(mutations) {
             // debug && console.log('panelMutation()');
-            this.update();
+            this.__update();
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
 
@@ -1631,18 +1654,48 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 injectGoogleButtons();
 
                 // setting unsafe search URL
-                const ssDefault = document.querySelector('#ss-bimodal-default');
-                if (ssDefault) {
-                    enhanceLink(ssDefault);
-                    ssDefault.href = unsafeSearchUrl();
-                    ssDefault.onclick = function () {
-                        location.assign(unsafeSearchUrl());
-                    };
-                    console.log('ssDefault', ssDefault);
+                {
+                    // const ssDefault = document.querySelector('#ss-bimodal-default');
+                    // if (ssDefault) {
+                    //     enhanceLink(ssDefault);
+                    //     ssDefault.href = unsafeSearchUrl();
+                    //     ssDefault.onclick = function () {
+                    //         location.assign(unsafeSearchUrl());
+                    //     };
+                    //     console.log('ssDefault', ssDefault);
+                    // }
+                }
+            });
+
+
+            // onImageBatchLoaded observe new image boxes that load
+            observeDocument((mutations, me) => {
+                // const addedImageBoxes = [].map.call(mutations, m => m.addedNodes[0])
+                //     .filter(div => div && div.matches && div.matches('div.rg_bx:not(.rg_bx_listed)'));
+
+                const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
+
+                //Google direct links
+                directLinkReplacer.checkNewNodes(mutations);
+
+                if (addedImageBoxes.length) {
+
+                    if (shouldShowOriginals)
+                        showOriginals([].map.call(getThumbnails(), div => div.closest('img[fullres-src]')).filter(img => !!img));
+
+                    onImageBatchLoaded(addedImageBoxes);
+                    updateDownloadBtnText();
                 }
 
+            }, {
+                callbackMode: 0,
 
+                childList: true,
+                attributes: true,
+                // attributeFilter: ['href'],
+                subtree: true,
             });
+
 
         } else {
             // bind each result to the corresponding number
@@ -1944,7 +1997,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         if (missing.length !== 0 && stopExecution) {
             console.error('Stopping execution due to missing imports:', missing);
             void (0);
-            return missing;
+            throw new Error('Stopping execution due to missing imports:\n' + missing.join('\n- '));
         }
         return missing;
     }
@@ -1998,12 +2051,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return torrentURL;
     }
 
-    /** @param visibleThumbnailsOnly {boolean}: optional: set to true to exclude thumbnails that aren't visible
+    /** @param visibleOnly {boolean}: optional: set to true to exclude thumbnails that aren't visible
      * @returns {NodeListOf<HTMLImageElement>} */
-    function getThumbnails(visibleThumbnailsOnly = false) {
+    function getThumbnails(visibleOnly = false) {
         // language=CSS
         const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
-            (visibleThumbnailsOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
+            (visibleOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
         ;
         return document.querySelectorAll(selector);
     }
@@ -2237,7 +2290,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             downloadPanel.appendChild(el);
         }
 
-        // todo: append the element somewhere else, where it will also be appended with the web search (not only the image search)
+        // todo: move this to another function, where it will also be appended with the web search (not only the image search)
         // search engine dropdown
         const searchEngineSelect = createElement(`<select id="search-engine-select">
     <option id="google-search">Google</option>
@@ -2341,7 +2394,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @param parameters
      * @param parameters.exception4smallGifs
      * @param parameters.ignoreDlLimit
-     * @returns {({fileURL: string, fileName: string, img: HTMLImageElement})[]}
+     * @returns {(ImgBox|HTMLImageElement)[]} they will have img.url, img.
      *
      */
     function getQualifiedGImgs(parameters = {}) {
@@ -2483,6 +2536,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         clearTimeout(timeout);
                     }
                 };
+
                 const onMouseUpdate = (e) => {
                     checkAndResetTimer(e);
                     timeout = setTimeout(function () {
@@ -2562,7 +2616,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         }, 50);
 
-        //TODO: move GoogleDirectLink functions calls here, no need for 2 observers, this will do everything
+        //TODO: move GoogleDirectLinks functions calls here, no need for 2 observers, this will do everything
 
         img.classList.add('blur');
 
@@ -2604,7 +2658,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     /**
      * TODO: maybe turn this to a promise?
-     * @param img image element, either <img class="rg_ic rg_i" ....> in .rg_bx
+     * @param {(HTMLImageElement|HTMLDivElement)} img image element, either <img class="rg_ic rg_i" ....> in .rg_bx
      * @param minified
      * @return {Meta}
      */
@@ -2639,7 +2693,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             metaObj = getImgMetaById(img.id);
             console.warn(e, img);
         }
-
 
         if (minified) {
             metaObj = cleanMeta(metaObj);
@@ -2876,9 +2929,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * '#ss-bimodal-default' to go from strict to unsafe
      *
      * @returns {string|null} the unsafe url, otherwise returns nothing
+     * @param {string} href
      */
-    function unsafeSearchUrl() {
-        const url = new URL(location.href);
+    function unsafeSearchUrl(href = location.href) {
+        const url = new URL(href);
         url.hostname = 'ipv4.google.com';
         url.searchParams.set('safe', 'off');
         return url.toString();
@@ -3188,10 +3242,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         border: 3px #0F0 solid;
     }
 
-    div.${showImages.ClassNames.DISPLAY_ORIGINAL_GIF}:not(.irc_mimg):not(.irc_mutc) {
-        border: 3px #ff00c5 solid;
-    }
-
     div.${showImages.ClassNames.FAILED_PROXY}:not(.irc_mimg):not(.irc_mutc) {
         border: 3px #FFA500 solid;
     }`);
@@ -3297,6 +3347,11 @@ div.text-block {
 div.text-block.download-block:hover {
     transform: scale(1.5);
     opacity: 1;
+}
+
+/*for the imagebox info link*/
+a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
+    padding: 2px 4px 0px 0px;
 }
 
 .ext-gif {
