@@ -921,7 +921,8 @@ var normalizeUrl = (function () {
             // Title:     ${document.title}
             // URL:     ${location.href}
             // Search:    ${q('#lst-ib').value}`;
-            for (const imgDiv of relatedImageDivs) {
+
+            var relatedImageDownloads = Array.from(relatedImageDivs).map(imgDiv => {
                 var img = imgDiv.querySelector('img');
                 var meta = getMeta(img);
                 var imgTitle = '';
@@ -936,20 +937,16 @@ var normalizeUrl = (function () {
                 imgTitle = meta['pt'];
                 const href = imgDiv.querySelector('a[href]').href;
 
-                console.log('Downloading:', {
+                return {
                     url: href,
                     name: imgTitle,
-                    directory: dir,
+                    directory: 'Google related images',
                     element: img
-                });
+                };
+            });
+            console.log('related image downloads:', relatedImageDownloads);
 
-                download({
-                    url: href,
-                    name: imgTitle,
-                    directory: dir,
-                    element: img
-                });
-            }
+            relatedImageDownloads.forEach(opts => download(opts));
             // anchorClick(makeTextFile(metaDataStr), dir + '/' + 'info.txt');
         }
         static downloadCurrentImage() {
