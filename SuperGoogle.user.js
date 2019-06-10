@@ -2416,6 +2416,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return meta.ity === 'gif' || /\.gif($|\?)/.test(meta.ou);
     }
 
+    // if the url is a thumbnail url
+    function isLoaded(img) {
+        return !/encrypted-tbn0\.gstatic\.com/.test(img.src) && img.getAttribute('loaded') !== 'error';
+    }
 
     //FIXME: this is ugly
     //  - fix the entire structure of selecting and querying qualified images
@@ -2737,6 +2741,34 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return metaObj;
     }
 
+
+    function getPanelPage(meta) {
+        var img;
+        if(meta instanceof HTMLImageElement) {
+            img = meta;
+            meta = getMeta(img);
+        }
+
+        var currentParams = Object.fromEntries(new URL(location.href).searchParams.entries());
+
+        var data = {
+            'imgrefurl': meta.ru,
+            'docid': meta.rid,
+            'tbnid': meta.id,
+            'ved': !img ? '' : img.closest('[data-ved]').getAttribute('data-ved'), // somehow get this from the div
+            'w': meta.ow,
+            'h': meta.oh,
+            // 'itg':,
+            // 'hl':,
+            // 'bih':,
+            // 'biw':,
+            // 'q':,
+        };
+        var combined = $.extend(currentParams, data);
+
+
+        return normalizeUrl('/imgres?' + $.param(combined));
+    }
 
     /**
      * used for trimming right and trimming left a search query
