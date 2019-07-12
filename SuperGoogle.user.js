@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi
 // @author       Faris Hijazi
-// @version      0.7
+// @version      0.8
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -80,12 +80,148 @@
 /** returns full path, not just partial path */
 var normalizeUrl = (function () {
     const fakeLink = document.createElement('a');
-
     return function (url) {
         fakeLink.href = url;
         return fakeLink.href;
-    }
+    };
 })();
+
+const PProxy = (function () {
+    class ProxyInterface {
+        constructor() {
+            throw Error('Static class cannot be instantiated');
+        }
+        static get color() {
+            return '#00000';
+        }
+        // only to be used by children
+        static get name() {
+            return constructor.name;
+        }
+
+        static test(url) {
+        }
+        static proxy(url) {
+        }
+        static reverse(proxyUrl) {
+        }
+    }
+
+    /**Returns a DuckDuckGo proxy url (attempts to unblock the url)*/
+    class DDG extends ProxyInterface {
+        static get color() {
+            return '#FFA500';
+        }
+        static test(url) {
+            return /^https:\/\/proxy\.duckduckgo\.com/.test(url);
+        }
+        static proxy(url) {
+            return DDG.test(url) || /^(javascript)/i.test(url) ? url : (`https://proxy.duckduckgo.com/iu/?u=${encodeURIComponent(url)}&f=1`);
+        }
+        /** @deprecated */
+        static isDdgUrl() {
+            new Error('This function "isDdgUrl()" is deprecated, use "PProxy.DDG.test()" instead');
+        }
+        static reverse(url) {
+            // if (isZscalarUrl(url)) s = getOGZscalarUrl(url); // extra functionality:
+            if (!DDG.test(url)) {
+                return url;
+            }
+            return new URL(location.href).searchParams.get('u');
+        }
+    }
+
+    /**Returns a Pocket proxy url*/
+    class Pocket extends ProxyInterface {
+        //             static BASE_URL = 'https://d3du9nefdtilsa.cloudfront.net/unsafe/fit-in/x/smart/filters%3Ano_upscale()/';
+        static get color() {
+            return '#e082df';
+        }
+        static test(url) {
+            return /(^https:\/\/pocket-image-cache\.com\/direct\?url=)|(cloudfront\.net\/unsafe\/fit-in\/x\/smart\/filters%3Ano_upscale\(\)\/)/.test(url);
+        }
+        static proxy(url) {
+            return Pocket.test(url) || /^(javascript)/i.test(url) ? url : 'https://pocket-image-cache.com/direct?url=' + url;
+        }
+        static reverse(url) {
+            if (!Pocket.test(url)) {
+                return url;
+            }
+
+            if (url.indexOf(Pocket.BASE_URL) === 0) {
+                return url.substring(Pocket.BASE_URL.length, -1);
+            }
+            if (url.indexOf('https://pocket-image-cache.com/direct') === 0) {
+                return new URL(url).searchParams.get('url');
+            }
+            return url;
+        }
+    }
+
+    class FileStack extends ProxyInterface {
+        static get color() {
+            return '#acb300';
+        }
+        static test(url) {
+            return /https:\/\/process\.filestackapi\.com\/.+\//.test(url);
+        }
+        static proxy(url) {
+            return 'https://process.filestackapi.com/AhTgLagciQByzXpFGRI0Az/' + encodeURIComponent(url.trim());
+        }
+        static reverse(url) {
+        }
+    }
+
+    class SteemitImages extends ProxyInterface {
+        static get color() {
+            return '#0074B3';
+        }
+        static test(url) {
+            return /https:\/\/steemitimages\.com\/(p|0x0)\//.test(url);
+        }
+        static proxy(url) {
+            return /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(url) ? ('https://steemitimages.com/0x0/' + url.trim()) : url;
+        }
+        static reverse(url) {
+            if (!SteemitImages.test(url)) {
+                return url;
+            }
+            console.warn('SteemitImages.reverse() is not fully supported, it\'ll only work sometimes');
+            return url.replace('https://steemitimages.com/0x0/', '');
+        }
+    }
+
+    //
+
+    var PProxy = {};
+    PProxy.proxies = [
+        FileStack,
+        SteemitImages,
+        DDG,
+        Pocket,
+    ];
+    PProxy.__defineGetter__('names', () => PProxy.proxies.map(p => p.name));
+    /**
+         * get a proxified url from each proxy
+         * @param url
+         * @returns {*}
+         */
+    PProxy.proxyList = function (url) {
+        if (url) return PProxy.proxies.map(proxy => proxy.proxy(url));
+    };
+    PProxy.proxyAll = function (url) {
+        var o = {};
+        if (url) o.proxies.forEach(proxy => o[proxy.name] = proxy.proxy(url));
+        return o;
+    };
+
+    for (const p of PProxy.proxies) {
+        PProxy[p.name] = p;
+    }
+
+    return PProxy;
+})();
+
 
 // main
 (function () {
@@ -297,9 +433,9 @@ var normalizeUrl = (function () {
             new URL(location.href).searchParams.get('tbm') === 'isch' // TODO: find a better way of determining whether the page is a Google Image search
         );
         o.__defineGetter__('isOnGoogleImagesPanel', () => {
-                const url1 = new URL(location.href);
-                return url1.searchParams.has('imgrefurl') && url1.pathname.split('/').pop() === 'imgres';
-            }
+            const url1 = new URL(location.href);
+            return url1.searchParams.has('imgrefurl') && url1.pathname.split('/').pop() === 'imgres';
+        }
         );
 
         return o;
@@ -484,7 +620,7 @@ var normalizeUrl = (function () {
 
             // language=CSS
             addCss(
-                    `.str-wide-card {
+                `.str-wide-card {
                         cursor: default !important;
                     }
 
@@ -592,6 +728,9 @@ var normalizeUrl = (function () {
 
     /**
      * ImagePanel class
+     * @static thePanels - static
+     * @property el
+     * @property
      * Provides functions for a partner element (one of the 3 panels)
      * ## Injecting:
      *  Injecting elements to the panels works with 2 steps:
@@ -603,12 +742,13 @@ var normalizeUrl = (function () {
      *  sbi: search by image
      */
     class ImagePanel {  // ImagePanel class
-        static thePanels = new Set();
-        el;
-        observer;
         // TODO: instead of using an object and creating thousands of those guys, just extend the panel element objects
-        //      give them more functions and use THEM
+        //      give them more functions and use THEM instead of using the wrapper class
         constructor(element) {
+            if (typeof (ImagePanel.thePanels) === 'undefined') {
+                ImagePanel.thePanels = new Set();
+            }
+
             if (ImagePanel.thePanels.has(element.panel)) {
                 return element.panel;
             }
@@ -1191,13 +1331,17 @@ var normalizeUrl = (function () {
 
             // make sure that main image link points to the main image (and not to the website)
             var imgAnchor = panel.q('a.irc_mutl');
-            imgAnchor.__defineSetter__('href', function (value) {
-                this.setAttribute('href', value);
-            });
-            imgAnchor.__defineGetter__('href', function () {
-                imgAnchor.href = imgAnchor.querySelector('img').src || '#';
-                return this.getAttribute('href');
-            });
+            try {
+                imgAnchor.__defineSetter__('href', function (value) {
+                    this.setAttribute('href', value);
+                });
+                imgAnchor.__defineGetter__('href', function () {
+                    imgAnchor.href = imgAnchor.querySelector('img').src || '#';
+                    return this.getAttribute('href');
+                });
+            } catch (e) {
+                console.warn(e);
+            }
             imgAnchor.href = imgAnchor.querySelector('img').src || '#';
             imgAnchor.addEventListener('click', function (e) {
                 window.open(this.querySelector('img').src, '_blank');
@@ -1281,7 +1425,7 @@ var normalizeUrl = (function () {
 
                 $(descriptionEl)
                     .before(descriptionAnchor)
-                    .css({display: 'none'});
+                    .css({ display: 'none' });
             }
 
             $(descriptionAnchor)
@@ -1727,13 +1871,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 disableDragging();
 
             }, {
-                callbackMode: 0,
+                    callbackMode: 0,
 
-                childList: true,
-                attributes: true,
-                // attributeFilter: ['href'],
-                subtree: true,
-            });
+                    childList: true,
+                    attributes: true,
+                    // attributeFilter: ['href'],
+                    subtree: true,
+                });
 
 
         } else { // else if not google images
@@ -2083,7 +2227,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // language=CSS
         const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
             (visibleOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
-        ;
+            ;
         return document.querySelectorAll(selector);
     }
 
@@ -2415,7 +2559,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     btns[i++].click();
                 else
                     clearInterval(interval);
-            }, 100)
+            }, 100);
         }
     }
 
@@ -2444,7 +2588,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      *
      */
     function getQualifiedGImgs(parameters = {}) {
-        let {exception4smallGifs, ignoreDlLimit = false} = parameters;
+        let { exception4smallGifs, ignoreDlLimit = false } = parameters;
 
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
         const dlLimit = dlLimitSlider ? dlLimitSlider.value : Number.MAX_SAFE_INTEGER;
@@ -2633,7 +2777,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const downloadImage = function (e = {}) {
                 const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou;
                 const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity;
-                download(src, fileName, {fileExtension: meta.ity});
+                download(src, fileName, { fileExtension: meta.ity });
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 e.stopPropagation();
@@ -2951,7 +3095,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
             // /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
             a.matches('.rg_l')
-        ;
+            ;
 
         const handler = function (a) {
             if (!filter(a)) //@faris
@@ -3305,7 +3449,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             minify: true,
             stringify: true,
             base64urls: false
-        })], {type: 'text/plain'}));
+        })], { type: 'text/plain' }));
 
         // window.onunload = () => zip.genZip();
 
@@ -3838,7 +3982,7 @@ a.download-related {
 
         window.addEventListener('resize', adjustTopMargin);
         // observe for elements being added, need to readjust topmargine
-        observeDocument(adjustTopMargin, {baseNode: '#topnav'});
+        observeDocument(adjustTopMargin, { baseNode: '#topnav' });
 
         document.body.style.position = 'relative';
 
@@ -3854,7 +3998,6 @@ a.download-related {
     }
 })();
 
-
 function addCss(cssStr, id = '') {
     // check if already exists
     const style = document.getElementById(id) || document.createElement('style');
@@ -3866,7 +4009,10 @@ function addCss(cssStr, id = '') {
     }
     if (!!id) style.id = id;
     style.classList.add('addCss');
-    return document.getElementsByTagName('head')[0].appendChild(style);
+    return elementReady('head').then(head => {
+        head.appendChild(style);
+        return style;
+    });
 }
 
 function isBase64ImageData(str) {
@@ -3904,7 +4050,7 @@ function elementUnderMouse(wheelEvent) {
 }
 
 function makeTextFile(text) {
-    var data = new Blob([text], {type: 'text/plain'});
+    var data = new Blob([text], { type: 'text/plain' });
     var textFile = null;
     // If we are replacing a previously generated file we need to manually revoke the object URL to avoid memory leaks.
     if (textFile !== null) window.URL.revokeObjectURL(textFile);
@@ -4055,7 +4201,7 @@ function elementReady(getter, timeout = 0) {
                 }
             } :
             () => returnMultipleElements ? document.querySelectorAll(getter[0]) : document.querySelector(getter)
-        ;
+            ;
         var computeResolveValue = function (mutationRecords) {
             // see if it already exists
             const ret = _getter(mutationRecords || {});
