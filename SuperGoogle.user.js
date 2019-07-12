@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi
 // @author       Faris Hijazi
-// @version      0.6
+// @version      0.7
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -3054,6 +3054,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         return normalizeUrl('/imgres?' + $.param(combined));
+    }
+
+    function getUblImages() {
+        return document.querySelectorAll('img[src][loaded="true"]:not([proxy])');
+    }
+    function getUblHostnames() {
+        return Array.from(new Set(Array.from(getUblImages()).map(img => getHostname(img.src))));
     }
 
     /**
