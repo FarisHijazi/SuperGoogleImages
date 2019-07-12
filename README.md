@@ -3,45 +3,44 @@
 - [SuperGoogle for Google Images](#supergoogle-for-google-images)
   - [Description](#description)
   - [Installation](#installation)
+    - [UserScript (Tampermonkey)](#userscript-tampermonkey)
+    - [Browser extension](#browser-extension)
   - [Usage](#usage)
-    - [Hotkeys](#hotkeys)
-  - [Features](#features)
     - [Display original images](#display-original-images)
     - [Zip and download all the images](#zip-and-download-all-the-images)
     - [Enhance the image panels](#enhance-the-image-panels)
+    - [Hotkeys](#hotkeys)
   - [External Libraries](#external-libraries)
+  - [Libraries](#libraries)
   - [Documentation](#documentation)
   - [Contributing](#contributing)
   - [License](#license)
 
 ## Description
 
-A [UserScript](https://openuserjs.org/about/Userscript-Beginners-HOWTO) to add features to Google images, like:  
+A [browser plugin](https://openuserjs.org/about/Userscript-Beginners-HOWTO) (a browser script/plugin/extension) to add features to Google images, like:  
 display full resolution images, zip+download all images, and more. See a list of [all features here](#Features);
 
 See [demo video here](https://youtu.be/ceFuBh8r8GQ?t=24).
 
 ## Installation
 
-### Userscript (Tampermonkey)
+### UserScript (Tampermonkey)
 
-1. make sure you have a UserScript client like Tampermonkey.
-2. [Download](https://github.com/FarisHijazi/SuperGoogle/raw/master/SuperGoogle.user.js) or visit the RAW file url.
-3. [Required only for downloading] Go to the Tampermonkey settings and change download mode to `Browser API`, (see how)[TODO: add url].
+1. Make sure you have a [UserScript client][get-user-script] browser extension (like Tampermonkey).
+2. [Download][download-link] or visit the RAW file url.
+3. [Required only for downloading] Go to the Tampermonkey settings and change download mode to `Browser API`, see [How do I setup userscript-triggered downloads?][browser-API-beta].
     > Tampermonkey dashboard (by clicking the icon) > Downloads BETA > Download Mode: > Browser API > Save
-4. [Required only for downloading] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow` (details)[TODO: add url]. TODO: add screenshot
+4. [Required only for downloading] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow`. TODO: add screenshot
 
 ### Browser extension
 
-//
-
 Not yet supported, but coming soon!
-
-//
 
 ## Usage
 
 Open Google.com/....
+
 TODO: write about usage
 
 Below is a list of the available features, listed from what is (probably) most useful.
@@ -104,9 +103,9 @@ This script does use several other external libraries and scripts, they will be 
 
 Scripts
 
-- [Google Direct Links for Pages and Images.user.js](lib/Google%20Direct%20Links%20for%20Pages%20and%20Images.user.js), [source](https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js)
+- [Google Direct Links for Pages and Images.user.js](lib/Google%20Direct%20Links%20for%20Pages%20and%20Images.user.js), [[source]](https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js)
 
-Libraries
+## Libraries
 
 - [jQuery](https://jquery.com/)
 - [Mousetrap.js](https://github.com/ccampbell/mousetrap) keybindings
@@ -114,6 +113,8 @@ Libraries
 - [JSZip](https://github.com/Stuk/jszip) zip and compress functionality
 
 ## Documentation
+
+[docs](docs/doc.md)
 
 TODO: Add documentation
 
@@ -129,3 +130,7 @@ TODO: Add documentation
 
 [Apache License](LICENSE.md)  
 Version 2.0, January 2004
+
+[get-user-script]: https://openuserjs.org/about/Userscript-Beginners-HOWTO#how-do-i-get-going-
+[browser-API-beta]: https://www.tampermonkey.net/faq.php#Q302
+[download-link]: https://github.com/FarisHijazi/SuperGoogle/raw/master/SuperGoogle.user.js
