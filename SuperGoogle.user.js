@@ -200,7 +200,7 @@ var normalizeUrl = (function () {
                     // "tbs=isz": "lt",//
                     // islt: "2mp",    // isLargerThan
                     // tbs: "isz:l",   // l=large, m=medium...
-                    // "hl": "en"
+                    // "hl": "en",
                 },
                 /**
                  * @type {string|null}
@@ -215,6 +215,10 @@ var normalizeUrl = (function () {
                 staticNavbar: false,
                 autoLoadMoreImages: true,
                 showImgHoverPeriod: 350,
+                disableDragging: true, //disable dragging images to reverse image search
+            },
+            shortcuts: {
+                hotkey: 'ctrlKey', // 'altKey', 'shiftKey'
             },
             loading: {
                 successColor: 'rgb(167, 99, 255)',
@@ -248,6 +252,16 @@ var normalizeUrl = (function () {
     const GoogleUtils = (function () {
         var isOnGoogle = () => GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
 
+        /**
+         * @type {{
+         *      isOnEncryptedGoogle: boolean,
+         *     googleBaseURL: String,
+         *     gImgSearchURL: String,
+         *     reverseImageSearchUrl: String,
+         *     getGImgReverseSearchURL: Function,
+         *     siteSearchUrl: Function,
+         * }}
+         */
         const url = {};
 
         url.isOnEncryptedGoogle = /encrypted.google.com/.test(location.hostname);
@@ -1599,6 +1613,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     // TODO: also update the label value
                 }
             })();
+
+            disableDragging();
         }
         /**
          * called when changing from one panel to another (going left or right)
@@ -1696,14 +1712,19 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 //Google direct links
                 directLinkReplacer.checkNewNodes(mutations);
 
-                if (addedImageBoxes.length) {
-
-                    if (shouldShowOriginals)
-                        showOriginals([].map.call(getThumbnails(), div => div.closest('img[fullres-src]')).filter(img => !!img));
-
-                    onImageBatchLoaded(addedImageBoxes);
-                    updateDownloadBtnText();
+                if (!addedImageBoxes.length) {
+                    return;
                 }
+
+                if (shouldShowOriginals) {
+                    const thumbnails = [].map.call(getThumbnails(), div => div.closest('img[fullres-src]'))
+                        .filter(img => !!img);
+
+                    showOriginals(thumbnails);
+                }
+                onImageBatchLoaded(addedImageBoxes);
+                updateDownloadBtnText();
+                disableDragging();
 
             }, {
                 callbackMode: 0,
@@ -1715,7 +1736,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             });
 
 
-        } else {
+        } else { // else if not google images
             // bind each result to the corresponding number
             for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
                 Mousetrap.bind(String(i + 1), () => {
@@ -1893,7 +1914,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         Mousetrap.bind(['enter'], function (e) {
             const currentImgUrl = ImagePanel.focP.ris_fc_Url;
-            console.log('currentImgUrl:', currentImgUrl);
             openInTab(currentImgUrl);
         });
         Mousetrap.bind([',', 'up', 'numpad8'], function (e) { // ▲ Prev/Left relImage
@@ -2490,7 +2510,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         console.log('Found new unblocked sites:', diff);
         return ublSitesSet;
     }
-
     function storeUblMetas() {
         ublMetas.addAll(getQualifiedUblImgMetas());
 
@@ -2527,7 +2546,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         GM_setValue(Consts.GMValues.ublSitesMap, Array.from(ublMap.entries()));
         return ublMap;
     }
-
     function saveUblSites() {
         storeUblSitesSet();
         console.log('Site links of unblocked images:', Array.from(ublSitesSet));
@@ -2564,7 +2582,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 };
 
                 const onMouseUpdate = (e) => {
-                    if (e.ctrlKey || e.shiftKey) {
+                    if (e[Preferences.shortcuts.hotkey]) {
                         imgBx.img.showOriginal();
                     }
 
@@ -2596,13 +2614,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const meta = getMeta(img);
             const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
 
-            // if (!ext) return;
-            const textBox = createElement('<div class="text-block ext ext-' + ext + '">');
-            if (!(ext && ext.toUpperCase)) {
+            if (!(ext && ext.toUpperCase))
                 return;
-            }
-            textBox.innerText = ext.toUpperCase();
-            // textBox.style["background-color"] = (ext === 'gif') ? "magenta" : "#83a3ff";
+
+            const textBox = $('<div class="text-block ext ext-' + ext + '">')
+                .text(ext.toUpperCase())[0];
             img.after(textBox);
             imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
         }
@@ -2611,10 +2627,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 return;
 
             const img = imgBox.querySelector('img.rg_i');
+            const link = img.closest('a');
             const meta = getMeta(img);
 
-            const downloadButton = createElement(`<div class="text-block download-block" style="background-color: dodgerblue; margin-left: 35px;">[⇓]</div>`);
-            downloadButton.onclick = function (e) {
+            const downloadImage = function (e = {}) {
                 const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou;
                 const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity;
                 download(src, fileName, {fileExtension: meta.ity});
@@ -2622,31 +2638,38 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 e.stopImmediatePropagation();
                 e.stopPropagation();
             };
+            const $dlBtn = $('<div class="text-block download-block""></div>').css({
+                'background-color': 'dodgerblue',
+                'margin-left': '35px',
+            }).text('[⇓]').click(downloadImage);
 
-            img.after(downloadButton);
+            link.addEventListener('click', function (e) {
+                if (e[Preferences.shortcuts.hotkey]) {
+                    downloadImage(e); // it already prevents default and stops propagation
+                }
+            });
+
+            img.after($dlBtn[0]);
         }
 
-        // just wait a bit before using `meta`, cuz some of them didn't load yet
-        setTimeout(function () {
+        // just wait until exists `meta`, cuz some of them didn't load yet
+        elementReady(() => getMeta(imageBox)).then(function () {
             addImgExtensionBox(imageBox);
             addImgDownloadButton(imageBox);
+        });
 
+        // choosing one of them (prioritizing the description over the title)
+        img.__defineGetter__('alt', () => {
+            var title = [img.meta.pt, img.meta.s].join('_');
+            img.setAttribute('alt', title);
+            return title;
+        });
+        img.__defineGetter__('name', () => {
+            var title = [img.meta.pt, img.meta.s].join('_');
+            img.setAttribute('name', title);
+            return title;
+        });
 
-            // choosing one of them (prioritizing the description over the title)
-            img.__defineGetter__('alt', () => {
-                var title = img.meta.pt + '_' + img.meta.s;
-                img.setAttribute('alt', title);
-                return title;
-            });
-            img.__defineGetter__('name', () => {
-                var title = img.meta.pt + '_' + img.meta.s;
-                img.setAttribute('name', title);
-                return title;
-            });
-
-        }, 50);
-
-        //TODO: move GoogleDirectLinks functions calls here, no need for 2 observers, this will do everything
 
         img.classList.add('blur');
 
@@ -2687,7 +2710,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     /**
-     * TODO: maybe turn this to a promise?
      * @param {(HTMLImageElement|HTMLDivElement)} img image element, either <img class="rg_ic rg_i" ....> in .rg_bx
      * @param minified
      * @return {Meta}
@@ -2713,8 +2735,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         try {
             var rg_meta = div.querySelector('.rg_meta');
-            if(!rg_meta) {// this is probably gonna be the case for ris
-                var selector = '[data-ved="'+ $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx div.rg_meta';
+            if (!rg_meta) {// this is probably gonna be the case for ris
+                var selector = '[data-ved="' + $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx div.rg_meta';
                 rg_meta = document.querySelector(selector);
             }
 
@@ -2737,10 +2759,278 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return metaObj;
     }
 
+    //TODO: it's still not disabling dragging, need to call it in more places
+    function disableDragging() {
+        if (Preferences.page.disableDragging)
+            document.querySelectorAll('*').forEach(el => {
+                el.draggable = false;
+            });
+    }
+
+    /**
+     * @author: https://greasyfork.org/en/scripts/19210-google-direct-links-for-pages-and-images/code
+     * I just changed it to a module so I could call the methods at multiple places
+     * Google: Direct Links for Pages and Images
+     */
+    function googleDirectLinksInit() {
+        var o = {};
+        o.count = 0;
+        o.debug = false;
+
+        // web pages:            [0] url?url=
+        // images:               [1] imgres?imgurl=
+        // custom search engine: [2] url?q=
+        // malware:              [3] interstitial?url=
+        const re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
+
+        /** returns full path, not just partial path */
+        const normalizeUrl = (function () {
+            const fakeLink = document.createElement('a');
+
+            return function (url) {
+                fakeLink.href = url;
+                return fakeLink.href;
+            }
+        })();
+
+        /**
+         * - purifyLink
+         * - set rel="noreferrer", referrerpolicy="no-referrer"
+         * - stopImmediatePropagation onclick */
+        const enhanceLink = function (a) {
+            // at this point, href= the gimg search page url
+            /** stop propagation onclick */
+            var purifyLink = function (a) {
+                if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
+                    a.removeAttribute('onmousedown');
+                }
+                if (a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
+                    a.addEventListener('click', function (e) {
+                        e.stopImmediatePropagation();
+                        e.stopPropagation();
+                    }, true);
+                }
+            };
+
+            purifyLink(a);
+            a.setAttribute('rel', 'noreferrer');
+            a.setAttribute('referrerpolicy', 'no-referrer');
+        };
+
+        /** make thumbnail info-bar clickable
+         *  @faris: storing "fullres-src" attribute to images
+         */
+        const enhanceThumbnail = function (link, url) {
+            const phref = link.getAttribute('phref');
+
+            // @faris, storing fullres-src attribute to images
+            var imgs = [].slice.call(link.querySelectorAll('div~img'));
+            imgs.length && imgs.forEach(function (img) {
+                o.debug && console.log('img fullres-src="' + link.href + '"');
+                img.setAttribute('fullres-src', link.href); //@faris
+
+                //DEBUG: checking what the hell is causing "&reload=on"
+                img.__defineGetter__('src', () => img.getAttribute('src'));
+                img.__defineSetter__('src', (value) => {
+                    if (/&reload=on/.test(value))
+                        o.debug && console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
+
+                    return img.setAttribute('src', value.replace(/&reload=on$/, ''));
+                });
+
+                // img.phref = phref; //@faris
+            });
+
+            var infos = [].slice.call(link.querySelectorAll('img~div.rg_ilmbg'));
+            if (infos.length > 0) {
+                var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
+                infos.forEach(function (info) {
+                    var pagelink = document.createElement('a');
+                    enhanceLink(pagelink);
+                    pagelink.href = pageUrl;
+                    pagelink.className = 'x_source_link';
+                    pagelink.textContent = info.textContent;
+                    info.textContent = '';
+                    info.appendChild(pagelink);
+                });
+            }
+
+
+            //@faris
+            var footLink = link.parentElement.querySelector('a.irc-nic');
+            if (footLink && !footLink.parentElement.querySelector('.phref')) {
+                // splitting the 2 lines of the footlink to 2 links, one with the phref
+                const footLinkTop = footLink.cloneNode();
+                footLinkTop.classList.add('phref');
+
+                enhanceLink(footLink);
+
+                footLinkTop.phref = phref;
+                footLinkTop.setAttribute('phref', phref);
+                footLinkTop.href = phref;
+                footLinkTop.setAttribute('href', phref);
+
+                footLink.phref = phref;
+                footLink.setAttribute('phref', phref);
+                footLink.href = phref;
+                footLink.setAttribute('href', phref);
+                footLink.classList.add('panel-page', 'phref');
+
+                enhanceLink(footLinkTop);
+
+                // get first div and move it up
+                footLinkTop.appendChild(footLink.querySelector('div'));
+                footLink.before(footLinkTop);
+
+                // hold hotkey and click to site:search
+                {
+
+                    var siteSpan = createElement('<span class="site-span" style="display:none">site:</span>');
+                    footLink.querySelector('div').firstElementChild.before(siteSpan);
+
+                    const __restoreFootlink = function (theLink) {
+                        theLink.setAttribute('href', theLink.oghref || theLink.getAttribute('href'));
+                        siteSpan.style.display = 'none';
+                    };
+
+                    var handleHover = function (e) {
+                        if (e[Preferences.shortcuts.hotkey]) { // change to site:search
+                            this.oghref = this.href;
+                            const sitesearchUrl = GoogleUtils.url.siteSearchUrl(this.querySelector('div > span:nth-child(2)').innerText);
+                            this.setAttribute('href', sitesearchUrl);
+                            siteSpan.style.display = 'inline';
+                        } else {
+                            __restoreFootlink(this);
+                        }
+                    };
+
+
+                    footLink.addEventListener('key', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
+                    footLink.addEventListener('mouseenter', handleHover, false);
+                    footLink.addEventListener('mousemove', handleHover, false);
+                    footLink.addEventListener('mousedown', handleHover, false);
+                    footLink.addEventListener('mouseout', e => __restoreFootlink(footLink), false);
+                    footLink.addEventListener('mouseleave', e => __restoreFootlink(footLink), false);
+                }
+            }
+
+        };
+
+        /**
+         * replace redirect and dataUris
+         *
+         * @param {*|HTMLAnchorElement} link
+         * @param {string=} url
+         */
+        o.restore = function (link, url) {
+            var oldUrl = link.getAttribute('href') || '';
+            var newUrl = url || oldUrl;
+            newUrl = newUrl.replace(/&reload=on/, '');
+
+            var matches = newUrl.match(re);
+            if (matches) {
+                o.debug && console.log('restoring', link._x_id, newUrl);
+
+                link.phref = oldUrl;
+                link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
+
+                link.href = decodeURIComponent(matches[2]);
+                enhanceLink(link);
+                if (matches[1] === 'imgres') {
+                    if (link.querySelector('img[src^="data:"]')) {
+                        link._x_href = newUrl;
+                    }
+                    enhanceThumbnail(link, newUrl);
+                }
+            } else if (url != null) {
+                link.setAttribute('href', newUrl);
+            }
+        };
+
+
+        const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
+            // /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
+            a.matches('.rg_l')
+        ;
+
+        const handler = function (a) {
+            if (!filter(a)) //@faris
+                return;
+
+            if (a._x_id) {
+                o.restore(a);
+                return;
+            }
+            // console.log('Anchor passed the test with href="' + a.href + '"', a);
+
+            a._x_id = ++o.count;
+            o.debug && a.setAttribute('x-id', a._x_id);
+
+            a.__defineSetter__('href', function setter(v) {
+                // in case an object is passed by clever Google
+                o.restore(this, String(v));
+            });
+            a.__defineGetter__('href', function getter() {
+                o.debug && console.log('get', this._x_id, this.getAttribute('href'), this);
+                return normalizeUrl(this.getAttribute('href'));
+            });
+
+            if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
+                /\brwt\(/.test(a.getAttribute('onmousedown')) ||
+                /\bmouse/.test(a.getAttribute('jsaction')) ||
+                a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
+                enhanceLink(a);
+            }
+
+            o.restore(a);
+        };
+
+        // observe
+        o.checkNewNodes = function (mutations) {
+            o.debug && console.log('State:', document.readyState);
+            if (mutations.target) {
+                o.checkAttribute(mutations);
+            } else {
+                mutations.forEach && mutations.forEach(o.checkAttribute);
+            }
+        };
+        o.checkAttribute = function (mutation) {
+            var target = mutation.target;
+
+            if (target && target.tagName === 'A') {
+                if ((mutation.attributeName || mutation.attrName) === 'href') {
+                    o.debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
+                }
+                handler(target);
+            } else if (target instanceof Element) {
+                target.querySelectorAll('a').forEach(handler);
+            }
+        };
+
+
+        o.observe = () => {
+            var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+            if (MutationObserver) {
+                o.debug && console.log('MutationObserver: true');
+                new MutationObserver(o.checkNewNodes).observe(document.documentElement, {
+                    childList: true,
+                    attributes: true,
+                    attributeFilter: ['href'],
+                    subtree: true
+                });
+            } else {
+                o.debug && console.log('MutationEvent: true');
+                document.addEventListener('DOMAttrModified', o.checkAttribute, false);
+                document.addEventListener('DOMNodeInserted', o.checkNewNodes, false);
+            }
+        };
+
+        return o;
+    }
 
     function getPanelPage(meta) {
         var img;
-        if(meta instanceof HTMLImageElement) {
+        if (meta instanceof HTMLImageElement) {
             img = meta;
             meta = getMeta(img);
         }
@@ -3010,13 +3300,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             base64urls: false
         })], {type: 'text/plain'}));
 
-        window.onunload = () => zip.genZip();
+        // window.onunload = () => zip.genZip();
 
         zip.onGenZip = e => {
             window.onbeforeunload = null;
             window.onunload = null;
             var closeAfterZip = document.querySelector('#closeAfterDownload');
-            if(closeAfterZip && closeAfterZip.checked) {
+            if (closeAfterZip && closeAfterZip.checked) {
                 console.log('close on zip');
                 window.close();
             }
@@ -3765,7 +4055,6 @@ function elementReady(getter, timeout = 0) {
             if (ret && (!returnMultipleElements || ret.length)) {
                 resolve(ret);
                 clearTimeout(_timeout);
-                console.debug('resolve(value):', ret);
 
                 return true;
             }
@@ -3794,6 +4083,7 @@ function elementReady(getter, timeout = 0) {
         });
     });
 }
+
 function getElementsByXPath(xpath, parent) {
     let results = [];
     let query = document.evaluate(xpath,
@@ -3846,235 +4136,4 @@ function enhanceLink(a) {
     a.setAttribute('referrerpolicy', 'no-referrer');
 }
 
-
-
-/**
- * @author: https://greasyfork.org/en/scripts/19210-google-direct-links-for-pages-and-images/code
- * I just changed it to a module so I could call the methods at multiple places
- * Google: Direct Links for Pages and Images
- */
-function googleDirectLinksInit() {
-    var o = {};
-    o.count = 0;
-    o.debug = false;
-
-    // web pages:            [0] url?url=
-    // images:               [1] imgres?imgurl=
-    // custom search engine: [2] url?q=
-    // malware:              [3] interstitial?url=
-    const re = /\b(url|imgres)\?.*?\b(?:url|imgurl|q)=(https?\b[^&#]+)/i;
-
-    /** returns full path, not just partial path */
-    const normalizeUrl = (function () {
-        const fakeLink = document.createElement('a');
-
-        return function (url) {
-            fakeLink.href = url;
-            return fakeLink.href;
-        }
-    })();
-
-    /**
-     * - purifyLink
-     * - set rel="noreferrer", referrerpolicy="no-referrer"
-     * - stopImmediatePropagation onclick */
-    const enhanceLink = function (a) {
-        // at this point, href= the gimg search page url
-        /** stop propagation onclick */
-        var purifyLink = function (a) {
-            if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
-                a.removeAttribute('onmousedown');
-            }
-            if (a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
-                a.addEventListener('click', function (e) {
-                    e.stopImmediatePropagation();
-                    e.stopPropagation();
-                }, true);
-            }
-        };
-
-        purifyLink(a);
-        a.setAttribute('rel', 'noreferrer');
-        a.setAttribute('referrerpolicy', 'no-referrer');
-    };
-
-    /** make thumbnail info-bar clickable
-     *  @faris: storing "fullres-src" attribute to images
-     */
-    const enhanceThumbnail = function (link, url) {
-        const phref = link.getAttribute('phref');
-
-        // @faris, storing fullres-src attribute to images
-        var imgs = [].slice.call(link.querySelectorAll('div~img'));
-        imgs.length && imgs.forEach(function (img) {
-            o.debug && console.log('img fullres-src="' + link.href + '"');
-            img.setAttribute('fullres-src', link.href); //@faris
-
-            //DEBUG: checking what the hell is causing "&reload=on"
-            img.__defineGetter__('src', () => img.getAttribute('src'));
-            img.__defineSetter__('src', (value) => {
-                if (/&reload=on/.test(value))
-                    o.debug && console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
-
-                return img.setAttribute('src', value.replace(/&reload=on$/, ''));
-            });
-
-            // img.phref = phref; //@faris
-        });
-
-        var infos = [].slice.call(link.querySelectorAll('img~div.rg_ilmbg'));
-        if (infos.length > 0) {
-            var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
-            infos.forEach(function (info) {
-                var pagelink = document.createElement('a');
-                enhanceLink(pagelink);
-                pagelink.href = pageUrl;
-                pagelink.className = 'x_source_link';
-                pagelink.textContent = info.textContent;
-                info.textContent = '';
-                info.appendChild(pagelink);
-            });
-        }
-
-
-        //@faris
-        var footLink = link.parentElement.querySelector('a.irc-nic');
-        if (footLink && !footLink.parentElement.querySelector('.phref')) {
-            // splitting the 2 lines of the footlink to 2 links, one with the phref
-            const footLinkTop = footLink.cloneNode();
-            footLinkTop.classList.add('phref');
-
-            enhanceLink(footLink);
-
-            footLinkTop.phref = phref;
-            footLinkTop.setAttribute('phref', phref);
-            footLinkTop.href = phref;
-            footLinkTop.setAttribute('href', phref);
-
-            footLink.phref = phref;
-            footLink.setAttribute('phref', phref);
-            footLink.href = phref;
-            footLink.setAttribute('href', phref);
-
-            enhanceLink(footLinkTop);
-
-            // get first div and move it up
-            footLinkTop.appendChild(footLink.querySelector('div'));
-            footLink.before(footLinkTop);
-        }
-
-
-    };
-
-    /**
-     * replace redirect and dataUris
-     *
-     * @param {*|HTMLAnchorElement} link
-     * @param {string=} url
-     */
-    o.restore = function (link, url) {
-        var oldUrl = link.getAttribute('href') || '';
-        var newUrl = url || oldUrl;
-        newUrl = newUrl.replace(/&reload=on/, '');
-
-        var matches = newUrl.match(re);
-        if (matches) {
-            o.debug && console.log('restoring', link._x_id, newUrl);
-
-            link.phref = oldUrl;
-            link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
-
-            link.href = decodeURIComponent(matches[2]);
-            enhanceLink(link);
-            if (matches[1] === 'imgres') {
-                if (link.querySelector('img[src^="data:"]')) {
-                    link._x_href = newUrl;
-                }
-                enhanceThumbnail(link, newUrl);
-            }
-        } else if (url != null) {
-            link.setAttribute('href', newUrl);
-        }
-    };
-
-
-    const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
-        // /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
-        a.matches('.rg_l')
-    ;
-
-    const handler = function (a) {
-        if (!filter(a)) //@faris
-            return;
-
-        if (a._x_id) {
-            o.restore(a);
-            return;
-        }
-        // console.log('Anchor passed the test with href="' + a.href + '"', a);
-
-        a._x_id = ++o.count;
-        o.debug && a.setAttribute('x-id', a._x_id);
-
-        a.__defineSetter__('href', function setter(v) {
-            // in case an object is passed by clever Google
-            o.restore(this, String(v));
-        });
-        a.__defineGetter__('href', function getter() {
-            o.debug && console.log('get', this._x_id, this.getAttribute('href'), this);
-            return normalizeUrl(this.getAttribute('href'));
-        });
-
-        if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
-            /\brwt\(/.test(a.getAttribute('onmousedown')) ||
-            /\bmouse/.test(a.getAttribute('jsaction')) ||
-            a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction'))) {
-            enhanceLink(a);
-        }
-
-        o.restore(a);
-    };
-
-    // observe
-    o.checkNewNodes = function (mutations) {
-        o.debug && console.log('State:', document.readyState);
-        if (mutations.target) {
-            o.checkAttribute(mutations);
-        } else {
-            mutations.forEach && mutations.forEach(o.checkAttribute);
-        }
-    };
-    o.checkAttribute = function (mutation) {
-        var target = mutation.target;
-
-        if (target && target.tagName === 'A') {
-            if ((mutation.attributeName || mutation.attrName) === 'href') {
-                o.debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
-            }
-            handler(target);
-        } else if (target instanceof Element) {
-            target.querySelectorAll('a').forEach(handler);
-        }
-    };
-
-
-    o.observe = () => {
-        var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
-        if (MutationObserver) {
-            o.debug && console.log('MutationObserver: true');
-            new MutationObserver(o.checkNewNodes).observe(document.documentElement, {
-                childList: true,
-                attributes: true,
-                attributeFilter: ['href'],
-                subtree: true
-            });
-        } else {
-            o.debug && console.log('MutationEvent: true');
-            document.addEventListener('DOMAttrModified', o.checkAttribute, false);
-            document.addEventListener('DOMNodeInserted', o.checkNewNodes, false);
-        }
-    };
-
-    return o;
-}
 
