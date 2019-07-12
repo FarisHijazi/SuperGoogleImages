@@ -1,20 +1,20 @@
 # SuperGoogle for Google Images
 
-- [SuperGoogle for Google Images](#supergoogle-for-google-images)
-  - [Description](#description)
-  - [Installation](#installation)
-    - [UserScript (Tampermonkey)](#userscript-tampermonkey)
-    - [Browser extension](#browser-extension)
-  - [Usage](#usage)
-    - [Display original images](#display-original-images)
-    - [Zip and download all the images](#zip-and-download-all-the-images)
-    - [Enhance the image panels](#enhance-the-image-panels)
-    - [Hotkeys](#hotkeys)
-  - [External Libraries](#external-libraries)
-  - [Libraries](#libraries)
-  - [Documentation](#documentation)
-  - [Contributing](#contributing)
-  - [License](#license)
+- [SuperGoogle for Google Images](#SuperGoogle-for-Google-Images)
+  - [Description](#Description)
+  - [Installation](#Installation)
+    - [UserScript (Tampermonkey)](#UserScript-Tampermonkey)
+    - [Browser extension](#Browser-extension)
+  - [Usage](#Usage)
+    - [Display original images](#Display-original-images)
+    - [Zip and download all the images](#Zip-and-download-all-the-images)
+    - [Enhance the image panels](#Enhance-the-image-panels)
+    - [Hotkeys](#Hotkeys)
+  - [External Libraries](#External-Libraries)
+  - [Libraries](#Libraries)
+  - [Documentation](#Documentation)
+  - [Contributing](#Contributing)
+  - [License](#License)
 
 ## Description
 
@@ -48,6 +48,8 @@ Below is a list of the available features, listed from what is (probably) most u
 ### Display original images
 
 One of the most important features, replaces thumbnails with the original source images, even GIFs!
+
+![original images](Screenshots/Screenshot_imageBoxes_playing_GIFs.gif)
 
 ### Zip and download all the images
 
