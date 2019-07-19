@@ -48,28 +48,28 @@
 /**
  * Metadata object containing info for each image
  * @typedef {Object} Meta
+ *                   key | description      | example values
+ * @property {string} id:  Id               - "ZR4fY_inahuKM:",
+ * @property {string} isu: Hostpage URL     - "gifs.cc",
+ * @property {number} itg: Image Tag        - 0,
+ * @property {string} ity: Image Type       - "gif",
  *
- * @property {string} id:  Id               - example: "ZR4fY_inahuKM:",
- * @property {string} isu: Hostpage URL     - example: "gifs.cc",
- * @property {number} itg: Image Tag        - example: 0,
- * @property {string} ity: Image Type       - example: "gif",
+ * @property {number} oh:  Original Height  - 322,
+ * @property {string} ou:  Original URL     - "http://78.media.tumblr.com/....500.gif",
+ * @property {number} ow:  Original Width   - 492,
  *
- * @property {number} oh:  Original Height  - example: 322,
- * @property {string} ou:  Original URL     - example: "http://78.media.tumblr.com/....500.gif",
- * @property {number} ow:  Original Width   - example: 492,
+ * @property {string} rh:  Referrer Host    - "",
+ * @property {string} rid: Referrer id      - "nyyV1PqBnBltYM",
+ * @property {number} rmt: Referrer ? ?     - 0,
+ * @property {number} rt:  Referrer ? ?     - 0,
+ * @property {string} ru:  Referrer URL     - "",
  *
- * @property {string} rh:  Referrer Host     - example: "",
- * @property {string} rid: Referrer id      - example: "nyyV1PqBnBltYM",
- * @property {number} rmt: Referrer ? ?     - example: 0,
- * @property {number} rt:  Referrer ? ?     - example: 0,
- * @property {string} ru:  Referrer URL     - example: "",
- *
- * @property {string} pt:  Primary Title    - example: "",
- * @property {string} s:   Description      - example: "Photo",
- * @property {string} st:  Secondary Title  - example: "",
- * @property {number} th:  Thumbnail Height - example: 182,
- * @property {string} tu:  Thumbnail URL    - example: "https://encrypted-tbn0.gstatic.com/images?q",
- * @property {number} tw:  Thumbnail Width  - example: 278
+ * @property {string} pt:  Primary Title    - "",
+ * @property {string} s:   Description      - "Photo",
+ * @property {string} st:  Secondary Title  - "",
+ * @property {number} th:  Thumbnail Height - 182,
+ * @property {string} tu:  Thumbnail URL    - "https://encrypted-tbn0.gstatic.com/images?q",
+ * @property {number} tw:  Thumbnail Width  - 278
  *
  * my added properties:
  * @property {string} src:  src of the IMG element
@@ -264,7 +264,7 @@ const PProxy = (function () {
      * @returns {Set} containing what this has but other doesn't */
     Set.prototype.difference = function (other) {
         if (!other.has) other = new Set(other);
-        return new Set(Array.from(this).filter(x => !other.has(x)))
+        return new Set(Array.from(this).filter(x => !other.has(x)));
     };
 
 
@@ -1041,14 +1041,13 @@ const PProxy = (function () {
             return nextImageArrow;
         }
         /**
-         * fixme: doesn't really work
+         * FIXME: doesn't really work
          * fetches and goes to the page for the current image (similar to image search but just 'more sizes of the same image')
          */
         static moreSizes() {
             const panel = this;
             const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
 
-            //FIXME: what the hell is this?! fetchUsingProxy() doesn't exist
             const fetchUsingProxy = (url, callback) => {
                 const proxyurl = 'https://cors-anywhere.herokuapp.com/';
                 callback = callback || (contents => console.log(contents));
@@ -1096,7 +1095,7 @@ const PProxy = (function () {
                     );
                 }
 
-                imgTitle = meta['pt'];
+                imgTitle = meta.pt;
                 const href = imgDiv.querySelector('a[href]').href;
 
                 return {
@@ -2284,7 +2283,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // buttons
         const createGButton = (id, innerText, onClick) => {
             const button = createElement(`<button class="${Consts.ClassNames.buttons} sg sbtn hdtb-tl" id="${id}">${innerText.replace(/\s/g, '&nbsp;')}</button>`);
-            if (onClick && typeof (onClick) === 'function') {
+            if (typeof (onClick) === 'function') {
                 button.onclick = function () {
                     onClick();
                 };
@@ -2294,56 +2293,63 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         /**
-         * @param id    the checkbox element id
-         * @param labelText
-         * @param onChange    what happens when the text box changes?
-         * @param checked
+         * @param {string} id    the checkbox element id
+         * @param {string=} labelText
+         * @param {Function=} onChange on box change, Function(checked: bool) this: checkboxEl
+         * @param {bool=} checked
          * @returns {HTMLDivElement} this label element contains a checkbox input element
          */
-        const createGCheckBox = (id, labelText, onChange, checked) => {
-            checked = checked === true || GM_getValue(id); // get default value if not passed
-            labelText = labelText.replace(/\s/g, '&nbsp;');
+        const createGCheckBox = (id, labelText='label', onChange=()=>null, checked=null) => {
+            checked = GM_getValue(id, !!checked); // load value, fallback to passed value
 
-            const checkBoxContainerEl = createElement(
-                `<div class="sg" style="display:inline;">
-<input id="${id}" type="checkbox" ${checked ? 'checked="checked"' : ''}>
-<label for="${id}">${labelText}</label>
-</div>`);
-            if (typeof onChange === 'function') {
-                checkBoxContainerEl.addEventListener('change', onChange);
-            }
-            return checkBoxContainerEl;
+            const $container = $('<div>').attr({
+                'id': id.trim()+'-div',
+                'class': 'sg',
+            }).css({
+                'display': 'inline',
+            });
+            const $checkbox = $('<input>').attr({
+                'id': id,
+                'type': 'checkbox',
+                'checked': checked,
+            });
+            const $label = $(`<label for="${id}">${labelText.replace(/\s/g, '&nbsp;')}</label>`);
+
+            $container.append($label).append($checkbox);
+
+            $container.change(function (e) {
+                if (typeof onChange === 'function')
+                    onChange.call($checkbox[0], e);
+                
+                GM_setValue(id, e.checked);
+            });
+            
+            return $container[0];
         };
 
         // Check boxes
-        const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function () {
-            const checked = document.querySelector('#hideFailedImagesBox').checked;
-            setVisibilityForImages(!checked, isFailedImage);
-            Preferences.loading.hideFailedImagesOnLoad = !checked; // remember the preference
+        const cbox_ShowFailedImages = createGCheckBox('hideFailedImagesBox', 'Hide failed images', function (e) {
+            setVisibilityForImages(!e.checked, isFailedImage);
+            Preferences.loading.hideFailedImagesOnLoad = !e.checked; // remember the preference
         }, Preferences.loading.hideFailedImagesOnLoad);
-        const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function () {
-            setVisibilityForImages(!document.querySelector('#GIFsOnlyBox').checked, isGif, false, true); // hide nonGifs when NOT checked
+        const cbox_GIFsOnly = createGCheckBox('GIFsOnlyBox', 'GIFs only', function (e) {
+            setVisibilityForImages(!e.checked, isGif, false, true); // hide nonGifs when NOT checked
         }, false);
-        const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy',
-            () => {
-                Preferences.loading.useDdgProxy = document.querySelector('#useDdgProxyBox').checked;
+        const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy', function (e) {
+                Preferences.loading.useDdgProxy = e.checked;
                 updateQualifiedImagesLabel();
             },
             Preferences.loading.useDdgProxy
         );
-        const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs',
-            () => GM_setValue('GIFsException', document.querySelector('#GIFsExceptionBox').checked),
-            GM_getValue('GIFsException', true)
-        );
+        const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs');
         const cbox_OnlyShowQualifiedImages = createGCheckBox('OnlyShowQualifiedImages', 'Only show qualified images',
-            () => GM_setValue('OnlyShowQualifiedImages', this.checked), //fixme: causes an error: "Uncaught TypeError: Cannot read property 'checked' of undefined" only for the `Only show qualified images` checkbox
-            GM_getValue('OnlyShowQualifiedImages', false)
+            null,
+            // (e) => GM_setValue('OnlyShowQualifiedImages', e.checked),
+            false
         );
-        const cbox_ZIP = createGCheckBox('zipInsteadOfDownload', 'ZIP', function changeZIPBtnText() {
-            const checked = cbox_ZIP.checked;
+        const cbox_ZIP = createGCheckBox('zipInsteadOfDownload', 'ZIP', function (e) {
             updateDownloadBtnText();
-            GM_setValue('zipInsteadOfDownload', checked);
-        }, GM_getValue('zipInsteadOfDownload', true));
+        }, true);
         cbox_ZIP.style.padding = '0px';
 
         const cbox_closeAfterDownload = createGCheckBox('closeAfterDownload', 'close after download', null, true);
@@ -2384,7 +2390,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }).length);
             };
             Components.minImgSizeSlider.onchange = function () {
-                // todo: maybe this can be done using a CSS, rather than manually changing it every time
+                // TODO: maybe this can be done using a CSS, rather than manually changing it every time
                 // hide images that are too small
                 setVisibilityForImages(false, '.sg-too-small-hide', false);
                 clearEffectsDelayed();
