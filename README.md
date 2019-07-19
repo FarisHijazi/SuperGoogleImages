@@ -27,11 +27,14 @@ See [demo video here](https://youtu.be/ceFuBh8r8GQ?t=24).
 
 ### UserScript (Tampermonkey)
 
-1. Make sure you have a [UserScript client][get-user-script] browser extension (like Tampermonkey).
-2. [Download][download-link] or visit the RAW file url.
-3. [Required only for downloading] Go to the Tampermonkey settings and change download mode to `Browser API`, see [How do I setup userscript-triggered downloads?][browser-API-beta].
-    > Tampermonkey dashboard (by clicking the icon) > Downloads BETA > Download Mode: > Browser API > Save
-4. [Required only for downloading] The script also needs `@connect` permissions to connect to other domains, to do this, click `always allow`. TODO: add screenshot
+1. Install [Tampermonkey](install:tampermonkey-chrome) (or any [UserScript client][guide:get-user-script]) for your browser.
+2. Click [DOWNLOAD][download-link] (or visit the RAW file url).
+3. [Optional: for downloading images] Enable downlaods  
+    For Tampmonkey, do the following
+      - Enable `Browser API`. See guide here: "[How do I setup userscript-triggered downloads][guide:browser-API-beta]".  
+        ![enable browser API beta][guide:browser-API-beta-gif]
+      - When prompted, allow the script to load images, click `always allow` (first time only).  
+        ![allow connect permissions](Screenshots/Screenshot_tampermonkey_allow_connect.png)
 
 ### Browser extension
 
@@ -133,6 +136,9 @@ TODO: Add documentation
 [Apache License](LICENSE.md)  
 Version 2.0, January 2004
 
-[get-user-script]: https://openuserjs.org/about/Userscript-Beginners-HOWTO#how-do-i-get-going-
-[browser-API-beta]: https://www.tampermonkey.net/faq.php#Q302
+[guide:get-user-script]: https://openuserjs.org/about/Userscript-Beginners-HOWTO#how-do-i-get-going-
+[guide:userscript]: https://simply-how.com/enhance-and-fine-tune-any-web-page-the-complete-user-scripts-guide#section-2
+[guide:browser-API-beta]: https://www.tampermonkey.net/faq.php#Q302
+[guide:browser-API-beta-gif]: https://www.tampermonkey.net/images/animated/gm_download.gif
 [download-link]: https://github.com/FarisHijazi/SuperGoogle/raw/master/SuperGoogle.user.js
+[install:tampermonkey-chrome]: https://www.tampermonkey.net/index.php?ext=dhdg&browser=chrome
