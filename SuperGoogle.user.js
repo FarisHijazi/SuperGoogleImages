@@ -1795,14 +1795,34 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     elementReady('body').then(go);
 
     document.addEventListener('DOMContentLoaded', function () {
-        if (!(GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel)) return;
-
-        // automatically display originals if searching for a site:
-        if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
-            console.log('automatically display originals for "site:" search');
-            shouldShowOriginals = true;
-            showOriginals()
+        // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
+        var menuItems = getMenuItems();
+        for (const item of Object.keys(menuItems)) {
+            Mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], function (e) {
+                var elChild = menuItems[item].firstElementChild;
+                if(elChild) elChild.click();
+            });
         }
+
+        if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) { // if Google images
+            // automatically display originals if searching for a site:
+            if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
+                console.log('automatically display originals for "site:" search');
+                shouldShowOriginals = true;
+                showOriginals();
+            }
+        }
+        // if NOT google images:
+        else {
+            // bind each result to the corresponding number
+            for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
+                Mousetrap.bind(String(i + 1), () => {
+                    results[i].querySelector('a').click();
+                });
+                results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
+            }
+        }
+
     }, false);
 
     // click showAllSizes link when it appears
@@ -1880,13 +1900,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         } else { // else if not google images
-            // bind each result to the corresponding number
-            for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
-                Mousetrap.bind(String(i + 1), () => {
-                    results[i].querySelector('a').click();
-                });
-                results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
-            }
+            
         }
     }
 
@@ -1977,10 +1991,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind(['ctrl+alt+r'], function () {
             // not implemented
             console.log('not implemented, find something to put here');
-        });
-        Mousetrap.bind(['i'], function (e) {
-            var mi = getMenuItems();
-            mi.images.firstElementChild && mi.images.firstElementChild.click();
         });
         Mousetrap.bind(['/'], function (e) { // focus search box
             const searchBar = document.querySelector(Consts.Selectors.searchBox);
@@ -2132,7 +2142,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         // switch to specific google domain/hostname (like ipv4.google.com)
-        if (typeof Preferences.location.forcedHostname === 'string' && !(Preferences.location.forcedHostname.charAt(0) === '!')) {
+        if (typeof (Preferences.location.forcedHostname) === 'string' && Preferences.location.forcedHostname.charAt(0) !== '!') {
             pageUrl.hostname = Preferences.location.forcedHostname;
         }
 
@@ -3499,7 +3509,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         for (i = 0; i < words1.length; i++) {
             for (j = 0; j < words2.length; j++) {
                 if (words1[i].toLowerCase() === words2[j].toLowerCase()) {
-                    console.log('word ' + words1[i] + ' was found in both strings');
+                    console.debug('word ' + words1[i] + ' was found in both strings');
                     resultWords.push(words1[i]);
                 }
             }
