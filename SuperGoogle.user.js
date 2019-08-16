@@ -285,9 +285,9 @@ var normalizeUrl = (function () {
         // if the selector key ends with 's' (plural), then it gets multiple elements, otherwise just a single element
         for (const key of Object.keys(Consts.Selectors)) {
             const v = Consts.Selectors[key];
-            els.__defineGetter__(key,
-                key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
-                    (k) => document.querySelectorAll(v) : (k) => document.querySelector(v));
+            els.__defineGetter__(key, (k) => key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
+                    document.querySelectorAll(v) : document.querySelector(v)
+            );
         }
 
 
@@ -523,8 +523,9 @@ var normalizeUrl = (function () {
                 const usp = new URL(a.href, location.href).searchParams;
                 if (usp.get('imgrefurl')) {
                     const href = usp.get('imgrefurl');
-                    if (!a.parentElement.querySelector('.page-link'))
-                        a.after(createElement('<a class="page-link" target="_blank" href="' + href + '">page</a>'))
+                    if (!a.parentElement.querySelector('.page-link')) {
+                        a.after(createElement('<a class="page-link" target="_blank" href="' + href + '">page</a>'));
+                    }
                 }
             }
         }
@@ -566,7 +567,7 @@ var normalizeUrl = (function () {
                     'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
                 })
             ), null, 4);
-            anchorClick(makeTextFile(json), document.title + '.json')
+            anchorClick(makeTextFile(json), document.title + '.json');
         }
     }
 
@@ -645,7 +646,7 @@ var normalizeUrl = (function () {
         }
         /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
         static get focP() {
-            return this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"]').panel;
+            return this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"], div.irc_c').panel;
             // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
         }
         static get noPanelWasOpened() {
@@ -904,7 +905,7 @@ var normalizeUrl = (function () {
             var x = nextImageArrow && nextImageArrow.style.display !== 'none' ? // is it there?
                 !nextImageArrow.click() : // returns true
                 false;
-            if (!x) debug && console.log('next arrow doesn\'t exist');
+            if (!x) if (debug) console.log('next arrow doesn\'t exist');
             return nextImageArrow;
         }
         /**
@@ -921,7 +922,7 @@ var normalizeUrl = (function () {
                 return fetch(proxyurl + url) // https://cors-anywhere.herokuapp.com/https://example.com
                     .then(response => response.text())
                     .then(callback)
-                    .catch(() => console.error(`Can’t access ${url} response. Blocked by browser?`))
+                    .catch(() => console.error(`Can’t access ${url} response. Blocked by browser?`));
             };
             let z = open().document;
             fetchUsingProxy(reverseImgSearchUrl, function (content) {
@@ -1045,7 +1046,7 @@ var normalizeUrl = (function () {
                 return panel;
             }
 
-            debug && console.debug('Modifying panelEl:', panel.el);
+            if (debug) console.debug('Modifying panelEl:', panel.el);
 
             panel.el.addEventListener('panelMutation', () => panel.onPanelMutation());
             panel.el.classList.add('modified-panel');
@@ -1253,7 +1254,7 @@ var normalizeUrl = (function () {
         }
         showRis() {
             for (const div of this.ris_Divs) {
-                // debug && console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
+                // if (debug) console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
                 const img = div.querySelector('img');
                 showImages.replaceImgSrc(img).then(e => {
                     if (isLoaded(img) && div.matches('.irc_rist')) { // if is the focused ris
@@ -1503,21 +1504,26 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             const sTitle = this.sTitle_Anchor;
             switch (position) {
-                case 'BOTTOM':
+                case 'BOTTOM': {
                     // check if the below-st-div exists, create if it doesn't, then appendChild
                     let belowDiv = sTitle.parentElement.parentElement.querySelector(`.${Consts.ClassNames.belowDiv}`);
                     belowDiv.after(containerEl);
                     break;
-                case 'LEFT':
+                }
+                case 'LEFT': {
                     sTitle.before(containerEl);
                     break;
-                case 'RIGHT':
+                }
+                case 'RIGHT': {
                     sTitle.parentNode.appendChild(containerEl);
                     break;
-                case 'NONE':
+                }
+                case 'NONE': {
                     break;
-                default:
+                }
+                default: {
                     console.warn('Invalid position passed:', position);
+                }
             }
 
             if (clickListener) {
@@ -1596,13 +1602,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          * Called every time a panel mutation is observed
          */
         onPanelMutation(mutations) {
-            // debug && console.log('panelMutation()');
+            // if (debug) console.log('panelMutation()');
             this.__update();
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
 
             if (Preferences.panels.autoShowFullresRelatedImages) {
-                this.showRis()
+                this.showRis();
             }
 
             (function updateSliderLimits() {
@@ -1667,7 +1673,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         for (const item of Object.keys(menuItems)) {
             Mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], function (e) {
                 var elChild = menuItems[item].firstElementChild;
-                if(elChild) elChild.click();
+                if (elChild) elChild.click();
             });
         }
 
@@ -1683,7 +1689,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         else {
             // bind each result to the corresponding number
             for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
-                Mousetrap.bind(String(i + 1), () => {
+                Mousetrap.bind(String(i + 1), (e) => {
                     results[i].querySelector('a').click();
                 });
                 results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
@@ -1767,7 +1773,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         } else { // else if not google images
-            
+
         }
     }
 
@@ -1884,7 +1890,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
         Mousetrap.bind(['['], function (e) {
-            Components.minImgSizeSlider.stepDown()
+            Components.minImgSizeSlider.stepDown();
         });
         Mousetrap.bind([']'], function (e) {
             Components.minImgSizeSlider.stepUp();
@@ -2176,11 +2182,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          * @param {bool=} checked
          * @returns {HTMLDivElement} this label element contains a checkbox input element
          */
-        const createGCheckBox = (id, labelText='label', onChange=()=>null, checked=null) => {
+        const createGCheckBox = (id, labelText = 'label', onChange = () => null, checked = null) => {
             checked = GM_getValue(id, !!checked); // load value, fallback to passed value
 
             const $container = $('<div>').attr({
-                'id': id.trim()+'-div',
+                'id': id.trim() + '-div',
                 'class': 'sg',
             }).css({
                 'display': 'inline',
@@ -2197,10 +2203,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             $container.change(function (e) {
                 if (typeof onChange === 'function')
                     onChange.call($checkbox[0], e);
-                
+
                 GM_setValue(id, e.checked);
             });
-            
+
             return $container[0];
         };
 
@@ -2213,9 +2219,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             setVisibilityForImages(!e.checked, isGif, false, true); // hide nonGifs when NOT checked
         }, false);
         const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy', function (e) {
-                Preferences.loading.useDdgProxy = e.checked;
-                updateQualifiedImagesLabel();
-            },
+            Preferences.loading.useDdgProxy = e.checked;
+            updateQualifiedImagesLabel();
+        },
             Preferences.loading.useDdgProxy
         );
         const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs');
@@ -2313,7 +2319,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             for (const a of imgLinks) {
                 const img = a.querySelector('img');
-                const dlName = cleanGibberish(getMeta(img)['pt']);
+                const dlName = cleanGibberish(getMeta(img).pt);
 
                 // img.setAttribute('download-name', dlName);
                 img.setAttribute('alt', dlName);
@@ -2411,8 +2417,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @return {Meta[]}
      */
     function getQualifiedUblImgMetas() {
-        const condition = meta => !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_PROXY) // not marked as failed
-            && meta && Math.max(meta.ow, meta.oh) >= 120); // not too small;
+        const condition = meta => (
+            typeof (meta) !== 'undefined' &&
+            !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_PROXY)) && // not marked as failed
+            Math.max(meta.ow, meta.oh) >= 120 // not too small;
+        );
 
         return Array.from(getImgBoxes(' a.rg_l img[loaded="true"], a.rg_l img[loaded="true"]'))
             .map(getMeta)
@@ -2425,7 +2434,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (!zip || Object.keys(zip.files).length < 1) {
                 gZipImages();
             } else {
-                zip && zip.genZip();
+                if (zip) zip.genZip();
             }
         } else {
             if (currentDownloadCount >= document.querySelector('#dlLimitSlider').value) {
@@ -2478,7 +2487,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         return [].filter.call(document.querySelectorAll('img.rg_ic.rg_i:not([loaded="error"])'), (img, i) => {
             const qualDim = img.satisfiesDimensions || exception4smallGifs && isGif(img.meta);
-            return (qualDim && (ignoreDlLimit || i < dlLimit))
+            return (qualDim && (ignoreDlLimit || i < dlLimit));
         });
     }
 
@@ -2495,7 +2504,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (meta.hasOwnProperty(prop))
                 delete meta[prop];
 
-        return meta
+        return meta;
     }
 
 
@@ -2627,7 +2636,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 imgBx.addEventListener('mouseout', () => {
                     clearTimeout(timeout);
                 });
-            }
+            };
         })();
 
         /**
@@ -2817,7 +2826,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             return function (url) {
                 fakeLink.href = url;
                 return fakeLink.href;
-            }
+            };
         })();
 
         /**
@@ -2852,15 +2861,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // @faris, storing fullres-src attribute to images
             var imgs = [].slice.call(link.querySelectorAll('div~img'));
-            imgs.length && imgs.forEach(function (img) {
-                o.debug && console.log('img fullres-src="' + link.href + '"');
+            if (imgs.length > 0) imgs.forEach(function (img) {
+                if (o.debug) console.log('img fullres-src="' + link.href + '"');
                 img.setAttribute('fullres-src', link.href); //@faris
 
                 //DEBUG: checking what the hell is causing "&reload=on"
                 img.__defineGetter__('src', () => img.getAttribute('src'));
                 img.__defineSetter__('src', (value) => {
                     if (/&reload=on/.test(value))
-                        o.debug && console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
+                        if (o.debug) console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
 
                     return img.setAttribute('src', value.replace(/&reload=on$/, ''));
                 });
@@ -2956,7 +2965,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             var matches = newUrl.match(re);
             if (matches) {
-                o.debug && console.log('restoring', link._x_id, newUrl);
+                if (o.debug) console.log('restoring', link._x_id, newUrl);
 
                 link.phref = oldUrl;
                 link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
@@ -2991,14 +3000,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // console.log('Anchor passed the test with href="' + a.href + '"', a);
 
             a._x_id = ++o.count;
-            o.debug && a.setAttribute('x-id', a._x_id);
+            if (o.debug) a.setAttribute('x-id', a._x_id);
 
             a.__defineSetter__('href', function setter(v) {
                 // in case an object is passed by clever Google
                 o.restore(this, String(v));
             });
             a.__defineGetter__('href', function getter() {
-                o.debug && console.log('get', this._x_id, this.getAttribute('href'), this);
+                if (o.debug) console.log('get', this._x_id, this.getAttribute('href'), this);
                 return normalizeUrl(this.getAttribute('href'));
             });
 
@@ -3014,11 +3023,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         // observe
         o.checkNewNodes = function (mutations) {
-            o.debug && console.log('State:', document.readyState);
+            if (o.debug) console.log('State:', document.readyState);
             if (mutations.target) {
                 o.checkAttribute(mutations);
             } else {
-                mutations.forEach && mutations.forEach(o.checkAttribute);
+                if (mutations.forEach) mutations.forEach(o.checkAttribute);
             }
         };
         o.checkAttribute = function (mutation) {
@@ -3026,7 +3035,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             if (target && target.tagName === 'A') {
                 if ((mutation.attributeName || mutation.attrName) === 'href') {
-                    o.debug && console.log('restore attribute', target._x_id, target.getAttribute('href'));
+                    if (o.debug) console.log('restore attribute', target._x_id, target.getAttribute('href'));
                 }
                 handler(target);
             } else if (target instanceof Element) {
@@ -3038,7 +3047,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         o.observe = () => {
             var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
             if (MutationObserver) {
-                o.debug && console.log('MutationObserver: true');
+                if (o.debug) console.log('MutationObserver: true');
                 new MutationObserver(o.checkNewNodes).observe(document.documentElement, {
                     childList: true,
                     attributes: true,
@@ -3046,7 +3055,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     subtree: true
                 });
             } else {
-                o.debug && console.log('MutationEvent: true');
+                if (o.debug) console.log('MutationEvent: true');
                 document.addEventListener('DOMAttrModified', o.checkAttribute, false);
                 document.addEventListener('DOMNodeInserted', o.checkNewNodes, false);
             }
