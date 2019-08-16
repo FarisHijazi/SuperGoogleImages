@@ -241,6 +241,7 @@ var normalizeUrl = (function () {
                 autoShowFullresRelatedImages: true,
                 loopbackWhenCyclingRelatedImages: false,
                 favoriteOnDownloads: true, // favorite any image that you download
+                enableWheelNavigation: true,
                 invertWheelRelativeImageNavigation: false,
             },
         };
@@ -1113,6 +1114,7 @@ var normalizeUrl = (function () {
 
             //@info .irc_ris    class of the relatedImgsDivContainer
             //@info div#isr_mc  the main container containing all the image boxes, and the panels (only 2 children)
+            if (Preferences.panels.enableWheelNavigation && !GoogleUtils.isRightViewLayout)
             panel.el.addEventListener(
                 'wheel',
                 /**
