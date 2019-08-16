@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Super Google Images
-// @namespace    https://github.com/FarisHijazi
+// @namespace    https://github.com/FarisHijazi/SuperGoogle
 // @author       Faris Hijazi
-// @version      0.8
+// @version      0.9
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -19,12 +19,15 @@
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
 // @require      https://github.com/ccampbell/mousetrap/raw/master/mousetrap.min.js
+// @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/PProxy.js
 // @require      https://github.com/FarisHijazi/GM_downloader/raw/master/GM_Downloader.user.js
 // @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/ShowImages.js
 // @updateUrl    https://raw.githubusercontent.com/FarisHijazi/SuperGoogle/master/SuperGoogle.user.js
 // @run-at       document-start
 // @connect      *
 // ==/UserScript==
+
+// https://github.com/FarisHijazi/SuperGoogle/projects/1
 
 /**
  * Copyright 2019-2030 Faris Hijazi
@@ -84,142 +87,6 @@ var normalizeUrl = (function () {
         fakeLink.href = url;
         return fakeLink.href;
     };
-})();
-
-const PProxy = (function () {
-    class ProxyInterface {
-        constructor() {
-            throw Error('Static class cannot be instantiated');
-        }
-        static get color() {
-            return '#00000';
-        }
-        // only to be used by children
-        static get name() {
-            return constructor.name;
-        }
-
-        static test(url) {
-        }
-        static proxy(url) {
-        }
-        static reverse(proxyUrl) {
-        }
-    }
-
-    /**Returns a DuckDuckGo proxy url (attempts to unblock the url)*/
-    class DDG extends ProxyInterface {
-        static get color() {
-            return '#FFA500';
-        }
-        static test(url) {
-            return /^https:\/\/proxy\.duckduckgo\.com/.test(url);
-        }
-        static proxy(url) {
-            return DDG.test(url) || /^(javascript)/i.test(url) ? url : (`https://proxy.duckduckgo.com/iu/?u=${encodeURIComponent(url)}&f=1`);
-        }
-        /** @deprecated */
-        static isDdgUrl() {
-            new Error('This function "isDdgUrl()" is deprecated, use "PProxy.DDG.test()" instead');
-        }
-        static reverse(url) {
-            // if (isZscalarUrl(url)) s = getOGZscalarUrl(url); // extra functionality:
-            if (!DDG.test(url)) {
-                return url;
-            }
-            return new URL(location.href).searchParams.get('u');
-        }
-    }
-
-    /**Returns a Pocket proxy url*/
-    class Pocket extends ProxyInterface {
-        //             static BASE_URL = 'https://d3du9nefdtilsa.cloudfront.net/unsafe/fit-in/x/smart/filters%3Ano_upscale()/';
-        static get color() {
-            return '#e082df';
-        }
-        static test(url) {
-            return /(^https:\/\/pocket-image-cache\.com\/direct\?url=)|(cloudfront\.net\/unsafe\/fit-in\/x\/smart\/filters%3Ano_upscale\(\)\/)/.test(url);
-        }
-        static proxy(url) {
-            return Pocket.test(url) || /^(javascript)/i.test(url) ? url : 'https://pocket-image-cache.com/direct?url=' + url;
-        }
-        static reverse(url) {
-            if (!Pocket.test(url)) {
-                return url;
-            }
-
-            if (url.indexOf(Pocket.BASE_URL) === 0) {
-                return url.substring(Pocket.BASE_URL.length, -1);
-            }
-            if (url.indexOf('https://pocket-image-cache.com/direct') === 0) {
-                return new URL(url).searchParams.get('url');
-            }
-            return url;
-        }
-    }
-
-    class FileStack extends ProxyInterface {
-        static get color() {
-            return '#acb300';
-        }
-        static test(url) {
-            return /https:\/\/process\.filestackapi\.com\/.+\//.test(url);
-        }
-        static proxy(url) {
-            return 'https://process.filestackapi.com/AhTgLagciQByzXpFGRI0Az/' + encodeURIComponent(url.trim());
-        }
-        static reverse(url) {
-        }
-    }
-
-    class SteemitImages extends ProxyInterface {
-        static get color() {
-            return '#0074B3';
-        }
-        static test(url) {
-            return /https:\/\/steemitimages\.com\/(p|0x0)\//.test(url);
-        }
-        static proxy(url) {
-            return /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(url) ? ('https://steemitimages.com/0x0/' + url.trim()) : url;
-        }
-        static reverse(url) {
-            if (!SteemitImages.test(url)) {
-                return url;
-            }
-            console.warn('SteemitImages.reverse() is not fully supported, it\'ll only work sometimes');
-            return url.replace('https://steemitimages.com/0x0/', '');
-        }
-    }
-
-    //
-
-    var PProxy = {};
-    PProxy.proxies = [
-        FileStack,
-        SteemitImages,
-        DDG,
-        Pocket,
-    ];
-    PProxy.__defineGetter__('names', () => PProxy.proxies.map(p => p.name));
-    /**
-         * get a proxified url from each proxy
-         * @param url
-         * @returns {*}
-         */
-    PProxy.proxyList = function (url) {
-        if (url) return PProxy.proxies.map(proxy => proxy.proxy(url));
-    };
-    PProxy.proxyAll = function (url) {
-        var o = {};
-        if (url) o.proxies.forEach(proxy => o[proxy.name] = proxy.proxy(url));
-        return o;
-    };
-
-    for (const p of PProxy.proxies) {
-        PProxy[p.name] = p;
-    }
-
-    return PProxy;
 })();
 
 
