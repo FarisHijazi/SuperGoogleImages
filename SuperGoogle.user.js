@@ -173,10 +173,16 @@ var normalizeUrl = (function () {
             showAllSizes: '#jHnbRc > div.O1id0e > span:nth-child(2) > a',
             searchModeDiv: 'div#hdtb-msb-vis',
             selectedSearchMode: 'div#hdtb-msb-vis' + ' div.hdtb-msel',
-            /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
-            currentImagePanel: 'a#irc_cb',
             searchBox: 'input[type="text"][title="Search"]',
-            googleButtonsContainer: '#hdtb-msb'
+            googleButtonsContainer: '#hdtb-msb',
+            /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
+            panelExitButton: ['a#irc_cb', 'a#irc_ccbc'].join(),
+            focusedPanel: [
+                'div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
+                '#irc-ss > div.irc_c.immersive-container:not([style*="display: none;"])' // for side panel mode
+            ].join(),
+            mainPanel: 'div#irc_cc',
+            panels: '#irc_cc div.irc_c',
         },
         ClassNames: {
             buttons: 'super-button',
@@ -300,9 +306,13 @@ var normalizeUrl = (function () {
             new URL(location.href).searchParams.get('tbm') === 'isch' // TODO: find a better way of determining whether the page is a Google Image search
         );
         o.__defineGetter__('isOnGoogleImagesPanel', () => {
-            const url1 = new URL(location.href);
-            return url1.searchParams.has('imgrefurl') && url1.pathname.split('/').pop() === 'imgres';
-        }
+                const url1 = new URL(location.href);
+                return url1.searchParams.has('imgrefurl') && url1.pathname.split('/').pop() === 'imgres';
+            }
+        );
+        o.__defineGetter__('isRightViewLayout', () => { // check if the Google images layout
+                return !!document.querySelector('#irc_bg.irc_por.irc_bg.irc-unt');
+            }
         );
 
         return o;
@@ -487,7 +497,7 @@ var normalizeUrl = (function () {
 
             // language=CSS
             addCss(
-                `.str-wide-card {
+                    `.str-wide-card {
                         cursor: default !important;
                     }
 
@@ -637,22 +647,26 @@ var normalizeUrl = (function () {
                 ImagePanel.thePanels.add(element.panel);
             }
 
-            this.__modifyPanelEl();
+            try {
+                this.__modifyPanelEl();
+            } catch (e) {
+                console.error(e);
+            }
         }
         /** The big panel that holds all 3 child panels
          * @return {HTMLDivElement|Node} */
         static get mainPanelEl() {
-            return document.querySelector('div#irc_cc');
+            return document.querySelector(Consts.Selectors.mainPanel);
         }
         /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
         static get focP() {
-            return this.mainPanelEl.querySelector('div.irc_c[style*="translate3d(0px, 0px, 0px)"], div.irc_c').panel;
+            return this.mainPanelEl.querySelector(Consts.Selectors.focusedPanel).panel;
             // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
         }
         static get noPanelWasOpened() {
-            return document.querySelector('#irc_cb').getAttribute('data-ved') == null;
+            return document.querySelector(Consts.Selectors.panelExitButton).getAttribute('data-ved') == null;
         }
-        static get panelCurrentlyOpen() {
+        static get isPanelCurrentlyOpen() {
             return document.querySelector('#irc_bg').style.display !== 'none';
         }
         /**
@@ -706,7 +720,10 @@ var normalizeUrl = (function () {
         /** Secondary title
          * @return {HTMLAnchorElement, Node} */
         get sTitle_Anchor() {
-            return this.titleAndDescriptionDiv.querySelector('span a.irc_lth.irc_hol ');
+            return this.q('a.irc_lth.irc_hol');
+        }
+        get imgUrl() {
+            return GoogleUtils.isRightViewLayout ? this.mainImage.src : this.ris_fc_Url;
         }
         get sTitle_Text() {
             const secondaryTitle = this.sTitle_Anchor;
@@ -714,7 +731,7 @@ var normalizeUrl = (function () {
             return cleanGibberish(secondaryTitle.innerText.replace(siteHostName, ''));
         }
         get ris_fc_Url() {
-            return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : 'JavaScript:void(0);';
+            return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : normalizeUrl('#');
         }
         /** Returns that small square at the bottom right (the focused one)
          * @return {HTMLDivElement} */
@@ -759,28 +776,25 @@ var normalizeUrl = (function () {
          * @property {Function} buttons.unsave
          */
         get buttons() {
-            const buttonsContainer = this.q('.irc_but_r > tbody > tr');
-            const buttons = this.qa('.irc_but_r > tbody > tr a:first-child');
+            const buttonsContainer = this.q(['.irc_but_r > tbody > tr', '.irc_ab'].join());
+            const buttons = this.qa('.irc_but_r > tbody > tr a:first-child, [role="button"]');
+            if (!buttons || !buttonsContainer) return {};
 
-            buttons.Visit = buttonsContainer.querySelector('a.i3599.irc_vpl.irc_lth');
-            buttons.Save = buttonsContainer.querySelector('a.i15087');
-            buttons.ViewSaved = buttonsContainer.querySelector('a.i18192.r-iXoO2jjyyEGY');
-            buttons.Share = buttonsContainer.querySelector('a.i17628');
+            buttons.Visit = this.q(['a.i3599.irc_lth', '.i3724.irc_lth'].join());
+            buttons.Save = this.q('a.i15087');
+            buttons.ViewSaved = this.q(['a.i18192.r-iXoO2jjyyEGY', 'a.irc_vsl.i18192'].join());
+            buttons.Share = this.q('a.i17628');
 
-            buttons.notsaved = buttonsContainer.querySelector('a.i15087'); // the button that appears without a star (not saved)
-            buttons.saved = buttonsContainer.querySelector('a.i35661'); // has a star (means it's saved)
+            var notsaved = this.q('a.i15087'); // the button that appears without a star (not saved)
+            var saved = this.q('a.i35661'); // has a star (means it's saved)
 
             buttons.save = function () {
-                // if not saved, save
-                if (buttons.saved && buttons.saved.style.display === 'none') {
+                if (saved && saved.style.display === 'none') // if not saved, save
                     buttons.saved.click();
-                }
             };
             buttons.unsave = function () {
-                // if saved, unsave
-                if (buttons.notsaved && buttons.notsaved.style.display === 'none') {
+                if (notsaved && notsaved.style.display === 'none') // if saved, unsave
                     buttons.notsaved.click();
-                }
             };
 
             return buttons;
@@ -789,12 +803,12 @@ var normalizeUrl = (function () {
          * img.irc_mi is the actual main image, , img.irc_mut is the loader image (the thumbnail when it didn't load yet)*/
         get mainImage() {
             if (this.el) {
-                return this.q('a.irc_mil > img.irc_mi');
+                return this.q('a.irc_mil img.irc_mi');
             }
         }
         get loaderImage() {
             if (this.el) {
-                return this.q('a.irc_mutl  > img.irc_mut');
+                return this.q('a.irc_mutl img.irc_mut');
             }
         }
 
@@ -828,16 +842,9 @@ var normalizeUrl = (function () {
          */
         get sbiUrl() {
             const risFcDiv = this.ris_fc_Div;
-            var reverseImgSearchUrl = '#';
-            if (!!risFcDiv) {
-                var imgURL = (risFcDiv.querySelector('img[oldsrc]') || {}).oldsrc || risFcDiv.querySelector('a[href]').href || this.mainImage.src;
-                reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(imgURL);
-
-                const url = new URL(reverseImgSearchUrl);
-                url.searchParams.append('allsizes', '1');
-                reverseImgSearchUrl = url.toString();
-            }
-            return reverseImgSearchUrl;
+            const sbiUrl = new URL(GoogleUtils.url.getGImgReverseSearchURL(this.imgUrl));
+            sbiUrl.searchParams.append('allsizes', '1');
+            return sbiUrl.toString();
         }
         /**
          * waits for the first panel to be in focus, then binds mutation observers to panels firing "panelMutation" events
@@ -845,14 +852,14 @@ var normalizeUrl = (function () {
          */
         static init() {
             // wait for panel to appear then start modding
-            elementReady('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]').then(function () {
+            elementReady(Consts.Selectors.focusedPanel).then(function () {
 
                 // bind clicking the image panel 'X' button remove the hash from the address bar
                 // there exists only a single X button common for all 3 image panels
-                $('a#irc_cb').click(removeHash);
+                $(Consts.Selectors.panelExitButton).click(removeHash);
 
                 // instantiate the panels and (which call modPanel() and updatePanel(), which do the modifying)
-                $('#irc_cc > div').toArray()
+                $(Consts.Selectors.panels).toArray()
                     .map(panelEl => new ImagePanel(panelEl))
                     .forEach(panel => {// observe each panel
                         /* @info
@@ -982,13 +989,9 @@ var normalizeUrl = (function () {
             try {
                 const panel = ImagePanel.focP;
                 const name = panel.bestNameFromTitle;
-                console.log('downloadCurrentImage:', name);
-                const focused_risDiv = panel.ris_fc_Div;
-                var currentImageURL = panel.mainImage.src && panel.mainImage.parentElement.classList.contains('display-original-mainImage') ?
-                    focused_risDiv.querySelector('img').src :
-                    focused_risDiv.querySelector('[href]').href;
-                console.log('Download:', name, currentImageURL);
-                download(currentImageURL, name, focused_risDiv);
+                const currentImageURL = panel.imgUrl;
+                console.log('downloadCurrentImage:', name, currentImageURL);
+                download(currentImageURL, name, panel.mainImage);
                 panel.q('.torrent-link').click();
 
                 if (Preferences.panels.favoriteOnDownloads) {
@@ -1013,6 +1016,9 @@ var normalizeUrl = (function () {
          * @param interval  the interval between clicks
          */
         static __tryToClickBottom_ris_image(interval = 30) {
+            if (GoogleUtils.isRightViewLayout) {
+                return;
+            }
             isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
 
             var timeout = null;
@@ -1034,7 +1040,7 @@ var normalizeUrl = (function () {
 
             while (!isTryingToClickLastRelImg) {
                 // polling
-                console.log('waiting to be done...');
+                console.log('waiting to be done ClickLastRelImg...');
             }
         }
 
@@ -1061,6 +1067,7 @@ var normalizeUrl = (function () {
             $(panel.sTitle_Anchor).parent()
                 .after('<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/>');
 
+            panel.q('.eg084e.irc_ab').style.display = 'inline-flex'; // make the buttons container take more space so the buttons can be bigger
 
             panel.inject_SiteSearch();
 
@@ -1084,6 +1091,9 @@ var normalizeUrl = (function () {
                 panel.sTitle_Anchor.style = 'padding-right: 5px; text-decoration:none;';
                 for (const copyrightEl of getElementsByXPath('//span[contains(text(),\'Images may be subject to copyright\')]', panel.el))
                     copyrightEl.remove();
+                for (const copyrightEl of panel.el.querySelectorAll('.irc_ft')) {
+                    copyrightEl.remove();
+                }
             })();
 
             // injecting rarbg torrent link button
@@ -1256,8 +1266,9 @@ var normalizeUrl = (function () {
             for (const div of this.ris_Divs) {
                 // if (debug) console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
                 const img = div.querySelector('img');
-                showImages.replaceImgSrc(img).then(e => {
-                    if (isLoaded(img) && div.matches('.irc_rist')) { // if is the focused ris
+                const forceUpdateOnload = false;
+                showImages.replaceImgSrc(img).then(e => { // DEBUG: this is still in testing (it causes issues with the rightView layout)
+                    if (forceUpdateOnload && isLoaded(img) && div.matches('.irc_rist')) { // if is the focused ris
                         const mainImage = this.mainImage;
                         if (mainImage.src !== img.src)
                             console.log(
@@ -1329,14 +1340,13 @@ var normalizeUrl = (function () {
                 const className = 'download-image';
 
                 const buttonHtml = `<td><a class="${className}" role="button" jsaction data-rtid jsl tabindex="0" data-ved="${dataVed}"><span>${text}</span></a></td>`;
-                const button = createElement(buttonHtml);
-                button.addEventListener('click', function handleClick(element) {
-                    ImagePanel.downloadCurrentImage(element);
-                    return false;
-                });
-                var tb = this.buttons[0].parentElement.cloneNode(false);
-                tb.appendChild(button);
-                return this.q('.view-image').parentNode.after(tb);
+                return this.addElementAfterSTitle(
+                    buttonHtml,
+                    '',
+                    ImagePanel.downloadCurrentImage,
+                    'LEFT',
+                    'div'
+                );
             }
         }
         /** Inject the SearchByImage anchor
@@ -1345,9 +1355,9 @@ var normalizeUrl = (function () {
             const href = '#'; //GoogleUtils.url.getGImgReverseSearchURL(this.imageUrl);
             const dataVed = ''; //()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const className = 'search-by-image';
-            var html = `<a class="o5rIVb ${className}" target="${Preferences.page.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;">Search&nbsp;by&nbsp;image</span></a>`;
+            const html = `<a class="o5rIVb ${className}" target="${Preferences.page.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;">Search&nbsp;by&nbsp;image</span></a>`;
 
-            return this.addElementAfterSTitle(html, className, null, 'RIGHT');
+            return this.addElementAfterSTitle(html, className, null, 'BOTTOM');
         }
         update_sbi() {
             // updating ImageHost
@@ -1364,30 +1374,26 @@ var normalizeUrl = (function () {
                 const dataVed = '';
                 const className = 'view-image';
 
-                const buttonHtml = `<td><a href="JavaScript:void(0);" target="${'_blank'}" class="${className}" role="button" jsaction="" data-rtid="" jsl="" tabindex="0" data-ved="${dataVed}"> <span>${text}</span></a></td>`;
-                const link = createElement(buttonHtml);
-                var globeIcon = document.querySelector('._RKw._wtf._Ptf');
-                if (!globeIcon) {
-                    globeIcon = document.querySelector('.RL3J9c.Cws1Yc.wmCrUb');
-                }
-                if (!!globeIcon)
-                    link.firstElementChild.before(globeIcon.cloneNode(true));
+                const link = this.addElementAfterSTitle(
+                    `<td><a href="" target="_blank" class="${className}" role="button" jsaction="" data-rtid="" jsl="" tabindex="0" data-ved="${dataVed}"> <span>${text}</span></a></td>`,
+                    '',
+                    null,
+                    'LEFT',
+                    'div'
+                );
 
-                var tb = this.buttons[0].parentElement.cloneNode(false);
-                tb.appendChild(link);
+                const globeIcon = document.querySelector('._RKw._wtf._Ptf, .RL3J9c.Cws1Yc.wmCrUb');
+                if (globeIcon) link.firstElementChild.before(globeIcon.cloneNode(true));
 
-
-                var afterSaveBtn = false; // add View image button after save button?
-                const saveBtn = this.q('.iv_mssc.i35661');
-                return (afterSaveBtn ? saveBtn.parentNode : this.buttons[0].parentNode).after(tb);
+                return link;
             }
         }
         update_ViewImage() {
             const viewImage = this.q('.view-image');
             if (viewImage) {
-                viewImage.href = ImagePanel.focP.ris_fc_Url;
+                viewImage.href = this.imgUrl;
             } else {
-                console.warn('viewImage element not found:', viewImage);
+                console.warn('viewImage element not found');
             }
         }
         inject_ImageHost() {
@@ -1437,15 +1443,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const dataVed = '';//()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const hostname = getHostname(this.sTitle_Anchor.href);
             const spanClass = 'site-search';
-            var siteSearch = createElement(`<a class="${spanClass} _r3 hover-click o5rIVb" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`);
-
-            let ddgSearch = siteSearch.cloneNode(false);
-            ddgSearch.innerText = '[DDGP]';
-            ddgSearch.className = 'ddgSearch';
-
-            siteSearch = this.addElementAfterSTitle(siteSearch, '', null, 'BOTTOM', 'div');
-            siteSearch.appendChild(ddgSearch);
-            return siteSearch;
+            return this.addElementAfterSTitle(
+                `<a class="${spanClass} _r3 hover-click" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`,
+                '',
+                null,
+                'BOTTOM',
+                'div'
+            );
         }
 
         update_SiteSearch() {
@@ -1453,7 +1457,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const hostname = getHostname(this.sTitle_Anchor.href);
             if (siteSearchAnchor) {
                 siteSearchAnchor.innerText = 'site:' + hostname;
-                siteSearchAnchor.href = (GoogleUtils.url.siteSearchUrl(getHostname(ImagePanel.focP.q('span a.irc_lth.irc_hol').href)));
+                siteSearchAnchor.href = (GoogleUtils.url.siteSearchUrl(hostname));
             } else {
                 console.warn('Site Search element not found:', siteSearchAnchor);
             }
@@ -1493,14 +1497,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          * @return {Element}
          * @private
          */
-        addElementAfterSTitle(html, containerClassName, clickListener, position = 'BOTTOM', parentTagName = '') {
+        addElementAfterSTitle(html, containerClassName, clickListener, position = 'BOTTOM', parentTagName = 'div') {
             // TODO: use jQuery here
 
-            const element = (typeof html === 'string') ? createElement(html) : html;
-            parentTagName = parentTagName ? parentTagName : 'span';
-            const containerEl = createElement(`<${parentTagName} class="_r3 ${containerClassName}" style="padding-right: 5px; text-decoration:none;"/>`);
-            containerEl.appendChild(element);
-            element.classList.add('o5rIVb');
+            const $element = $(html).addClass('o5rIVb');
+            const containerEl = $(`<${parentTagName} class="_r3 NDcgDe ${containerClassName}" style="padding-right: 5px; text-decoration:none;"/>`)
+                .append($element)[0];
+            const element = $element[0];
 
             const sTitle = this.sTitle_Anchor;
             switch (position) {
@@ -1526,9 +1529,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 }
             }
 
-            if (clickListener) {
-                element.addEventListener('click', function (element) {
-                    clickListener(element);
+            if (typeof (clickListener) === 'function') {
+                element.addEventListener('click', function (e) {
+                    clickListener(e);
                     return false;
                 });
             }
@@ -3868,8 +3871,13 @@ a.download-related {
 
         document.body.firstElementChild.before($navbar[0]);
 
-        function adjustTopMargin() {
-            document.body.style.top = document.querySelector('#topnav').offsetHeight.toString() + 'px';
+        function adjustTopMargin() { // moves the rest of the page down a bit so it won't be covered by the navbar
+            const offsetHeight = document.querySelector('#topnav').offsetHeight;
+
+            document.querySelectorAll('#rcnt, #irc_bg').forEach(el => {
+                el.style.top = offsetHeight.toString() + 'px';
+                el.style.height = (window.innerHeight - offsetHeight).toString() + "px";
+            });
         }
 
         window.addEventListener('resize', adjustTopMargin);
