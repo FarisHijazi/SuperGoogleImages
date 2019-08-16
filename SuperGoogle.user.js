@@ -292,8 +292,8 @@ var normalizeUrl = (function () {
         // if the selector key ends with 's' (plural), then it gets multiple elements, otherwise just a single element
         for (const key of Object.keys(Consts.Selectors)) {
             const v = Consts.Selectors[key];
-            els.__defineGetter__(key, (k) => key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
-                    document.querySelectorAll(v) : document.querySelector(v)
+            els.__defineGetter__(key, () => key.slice(-1).toLowerCase() === 's' ? // ends with 's'? (is plural?)
+                document.querySelectorAll(v) : document.querySelector(v)
             );
         }
 
@@ -1101,7 +1101,7 @@ var normalizeUrl = (function () {
             (function injectRarbgButton() {
                 const rarbg_tl = createElement(`<a class="_r3 hover-click o5rIVb torrent-link"
    style=" float: left; padding: 4px; display: inline-block; font-size: 10px; color: white;">
-    <img src="https://dyncdn.me/static/20/img/16x16/download.png" alt="Rarbg torrent link" border="0" style=" width: 25px; height: 25px; display: none;">
+    <img src="https://dyncdn.me/static/20/img/16x16/download.png" alt="Rarbg torrent link" style=" width: 25px; height: 25px; display: inherit;">
     <label style=" display: list-item; ">Torrent link</label></a>`);
                 rarbg_tl.onclick = () => {
                     if (/\/torrent\/|rarbg/i.test(panel.pTitle_Anchor.href)) {
@@ -1115,59 +1115,59 @@ var normalizeUrl = (function () {
             //@info .irc_ris    class of the relatedImgsDivContainer
             //@info div#isr_mc  the main container containing all the image boxes, and the panels (only 2 children)
             if (Preferences.panels.enableWheelNavigation && !GoogleUtils.isRightViewLayout)
-            panel.el.addEventListener(
-                'wheel',
-                /**
-                 * @param {WheelEvent} wheelEvent
-                 * @return {boolean}
-                 */
-                function handleScroll(wheelEvent) {
-                    if (!wheelEvent.ctrlKey && !wheelEvent.metaKey && !wheelEvent.shiftKey && !wheelEvent.altKey) {
-                        const elUnderMouse = elementUnderMouse(wheelEvent);
-                        if (ImagePanel.mainPanelEl.contains(elUnderMouse)) {
-                            try {
-                                // Listen for scroll events
-                                const leftPart = ImagePanel.focP.leftPart,
-                                    rightPart = ImagePanel.focP.rightPart, // this is NOT the entire RIGHT part
-                                    irc_ris = ImagePanel.focP.q('.irc_ris'), // the relative images panel
-                                    onLeftSide = isOrContains(leftPart, elUnderMouse), //containsClassName(elUnderMouse, '.irc_t');// on left half of panel
-                                    onRightPart = isOrContains(rightPart, elUnderMouse), // on RIGHT half of panel
-                                    delta = Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail))); // getting wheel delta
+                panel.el.addEventListener(
+                    'wheel',
+                    /**
+                     * @param {WheelEvent} wheelEvent
+                     * @return {boolean}
+                     */
+                    function handleScroll(wheelEvent) {
+                        if (!wheelEvent.ctrlKey && !wheelEvent.metaKey && !wheelEvent.shiftKey && !wheelEvent.altKey) {
+                            const elUnderMouse = elementUnderMouse(wheelEvent);
+                            if (ImagePanel.mainPanelEl.contains(elUnderMouse)) {
+                                try {
+                                    // Listen for scroll events
+                                    const leftPart = ImagePanel.focP.leftPart,
+                                        rightPart = ImagePanel.focP.rightPart, // this is NOT the entire RIGHT part
+                                        irc_ris = ImagePanel.focP.q('.irc_ris'), // the relative images panel
+                                        onLeftSide = isOrContains(leftPart, elUnderMouse), //containsClassName(elUnderMouse, '.irc_t');// on left half of panel
+                                        onRightPart = isOrContains(rightPart, elUnderMouse), // on RIGHT half of panel
+                                        delta = Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail))); // getting wheel delta
 
-                                if (Math.abs(delta) < 0.1) { // Do nothing if didn't scroll
-                                    console.debug('Mousewheel didn\'t move');
+                                    if (Math.abs(delta) < 0.1) { // Do nothing if didn't scroll
+                                        console.debug('Mousewheel didn\'t move');
+                                        return false;
+                                    }
+                                    // Wheel definetely moved at this point
+                                    let wheelUp = Preferences.panels.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
+                                    if (!onLeftSide) {   // If the mouse is under the RIGHT side of the image panel
+                                        if (isOrContains(elUnderMouse, leftPart)) {
+                                            if (wheelUp) {
+                                                ImagePanel.nextImage();
+                                            } else {
+                                                ImagePanel.previousImage();
+                                            }
+                                        }
+                                        if (onRightPart || isOrContains(irc_ris, elUnderMouse) || (elUnderMouse.classList.contains('irc_mut'))) {
+                                            // console.log('elUnderMouse:', elUnderMouse);
+                                            if (wheelUp) {
+                                                ImagePanel.nextRelImg();
+                                            } else {
+                                                ImagePanel.prevRelImg();
+                                            }
+                                        } else {
+                                            console.debug('Mouse wheel did NOT scroll while over a container element.\nelUnderMouse:', elUnderMouse);
+                                        }
+                                        wheelEvent.preventDefault();
+                                    }
                                     return false;
+                                } catch (e) {
+                                    console.warn(e);
                                 }
-                                // Wheel definetely moved at this point
-                                let wheelUp = Preferences.panels.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
-                                if (!onLeftSide) {   // If the mouse is under the RIGHT side of the image panel
-                                    if (isOrContains(elUnderMouse, leftPart)) {
-                                        if (wheelUp) {
-                                            ImagePanel.nextImage();
-                                        } else {
-                                            ImagePanel.previousImage();
-                                        }
-                                    }
-                                    if (onRightPart || isOrContains(irc_ris, elUnderMouse) || (elUnderMouse.classList.contains('irc_mut'))) {
-                                        // console.log('elUnderMouse:', elUnderMouse);
-                                        if (wheelUp) {
-                                            ImagePanel.nextRelImg();
-                                        } else {
-                                            ImagePanel.prevRelImg();
-                                        }
-                                    } else {
-                                        console.debug('Mouse wheel did NOT scroll while over a container element.\nelUnderMouse:', elUnderMouse);
-                                    }
-                                    wheelEvent.preventDefault();
-                                }
-                                return false;
-                            } catch (e) {
-                                console.warn(e);
                             }
                         }
                     }
-                }
-            );
+                );
 
             /**
              *todo: find a library to do this instead, with tooltips as well
@@ -1305,7 +1305,7 @@ var normalizeUrl = (function () {
 
                 $(descriptionEl)
                     .before(descriptionAnchor)
-                    .css({ display: 'none' });
+                    .css({display: 'none'});
             }
 
             $(descriptionAnchor)
@@ -1768,13 +1768,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 disableDragging();
 
             }, {
-                    callbackMode: 0,
+                callbackMode: 0,
 
-                    childList: true,
-                    attributes: true,
-                    // attributeFilter: ['href'],
-                    subtree: true,
-                });
+                childList: true,
+                attributes: true,
+                // attributeFilter: ['href'],
+                subtree: true,
+            });
 
 
         } else { // else if not google images
@@ -2114,7 +2114,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // language=CSS
         const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
             (visibleOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
-            ;
+        ;
         return document.querySelectorAll(selector);
     }
 
@@ -2184,11 +2184,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
          * @param {string} id    the checkbox element id
          * @param {string=} labelText
          * @param {Function=} onChange on box change, Function(checked: bool) this: checkboxEl
-         * @param {bool=} checked
+         * @param {boolean=} checked
          * @returns {HTMLDivElement} this label element contains a checkbox input element
          */
-        const createGCheckBox = (id, labelText = 'label', onChange = () => null, checked = null) => {
-            checked = GM_getValue(id, !!checked); // load value, fallback to passed value
+        const createGCheckBox = (id, labelText = 'label', onChange = () => null, checked = false) => {
+            checked = GM_getValue(id, checked); // load value, fallback to passed value
 
             const $container = $('<div>').attr({
                 'id': id.trim() + '-div',
@@ -2224,9 +2224,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             setVisibilityForImages(!e.checked, isGif, false, true); // hide nonGifs when NOT checked
         }, false);
         const cbox_UseDdgProxy = createGCheckBox('useDdgProxyBox', 'Use proxy', function (e) {
-            Preferences.loading.useDdgProxy = e.checked;
-            updateQualifiedImagesLabel();
-        },
+                Preferences.loading.useDdgProxy = e.checked;
+                updateQualifiedImagesLabel();
+            },
             Preferences.loading.useDdgProxy
         );
         const cbox_GIFsException = createGCheckBox('GIFsExceptionBox', 'Always download GIFs');
@@ -2485,7 +2485,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      *
      */
     function getQualifiedGImgs(parameters = {}) {
-        let { exception4smallGifs, ignoreDlLimit = false } = parameters;
+        let {exception4smallGifs, ignoreDlLimit = false} = parameters;
 
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
         const dlLimit = dlLimitSlider ? dlLimitSlider.value : Number.MAX_SAFE_INTEGER;
@@ -2674,7 +2674,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const downloadImage = function (e = {}) {
                 const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou;
                 const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity;
-                download(src, fileName, { fileExtension: meta.ity });
+                download(src, fileName, {fileExtension: meta.ity});
                 e.preventDefault();
                 e.stopImmediatePropagation();
                 e.stopPropagation();
@@ -2992,7 +2992,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
             // /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
             a.matches('.rg_l')
-            ;
+        ;
 
         const handler = function (a) {
             if (!filter(a)) //@faris
@@ -3232,10 +3232,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function getImgBoxes(selectorExtension = '') {
         return document.querySelectorAll('#rg_s > .rg_bx' + selectorExtension);
     }
-    function getImgAnchors(selectorExtension = '') {
-        // return qa('#rg_s > div.rg_bx > a.rg_l[href]');
-        return getImgBoxes(' > a[href]', selectorExtension);
-    }
 
     function updateDownloadBtnText() {
         const downloadBtn = document.querySelector('#downloadBtn');
@@ -3346,7 +3342,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             minify: true,
             stringify: true,
             base64urls: false
-        })], { type: 'text/plain' }));
+        })], {type: 'text/plain'}));
 
         // window.onunload = () => zip.genZip();
 
@@ -3376,7 +3372,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     function unionTitleAndDescr(str1, str2) {
         if (!str1) return str2;
         if (!str2) return str1;
-        var regex = new RegExp(str2.match(RegExp('[^$-/:-?{-~!"^_\\`\\[\\]]+', 'g')).join('|'), 'gi');
+        var regex = new RegExp(str2.match(RegExp('[^$-/:-?{-~!"^_\`\\[\\]]+', 'g')).join('|'), 'gi');
         var str1MinusStr2 = str1.replace(regex, ' ');
         return removeDoubleSpaces(str1MinusStr2 + ' ' + str2);
     }
@@ -3746,7 +3742,7 @@ div.text-block.download-block:hover {
 
 /*for the imagebox info link*/
 a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
-    padding: 2px 4px 0px 0px;
+    padding: 2px 4px 0 0;
 }
 
 .ext-gif {
@@ -3884,7 +3880,7 @@ a.download-related {
 
         window.addEventListener('resize', adjustTopMargin);
         // observe for elements being added, need to readjust topmargine
-        observeDocument(adjustTopMargin, { baseNode: '#topnav' });
+        observeDocument(adjustTopMargin, {baseNode: '#topnav'});
 
         document.body.style.position = 'relative';
 
@@ -3952,7 +3948,7 @@ function elementUnderMouse(wheelEvent) {
 }
 
 function makeTextFile(text) {
-    var data = new Blob([text], { type: 'text/plain' });
+    var data = new Blob([text], {type: 'text/plain'});
     var textFile = null;
     // If we are replacing a previously generated file we need to manually revoke the object URL to avoid memory leaks.
     if (textFile !== null) window.URL.revokeObjectURL(textFile);
@@ -4103,7 +4099,7 @@ function elementReady(getter, timeout = 0) {
                 }
             } :
             () => returnMultipleElements ? document.querySelectorAll(getter[0]) : document.querySelector(getter)
-            ;
+        ;
         var computeResolveValue = function (mutationRecords) {
             // see if it already exists
             const ret = _getter(mutationRecords || {});
