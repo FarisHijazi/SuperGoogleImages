@@ -1,20 +1,19 @@
 # SuperGoogle for Google Images
 
-- [SuperGoogle for Google Images](#SuperGoogle-for-Google-Images)
-  - [Description](#Description)
-  - [Installation](#Installation)
-    - [UserScript (Tampermonkey)](#UserScript-Tampermonkey)
-    - [Browser extension](#Browser-extension)
-  - [Usage](#Usage)
-    - [Display original images](#Display-original-images)
-    - [Zip and download all the images](#Zip-and-download-all-the-images)
-    - [Enhance the image panels](#Enhance-the-image-panels)
-    - [Hotkeys](#Hotkeys)
-  - [External Libraries](#External-Libraries)
-  - [Libraries](#Libraries)
-  - [Documentation](#Documentation)
-  - [Contributing](#Contributing)
-  - [License](#License)
+- [SuperGoogle for Google Images](#supergoogle-for-google-images)
+  - [Description](#description)
+  - [Installation](#installation)
+    - [UserScript (Tampermonkey)](#userscript-tampermonkey)
+    - [Browser extension](#browser-extension)
+    - [Display original images](#display-original-images)
+    - [Zip and download all the images](#zip-and-download-all-the-images)
+    - [Enhance the image panels](#enhance-the-image-panels)
+    - [Hotkeys](#hotkeys)
+  - [Documentation](#documentation)
+  - [External Libraries](#external-libraries)
+    - [Libraries](#libraries)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ## Description
 
@@ -33,20 +32,15 @@ See [demo video here](https://youtu.be/ceFuBh8r8GQ?t=24).
     For Tampmonkey, do the following
       - Enable `Browser API`. See guide here: "[How do I setup userscript-triggered downloads][guide:browser-API-beta]".  
         ![enable browser API beta][guide:browser-API-beta-gif]
-      - When prompted, allow the script to load images, click `always allow` (first time only).  
-        ![allow connect permissions](Screenshots/Screenshot_tampermonkey_allow_connect.png)
+      - When prompted, allow the script to load images, click `always allow all domains` (only needed once).  
+        <img src="Screenshots/Screenshot_tampermonkey_allow_connect.png" alt="allow connect permissions" width="250"/>
+4. Open any [google image search page](https://www.google.com/search?q=example&tbm=isch&safe=strict) and enjoy the enhanced experience
 
 ### Browser extension
 
 Not yet supported, but coming soon!
 
-## Usage
-
-Open Google.com/....
-
-TODO: write about usage
-
-Below is a list of the available features, listed from what is (probably) most useful.
+Below is a list of the available features, listed from what is most useful (IMO).
 
 ### Display original images
 
@@ -78,7 +72,7 @@ Adds the following features to the image panel:
 
 - 4 - **Proxy** button
 
-    Try to use a proxy if the page is blocked
+    Open page/image using a proxy if it was blocked/failed to load
 
 - 5 - Click to view images with **similar dimensions**
 
@@ -96,11 +90,16 @@ Adds the following features to the image panel:
 
     Click the *page host* to search google for more images from that site. For example if it was hosted by `example.com`, then clicking it would open a google image search of "`site:example.com`"
 
-TODO: continue listing features
+<!-- TODO: continue listing features -->
 
 ### Hotkeys
 
-TODO: list hotkeys
+<!-- TODO: list hotkeys -->
+
+## Documentation
+
+- The [docs](docs/doc.md) file contains info about the code and any complicated parts.
+- The [reverse engineering](docs\ReverseEngineering.md) contains info about how the website works and the main components it contains (based on observations), such as the CSS selectors for the panels and components, where the info is kept in the page, where thumbnails are loaded and where main images are.
 
 ## External Libraries
 
@@ -110,18 +109,12 @@ Scripts
 
 - [Google Direct Links for Pages and Images.user.js](lib/Google%20Direct%20Links%20for%20Pages%20and%20Images.user.js), [[source]](https://greasyfork.org/scripts/19210-google-direct-links-for-pages-and-images/code/Google:%20Direct%20Links%20for%20Pages%20and%20Images.user.js)
 
-## Libraries
+### Libraries
 
 - [jQuery](https://jquery.com/)
 - [Mousetrap.js](https://github.com/ccampbell/mousetrap) keybindings
 - [progressbar.js](https://github.com/kimmobrunfeldt/progressbar.js/) progress bar when downloading
 - [JSZip](https://github.com/Stuk/jszip) zip and compress functionality
-
-## Documentation
-
-[docs](docs/doc.md)
-
-TODO: Add documentation
 
 ## Contributing
 
