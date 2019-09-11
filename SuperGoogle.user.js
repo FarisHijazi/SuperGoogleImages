@@ -179,25 +179,29 @@ var normalizeUrl = (function () {
     console.debug('SuperGoogle running');
 
     /**
-     * @type { {
-     *      GMValues: {hideFailedImagesOnLoad: string, ublSites: string, ublSitesMap: string, ublUrls: string},
-     *      ClassNames: { buttons: string, belowDiv: string},
-     *      Selectors: {
-     *          Panel: {
-     *              mainPanel: string,
-     *              focusedPanel: string,
-     *              ptitle: string,
-     *              threedotPopupMenu: string,
-     *              panelExitButton: string,
-     *              panels: string,
-     *          },
-     *          showAllSizes: string,
-     *          selectedSearchMode: string,
-     *          googleButtonsContainer: string,
-     *          searchModeDiv: string,
-     *          searchBox: string
-     *      }
-     * } }
+     * @type {{
+     *   GMValues: {hideFailedImagesOnLoad: string, ublSites: string, ublSitesMap: string, ublUrls: string },
+     *   ClassNames: {
+     *      buttons: string,
+     *      belowDiv: string
+     *   },
+     *   Selectors: {
+     *      Panel: {
+     *         buttonDropdown: string,
+     *         mainPanel: string,
+     *         panels: string,
+     *         focusedPanel: *,
+     *         ptitle: string,
+     *         panelExitButton: *
+     *      },
+     *      showAllSizes: string,
+     *      selectedSearchMode: string,
+     *      googleButtonsContainer: string,
+     *      sideViewContainer: string,
+     *      searchModeDiv: string,
+     *      searchBox: string
+     *   }
+     *   }}
      */
     const Consts = {
         GMValues: {
@@ -213,6 +217,7 @@ var normalizeUrl = (function () {
             selectedSearchMode: 'div#hdtb-msb-vis div.hdtb-msel',
             searchBox: 'input[type="text"][title="Search"]',
             googleButtonsContainer: '#hdtb-msb',
+            sideViewContainer: '#irc_bg',
             /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
             Panel: {
                 mainPanel: 'div#irc_cc',
@@ -892,10 +897,11 @@ var normalizeUrl = (function () {
          * @return {*}
          */
         get sbiUrl() {
-            const risFcDiv = this.ris_fc_Div;
-            const sbiUrl = new URL(GoogleUtils.url.getGImgReverseSearchURL(this.imgUrl));
-            sbiUrl.searchParams.append('allsizes', '1');
-            return sbiUrl.toString();
+            if (this.imgUrl) {
+                const sbiUrl = new URL(GoogleUtils.url.getGImgReverseSearchURL(this.imgUrl));
+                sbiUrl.searchParams.append('allsizes', '1');
+                return sbiUrl.toString();
+            }
         }
         /**
          * waits for the first panel to be in focus, then binds mutation observers to panels firing "panelMutation" events
@@ -971,8 +977,8 @@ var normalizeUrl = (function () {
          * fetches and goes to the page for the current image (similar to image search but just 'more sizes of the same image')
          */
         static moreSizes() {
-            const panel = this;
-            const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.ris_fc_Div.querySelector('img').src);
+            const panel = this.focP;
+            const reverseImgSearchUrl = GoogleUtils.url.getGImgReverseSearchURL(panel.imgUrl);
 
             const fetchUsingProxy = (url, callback) => {
                 const proxyurl = 'https://cors-anywhere.herokuapp.com/';
@@ -1131,7 +1137,6 @@ var normalizeUrl = (function () {
             panel.inject_Download_ris();
             panel.inject_ImageHost();
 
-            /* @deprecated: the imgDimensions element was removed from the webpage*/
             const dimensionsEl = panel.q('.irc_idim');
             if (dimensionsEl) {
                 dimensionsEl.addEventListener('click', ImagePanel.moreSizes);
@@ -1300,7 +1305,8 @@ var normalizeUrl = (function () {
 
 
             // update sTitle href to point to the panel page
-            panel.sTitle_Anchor.href = getPanelPage(getMeta(panel.ris_fc_Div));
+            // FIXME: don't point to the focpDiv, get the current image meta instead
+            // panel.sTitle_Anchor.href = getPanelPage(getMeta(panel));
 
 
             // rarbg torrent link
@@ -1694,6 +1700,20 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             })();
 
             disableDragging();
+
+            const mainImage = this.mainImage;
+            if (mainImage.src) {
+                mainImage.closest('a').href = mainImage.src;
+                showImages.replaceImgSrc(mainImage).then(function (event) {
+                    console.log(
+                        'replaced main image:',
+                        '\nthis=', this,
+                        '\nevent=', event
+                    )
+                });
+            } else {
+                console.warn('Warning, mainImg.src undefined????!!', mainImage.src, mainImage);
+            }
         }
         /**
          * called when changing from one panel to another (going left or right)
@@ -2258,7 +2278,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if (typeof onChange === 'function')
                     onChange.call($checkbox[0], e);
 
-                GM_setValue(id, e.checked);
+                GM_setValue(id, $checkbox[0].checked);
             });
 
             return $container[0];
@@ -2415,7 +2435,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         };
 
         /** contains the current download path, changing it will change the download path */
-        var defaultDownlodPath = '';
+        var defaultDownlodPath = 'SG_Downloads';
         var pathBox = createElement(`<div class="sg" style="display: inline;"> <input id="download-path" value="${defaultDownlodPath}"><label>Download path</label> </div>`);
 
         const divider = document.createElement('div');
@@ -2439,7 +2459,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @returns {Promise[]}
      */
     function showOriginals(thumbnails) {
+        shouldShowOriginals = true;
         thumbnails = thumbnails || getThumbnails();
+        ImagePanel.showRis();
 
         return [].map.call(
             thumbnails,
@@ -2498,8 +2520,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @returns {boolean}
      */
     function isGif(img_bx) {
-        const meta = (img_bx instanceof Element) ? getMeta(img_bx) : img_bx;
-        return meta.ity === 'gif' || /\.gif($|\?)/.test(meta.ou);
+        try {
+            const meta = (img_bx instanceof Element) ? getMeta(img_bx) : img_bx;
+            return meta.ity === 'gif' || /\.gif($|\?)/.test(meta.ou);
+        } catch (e) {
+            return false;
+        }
     }
 
     // if the url is a thumbnail url
@@ -3287,11 +3313,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             base64urls: false
         })], {type: 'text/plain'}));
 
-        // window.onunload = () => zip.genZip();
-
         zip.onGenZip = e => {
-            window.onbeforeunload = null;
-            window.onunload = null;
             var closeAfterZip = document.querySelector('#closeAfterDownload');
             if (closeAfterZip && closeAfterZip.checked) {
                 console.log('close on zip');
@@ -3541,7 +3563,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
 
 
-    // GDLPI script css
+    // GoogleDirectLinksPagesImages script css
     addCss('a.x_source_link {' + [
         'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
         'text-decoration: none !important',
@@ -3594,6 +3616,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         filter: alpha(opacity=100); /* For IE8 and earlier */
         filter: opacity(100%);
     }`);
+
 
     // language=CSS
     addCss(`.hover-click:hover,
@@ -3651,6 +3674,11 @@ div.rg_bx {
     width: 80% !important;
 }
 
+/*for the container of .site-span (the info text on the ris images)*/
+#irc_bg a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration.phref {
+    bottom: 15px;
+    z-index: 5;
+}
 /**/
 div.text-block {
     display: block;
