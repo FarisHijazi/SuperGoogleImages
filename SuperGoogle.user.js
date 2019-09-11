@@ -46,6 +46,23 @@
  *
  */
 
+/*
+
+#### Attributes
+
+- img[id]: id attribute of an image is the same as the meta.id
+- div[data-ved]: the divs of the same image will have the same `data-ved`
+- div[data-item-id]: id
+
+```js
+//getting meta from another div by qurying `data-ved`
+var div = img.closest('div');
+var selector = '[data-ved="'+ $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx';
+var rg_bxDiv = document.querySelector(selector);
+var meta = getMeta(rg_bxDiv);
+```
+
+ */
 //  ======
 
 /**
@@ -161,6 +178,27 @@ var normalizeUrl = (function () {
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
     console.debug('SuperGoogle running');
 
+    /**
+     * @type { {
+     *      GMValues: {hideFailedImagesOnLoad: string, ublSites: string, ublSitesMap: string, ublUrls: string},
+     *      ClassNames: { buttons: string, belowDiv: string},
+     *      Selectors: {
+     *          Panel: {
+     *              mainPanel: string,
+     *              focusedPanel: string,
+     *              ptitle: string,
+     *              threedotPopupMenu: string,
+     *              panelExitButton: string,
+     *              panels: string,
+     *          },
+     *          showAllSizes: string,
+     *          selectedSearchMode: string,
+     *          googleButtonsContainer: string,
+     *          searchModeDiv: string,
+     *          searchBox: string
+     *      }
+     * } }
+     */
     const Consts = {
         GMValues: {
             ublSites: 'unblocked sites of og images',
@@ -172,17 +210,21 @@ var normalizeUrl = (function () {
             /** The "All sizes" link from the SearchByImage page*/
             showAllSizes: '#jHnbRc > div.O1id0e > span:nth-child(2) > a',
             searchModeDiv: 'div#hdtb-msb-vis',
-            selectedSearchMode: 'div#hdtb-msb-vis' + ' div.hdtb-msel',
+            selectedSearchMode: 'div#hdtb-msb-vis div.hdtb-msel',
             searchBox: 'input[type="text"][title="Search"]',
             googleButtonsContainer: '#hdtb-msb',
             /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
-            panelExitButton: ['a#irc_cb', 'a#irc_ccbc'].join(),
-            focusedPanel: [
-                'div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
-                '#irc-ss > div.irc_c.immersive-container:not([style*="display: none;"])' // for side panel mode
-            ].join(),
-            mainPanel: 'div#irc_cc',
-            panels: '#irc_cc div.irc_c',
+            Panel: {
+                mainPanel: 'div#irc_cc',
+                panelExitButton: ['a#irc_cb', 'a#irc_ccbc'].join(),
+                ptitle: 'div.irc_mmc.irc_b.i8152 > div.i30053 > div > div.irc_it > span > a.irc_pt.irc_tas.irc-cms.i3598.irc_lth',
+                buttonDropdown: 'div.irc_mmc.irc_b.i8152 > div.i30053 > div > div.irc_m.i8164',
+                focusedPanel: [
+                    'div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
+                    '#irc-ss > div.irc_c.immersive-container:not([style*="display: none;"])' // for side panel mode
+                ].join(),
+                panels: '#irc_cc div.irc_c',
+            },
         },
         ClassNames: {
             buttons: 'super-button',
@@ -258,7 +300,9 @@ var normalizeUrl = (function () {
         return o;
     })();
 
-
+    /** TODO: write jsdoc
+     * @type {{elements: {}, url: {isOnGoogle, isOnGoogleImages, isOnGoogleImagesPanel, isRightViewLayout}}}
+     */
     const GoogleUtils = (function () {
         var isOnGoogle = () => GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
 
@@ -297,8 +341,14 @@ var normalizeUrl = (function () {
             );
         }
 
-
         const o = {
+            /** @type{{
+             * isOnGoogle,
+             * isOnGoogleImages,
+             * isOnGoogleImagesPanel,
+             * isRightViewLayout,
+             * }}
+             */
             url: url,
             elements: els,
         };
@@ -657,18 +707,18 @@ var normalizeUrl = (function () {
         /** The big panel that holds all 3 child panels
          * @return {HTMLDivElement|Node} */
         static get mainPanelEl() {
-            return document.querySelector(Consts.Selectors.mainPanel);
+            return document.querySelector(Consts.Selectors.Panel.mainPanel);
         }
         /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
         static get focP() {
-            return this.mainPanelEl.querySelector(Consts.Selectors.focusedPanel).panel;
-            // or you could use     document.querySelectorAll('div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]');
+            return this.mainPanelEl.querySelector(Consts.Selectors.Panel.focusedPanel).panel;
         }
         static get noPanelWasOpened() {
-            return document.querySelector(Consts.Selectors.panelExitButton).getAttribute('data-ved') == null;
+            return document.querySelector(Consts.Selectors.Panel.panelExitButton).getAttribute('data-ved') == null;
         }
         static get isPanelCurrentlyOpen() {
-            return document.querySelector('#irc_bg').style.display !== 'none';
+            const irc_bg = document.querySelector('#irc_bg');
+            return irc_bg.style.display !== 'none' && irc_bg.getAttribute('aria-hidden') !== 'true';
         }
         /**
          @return {Meta}
@@ -723,13 +773,13 @@ var normalizeUrl = (function () {
         get sTitle_Anchor() {
             return this.q('a.irc_lth.irc_hol');
         }
-        get imgUrl() {
-            return GoogleUtils.isRightViewLayout ? this.mainImage.src : this.ris_fc_Url;
-        }
         get sTitle_Text() {
             const secondaryTitle = this.sTitle_Anchor;
             const siteHostName = getHostname(this.sTitle_Anchor.href);
             return cleanGibberish(secondaryTitle.innerText.replace(siteHostName, ''));
+        }
+        get imgUrl() {
+            return GoogleUtils.isRightViewLayout ? this.mainImage.src : this.ris_fc_Url;
         }
         get ris_fc_Url() {
             return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : normalizeUrl('#');
@@ -791,11 +841,11 @@ var normalizeUrl = (function () {
 
             buttons.save = function () {
                 if (saved && saved.style.display === 'none') // if not saved, save
-                    buttons.saved.click();
+                    if (buttons.saved) buttons.saved.click();
             };
             buttons.unsave = function () {
                 if (notsaved && notsaved.style.display === 'none') // if saved, unsave
-                    buttons.notsaved.click();
+                    if (buttons.notsaved) buttons.notsaved.click();
             };
 
             return buttons;
@@ -807,7 +857,7 @@ var normalizeUrl = (function () {
                 return this.q('a.irc_mil img.irc_mi');
             }
         }
-        get loaderImage() {
+        get mainThumbnail() {
             if (this.el) {
                 return this.q('a.irc_mutl img.irc_mut');
             }
@@ -853,14 +903,14 @@ var normalizeUrl = (function () {
          */
         static init() {
             // wait for panel to appear then start modding
-            elementReady(Consts.Selectors.focusedPanel).then(function () {
+            elementReady(Consts.Selectors.Panel.focusedPanel).then(function () {
 
                 // bind clicking the image panel 'X' button remove the hash from the address bar
                 // there exists only a single X button common for all 3 image panels
-                $(Consts.Selectors.panelExitButton).click(removeHash);
+                $(Consts.Selectors.Panel.panelExitButton).click(removeHash);
 
                 // instantiate the panels and (which call modPanel() and updatePanel(), which do the modifying)
-                $(Consts.Selectors.panels).toArray()
+                $(Consts.Selectors.Panel.panels).toArray()
                     .map(panelEl => new ImagePanel(panelEl))
                     .forEach(panel => {// observe each panel
                         /* @info
@@ -933,13 +983,13 @@ var normalizeUrl = (function () {
                     .catch(() => console.error(`Can’t access ${url} response. Blocked by browser?`));
             };
             let z = open().document;
-            fetchUsingProxy(reverseImgSearchUrl, function (content) {
+            return fetchUsingProxy(reverseImgSearchUrl, function (content) {
                 console.log('content:', content);
                 let doc = document.createElement('html');
                 doc.innerHTML = content;
                 const allSizesAnchor = doc.querySelector(Consts.Selectors.showAllSizes);
                 if (allSizesAnchor && allSizesAnchor.href) {
-                    fetchUsingProxy(allSizesAnchor.href, function (content2) {
+                    return fetchUsingProxy(allSizesAnchor.href, function (content2) {
                         let doc2 = document.createElement('html');
                         doc2.innerHTML = content2;
                         z.write(content2);
@@ -1003,7 +1053,8 @@ var normalizeUrl = (function () {
             }
         }
         static showRis() {
-            ImagePanel.thePanels.forEach(p => p.showRis());
+            if (ImagePanel.thePanels)
+                return Array.from(ImagePanel.thePanels).map(p => p.showRis());
         }
         static prevRelImg() {
             ImagePanel.focP.prevRelImg();
@@ -1011,7 +1062,6 @@ var normalizeUrl = (function () {
         static nextRelImg() {
             ImagePanel.focP.nextRelImg();
         }
-        //todo: rather than clicking the image when it loads, just set the className to make it selected: ".irc_rist"
         /**
          * keeps on trying to press the bottom related image (the last one to the bottom right) until it does.
          * @param interval  the interval between clicks
@@ -1068,7 +1118,8 @@ var normalizeUrl = (function () {
             $(panel.sTitle_Anchor).parent()
                 .after('<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/>');
 
-            panel.q('.eg084e.irc_ab').style.display = 'inline-flex'; // make the buttons container take more space so the buttons can be bigger
+            // make the buttons container take more space so the buttons can be bigger
+            panel.q('.eg084e.irc_ab').style.display = 'inline-flex';
 
             panel.inject_SiteSearch();
 
@@ -1100,9 +1151,9 @@ var normalizeUrl = (function () {
             // injecting rarbg torrent link button
             (function injectRarbgButton() {
                 const rarbg_tl = createElement(`<a class="_r3 hover-click o5rIVb torrent-link"
-   style=" float: left; padding: 4px; display: inline-block; font-size: 10px; color: white;">
+   style=" float: left; padding: 4px; display: none; font-size: 10px; color: white;">
     <img src="https://dyncdn.me/static/20/img/16x16/download.png" alt="Rarbg torrent link" style=" width: 25px; height: 25px; display: inherit;">
-    <label style=" display: list-item; ">Torrent link</label></a>`);
+    <label>Torrent link</label></a>`);
                 rarbg_tl.onclick = () => {
                     if (/\/torrent\/|rarbg/i.test(panel.pTitle_Anchor.href)) {
                         panel.pTitle_Anchor.hostname = 'www.rarbgaccess.org'; // choosing a specific mirror
@@ -1170,7 +1221,7 @@ var normalizeUrl = (function () {
                 );
 
             /**
-             *todo: find a library to do this instead, with tooltips as well
+             *TODO: find a library to do this instead, with tooltips as well
              */
             function underliningBinded() {
                 // Underlining binded keys
@@ -1209,22 +1260,23 @@ var normalizeUrl = (function () {
             //TODO: maybe this is what's preventing the main image from changing even when the ris loads
 
             // make sure that main image link points to the main image (and not to the website)
-            var imgAnchor = panel.q('a.irc_mutl');
+            const imgAnchor = panel.q('a.irc_mutl');
             try {
                 imgAnchor.__defineSetter__('href', function (value) {
                     this.setAttribute('href', value);
                 });
                 imgAnchor.__defineGetter__('href', function () {
-                    imgAnchor.href = imgAnchor.querySelector('img').src || '#';
+                    imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
                     return this.getAttribute('href');
                 });
             } catch (e) {
                 console.warn(e);
             }
-            imgAnchor.href = imgAnchor.querySelector('img').src || '#';
+            imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
             imgAnchor.addEventListener('click', function (e) {
-                window.open(this.querySelector('img').src, '_blank');
+                window.open(this.querySelector('img').getAttribute('src'), '_blank');
                 e.preventDefault();
+                e.stopPropagation();
                 e.stopImmediatePropagation();
             });
 
@@ -1264,6 +1316,7 @@ var normalizeUrl = (function () {
         qa() {
             return this.el.querySelectorAll(...arguments);
         }
+        // TODO: maybe return the promises
         showRis() {
             for (const div of this.ris_Divs) {
                 // if (debug) console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
@@ -1357,7 +1410,7 @@ var normalizeUrl = (function () {
             const href = '#'; //GoogleUtils.url.getGImgReverseSearchURL(this.imageUrl);
             const dataVed = ''; //()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const className = 'search-by-image';
-            const html = `<a class="o5rIVb ${className}" target="${Preferences.page.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;">Search&nbsp;by&nbsp;image</span></a>`;
+            const html = `<a class="o5rIVb ${className}" target="${Preferences.page.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span dir="ltr" style="text-align: left;float: right;">Search&nbsp;by&nbsp;image</span></a>`;
 
             return this.addElementAfterSTitle(html, className, null, 'BOTTOM');
         }
@@ -1404,7 +1457,7 @@ var normalizeUrl = (function () {
 
             if (this.sTitle_Anchor) {
                 // const summaryTable = this.element.querySelector('table[summary]._FKw.irc_but_r');
-                var className = 'image-host hover-click';
+                const className = 'image-host hover-click';
                 const element = createElement(`<a class="${className}" href="" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0"  data-ved="" data-ctbtn="2" 
 style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 <span class="irc_ho" dir="ltr" style="text-align: center;">Image&nbsp;Host</span></a>`);
@@ -1503,7 +1556,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // TODO: use jQuery here
 
             const $element = $(html).addClass('o5rIVb');
-            const containerEl = $(`<${parentTagName} class="_r3 NDcgDe ${containerClassName}" style="padding-right: 5px; text-decoration:none;"/>`)
+            const containerEl = $(`<${parentTagName} class="_r3 NDcgDe ${containerClassName}"/>`)
+                .css({
+                    'padding-right': '5px',
+                    'text-decoration': 'none',
+                })
                 .append($element)[0];
             const element = $element[0];
 
@@ -1539,6 +1596,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
             return containerEl;
         }
+
         /**
          * Navigates to the previous related image in the irc_ris in the main panel.
          * @return {boolean} returns true if the successful (no errors occur)
@@ -1612,7 +1670,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
 
-            if (Preferences.panels.autoShowFullresRelatedImages) {
+            if (Preferences.panels.autoShowFullresRelatedImages || shouldShowOriginals) {
                 this.showRis();
             }
 
@@ -1643,7 +1701,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         onSwitch() {
             console.log('panel.onSwitch()', this);
         }
-
     }
 
 
@@ -1786,7 +1843,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             102: 'numpad6',
             103: 'numpad7',
             104: 'numpad8',
-            105: 'numpad9'
+            105: 'numpad9',
+            107: 'numpad+',
+            109: 'numpad-',
         });
 
         // toggle forcedHostname
@@ -1936,8 +1995,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         Mousetrap.bind(['enter'], function (e) {
-            const currentImgUrl = ImagePanel.focP.ris_fc_Url;
-            openInTab(currentImgUrl);
+            if (ImagePanel.isPanelCurrentlyOpen) {
+                openInTab(ImagePanel.focP.imgUrl);
+            }
         });
         Mousetrap.bind([',', 'up', 'numpad8'], function (e) { // ▲ Prev/Left relImage
             ImagePanel.prevRelImg();
@@ -1963,10 +2023,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // Search using title
         Mousetrap.bind(['numpad9'], () => ImagePanel.focP.lookupTitle(), 'keydown');
         Mousetrap.bind([';'], () => ImagePanel.focP.siteSearch());
-
-        // TODO: find a hotkey for this function
-        /*openInTab(`${gImgSearchURL}${encodeURIComponent(cleanSymbols(focusedPanel.descriptionText).trim())}`);
-        e.preventDefault();*/
 
         console.log('added super google key listener');
     }
@@ -2075,12 +2131,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
     function getImgMetaById(id) {
+        if (id === '') return false;
         for (const metaEl of document.querySelectorAll('div.rg_meta')) {
             if (metaEl.innerText.indexOf(id) > -1) {
                 try {
                     return JSON.parse(metaEl.innerText);
                 } catch (e) {
-                    console.warn(e);
+                    console.warn('getImgMetaById():', e);
                     return false;
                 }
             }
@@ -2409,22 +2466,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         }
     }
 
-    /**
-     * Returns a list of qualified image metas
-     * @return {Meta[]}
-     */
-    function getQualifiedUblImgMetas() {
-        const condition = meta => (
-            typeof (meta) !== 'undefined' &&
-            !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_PROXY)) && // not marked as failed
-            Math.max(meta.ow, meta.oh) >= 120 // not too small;
-        );
-
-        return Array.from(getImgBoxes(' a.rg_l img[loaded="true"], a.rg_l img[loaded="true"]'))
-            .map(getMeta)
-            .filter(condition);
-    }
-
     function downloadImages() {
         const zipBox = document.querySelector('#zipInsteadOfDownload');
         if (zipBox && zipBox.checked) {
@@ -2505,85 +2546,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }
 
 
-    /**
-     * occumulates the unblocked site hostnames to the global `ublSitesSet`
-     * @return {Meta[]} the added sites
-     */
-    function collectUblSites() {
-
-        function extractUblHostname(imgMeta) {
-            let hostname = getHostname(imgMeta.src);
-
-            if (/tumblr\.com/.test(hostname))
-                hostname = hostname.replace(/^\d+?\./, '');
-
-            if (/google|gstatic/i.test(hostname)) {
-                hostname = getHostname(imgMeta.ru);
-            }
-
-            return hostname;
-        }
-
-        const added = Array.from(getQualifiedUblImgMetas()).map(extractUblHostname).filter(x => !!x);
-        ublSitesSet.addAll(added);
-        return added;
-    }
-    function storeUblSitesSet() {
-        collectUblSites();
-        const stored = GM_getValue(Consts.GMValues.ublSites, []);
-        const merged = new Set(
-            [].slice.call(stored)
-                .concat(Array.from(ublSitesSet))
-        );
-
-
-        const diff = Array.from(ublSitesSet).filter(x => Array.from(stored).indexOf(x) < 0);
-        GM_setValue(Consts.GMValues.ublSites, Array.from(merged));
-
-        console.log('Found new unblocked sites:', diff);
-        return ublSitesSet;
-    }
-    function storeUblMetas() {
-        ublMetas.addAll(getQualifiedUblImgMetas());
-
-        const stored = new Set(GM_getValue(Consts.GMValues.ublUrls, new Set()));
-        ublMetas.addAll(stored);
-
-        console.debug(
-            'stored ublURLs:', stored,
-            '\nnew ublURLs:', ublMetas
-        );
-
-        // store
-        GM_setValue(Consts.GMValues.ublUrls, Array.from(ublMetas).map(cleanMeta));
-
-        return ublMetas;
-    }
-    function storeUblMap() {
-        for (const imgMeta of getQualifiedUblImgMetas()) {
-            ublMap.addURL(imgMeta.src, imgMeta.imgEl.loaded === true || imgMeta.imgEl.loaded === 'ddgp', {
-                imgEl: imgMeta.imgEl,
-                dimensions: (imgMeta.ow + 'x' + imgMeta.oh)
-            });
-        }
-
-        const stored = new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()));
-        for (const [k, v] of stored) {
-            ublMap.addURL(k, v);
-        }
-        console.debug(
-            'stored map:', stored,
-            '\nnew ublMap:', ublMap
-        );
-
-        GM_setValue(Consts.GMValues.ublSitesMap, Array.from(ublMap.entries()));
-        return ublMap;
-    }
-    function saveUblSites() {
-        storeUblSitesSet();
-        console.log('Site links of unblocked images:', Array.from(ublSitesSet));
-    }
-
     function enhanceImageBox(imageBox) {
         imageBox.classList.add('rg_bx_listed');
         const img = imageBox.querySelector('img.rg_i');
@@ -2605,7 +2567,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             let pageX = 0;
             let pageY = 0;
 
-            return function addHoverListener(imgBx) {
+            return function (imgBx) {
                 let timeout = null;
                 const checkAndResetTimer = e => {
                     if (!(pageX === e.pageX && pageY === e.pageY)) {
@@ -2630,9 +2592,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 imgBx.addEventListener('mousemove', onMouseUpdate, false);
                 imgBx.addEventListener('mouseenter', onMouseUpdate, false);
-                imgBx.addEventListener('mouseout', () => {
-                    clearTimeout(timeout);
-                });
+                imgBx.addEventListener('mouseout', () => clearTimeout(timeout));
             };
         })();
 
@@ -2748,7 +2708,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @return {Meta}
      */
     function getMeta(img, minified = false) {
-
         var div;
         if (img.tagName === 'DIV') {
             div = img;
@@ -2757,7 +2716,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             div = img.closest('div.irc_rimask, div.rg_bx');
             // nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
         }
-
 
         var metaObj = {};
         if (!img)
@@ -2917,8 +2875,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 // hold hotkey and click to site:search
                 {
-
-                    var siteSpan = createElement('<span class="site-span" style="display:none">site:</span>');
+                    const siteSpan = createElement('<span class="site-span" style="display:none">site:</span>');
                     footLink.querySelector('div').firstElementChild.before(siteSpan);
 
                     const __restoreFootlink = function (theLink) {
@@ -3089,12 +3046,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         return normalizeUrl('/imgres?' + $.param(combined));
     }
 
-    function getUblImages() {
-        return document.querySelectorAll('img[src][loaded="true"]:not([proxy])');
-    }
-    function getUblHostnames() {
-        return Array.from(new Set(Array.from(getUblImages()).map(img => getHostname(img.src))));
-    }
 
     /**
      * used for trimming right and trimming left a search query
@@ -3524,13 +3475,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     unsafeWindow.geResultsData = getResultsData;
     unsafeWindow.downloadJSON = downloadJSON;
 
-    unsafeWindow.collectUblSites = collectUblSites;
-    unsafeWindow.saveUblSites = saveUblSites;
     unsafeWindow.getMeta = getMeta;
 
-    unsafeWindow.UblMetas = ublMetas;
-    unsafeWindow.storeUblMetas = storeUblMetas;
-    unsafeWindow.storeUblMap = storeUblMap;
+
     unsafeWindow.getQualifiedGImgs = getQualifiedGImgs;
     unsafeWindow.extractRarbgTorrentURL = extractRarbgTorrentURL;
 
@@ -3886,6 +3833,115 @@ a.download-related {
         const withoutHash = location.href.split('#').slice(0, -1).join('#');
         history.pushState(null, document.title, withoutHash);
     }
+
+    // ========= UBL stuff below ========
+
+    function getUblImages() {
+        return document.querySelectorAll('img[src][loaded="true"]:not([proxy])');
+    }
+    function getUblHostnames() {
+        return Array.from(new Set(Array.from(getUblImages()).map(img => getHostname(img.src))));
+    }
+    /**
+     * occumulates the unblocked site hostnames to the global `ublSitesSet`
+     * @return {Meta[]} the added sites
+     */
+    function collectUblSites() {
+
+        function extractUblHostname(imgMeta) {
+            let hostname = getHostname(imgMeta.src);
+
+            if (/tumblr\.com/.test(hostname))
+                hostname = hostname.replace(/^\d+?\./, '');
+
+            if (/google|gstatic/i.test(hostname)) {
+                hostname = getHostname(imgMeta.ru);
+            }
+
+            return hostname;
+        }
+
+        const added = Array.from(getQualifiedUblImgMetas()).map(extractUblHostname).filter(x => !!x);
+        ublSitesSet.addAll(added);
+        return added;
+    }
+    function storeUblSitesSet() {
+        collectUblSites();
+        const stored = GM_getValue(Consts.GMValues.ublSites, []);
+        const merged = new Set(
+            [].slice.call(stored)
+                .concat(Array.from(ublSitesSet))
+        );
+
+
+        const diff = Array.from(ublSitesSet).filter(x => Array.from(stored).indexOf(x) < 0);
+        GM_setValue(Consts.GMValues.ublSites, Array.from(merged));
+
+        console.log('Found new unblocked sites:', diff);
+        return ublSitesSet;
+    }
+    function storeUblMetas() {
+        ublMetas.addAll(getQualifiedUblImgMetas());
+
+        const stored = new Set(GM_getValue(Consts.GMValues.ublUrls, new Set()));
+        ublMetas.addAll(stored);
+
+        console.debug(
+            'stored ublURLs:', stored,
+            '\nnew ublURLs:', ublMetas
+        );
+
+        // store
+        GM_setValue(Consts.GMValues.ublUrls, Array.from(ublMetas).map(cleanMeta));
+
+        return ublMetas;
+    }
+    function storeUblMap() {
+        for (const imgMeta of getQualifiedUblImgMetas()) {
+            ublMap.addURL(imgMeta.src, imgMeta.imgEl.loaded === true || imgMeta.imgEl.loaded === 'ddgp', {
+                imgEl: imgMeta.imgEl,
+                dimensions: (imgMeta.ow + 'x' + imgMeta.oh)
+            });
+        }
+
+        const stored = new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()));
+        for (const [k, v] of stored) {
+            ublMap.addURL(k, v);
+        }
+        console.debug(
+            'stored map:', stored,
+            '\nnew ublMap:', ublMap
+        );
+
+        GM_setValue(Consts.GMValues.ublSitesMap, Array.from(ublMap.entries()));
+        return ublMap;
+    }
+    function saveUblSites() {
+        storeUblSitesSet();
+        console.log('Site links of unblocked images:', Array.from(ublSitesSet));
+    }
+    /**
+     * Returns a list of qualified image metas
+     * @return {Meta[]}
+     */
+    function getQualifiedUblImgMetas() {
+        const condition = meta => (
+            typeof (meta) !== 'undefined' &&
+            !(meta.imgEl.classList.contains(Consts.ClassNames.FAILED) || meta.imgEl.classList.contains(Consts.ClassNames.FAILED_PROXY)) && // not marked as failed
+            Math.max(meta.ow, meta.oh) >= 120 // not too small;
+        );
+
+        return Array.from(getImgBoxes(' a.rg_l img[loaded="true"], a.rg_l img[loaded="true"]'))
+            .map(getMeta)
+            .filter(condition);
+    }
+
+    unsafeWindow.collectUblSites = collectUblSites;
+    unsafeWindow.saveUblSites = saveUblSites;
+    unsafeWindow.UblMetas = ublMetas;
+    unsafeWindow.storeUblMetas = storeUblMetas;
+    unsafeWindow.storeUblMap = storeUblMap;
+
 })();
 
 function addCss(cssStr, id = '') {
@@ -3940,12 +3996,7 @@ function elementUnderMouse(wheelEvent) {
 }
 
 function makeTextFile(text) {
-    var data = new Blob([text], {type: 'text/plain'});
-    var textFile = null;
-    // If we are replacing a previously generated file we need to manually revoke the object URL to avoid memory leaks.
-    if (textFile !== null) window.URL.revokeObjectURL(textFile);
-    textFile = window.URL.createObjectURL(data);
-    return textFile;
+    return window.URL.createObjectURL(new Blob([text], {type: 'text/plain'}));
 }
 
 function cleanGibberish(str, minWgr, debug = false) {
