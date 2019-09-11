@@ -1682,16 +1682,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             });
         }
 
-        if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) { // if Google images
-            // automatically display originals if searching for a site:
-            if (/site:.+/i.test(pageUrl.searchParams.get('q')) && !/img:/i.test(pageUrl.searchParams.get('tbs'))) {
-                console.log('automatically display originals for "site:" search');
-                shouldShowOriginals = true;
-                showOriginals();
-            }
-        }
-        // if NOT google images:
-        else {
+        if (!(GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel)) {
             // bind each result to the corresponding number
             for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
                 Mousetrap.bind(String(i + 1), (e) => {
@@ -1700,6 +1691,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
             }
         }
+        // if NOT google images:
 
     }, false);
 
