@@ -1736,6 +1736,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             } else {
                 console.warn('Warning, mainImg.src undefined????!!', mainImage.src, mainImage);
             }
+
+            for (const ris_img of this.ris_Divs) {
+                enhanceImageBox(ris_img);
+            }
         }
         /**
          * called when changing from one panel to another (going left or right)
@@ -2595,18 +2599,45 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
     function enhanceImageBox(imageBox) {
-        imageBox.classList.add('rg_bx_listed');
-        const img = imageBox.querySelector('img.rg_i');
+        imageBox.classList.add('rg_bx_listed'); // adding a class just to keep track of which one's were already done
+
+        // there are two cases, either an imageBox or an ris image
+        let img = imageBox.querySelector('img.rg_i, img.irc_rii');
+
         if (!img) return;
+        const isRelatedImage = img.matches('.irc_rii'); // not an imageBox (rather it's one of the related images in the panels)
 
         // defining properties
         imageBox.img = img;
-        img.showOriginal = () => showImages.replaceImgSrc(img, img.closest('a'));
-        img.__defineGetter__('meta', () => getMeta(img));
-        img.__defineGetter__('satisfiesDimensions', () =>
-            img.meta.ow >= Components.minImgSizeSlider.value && img.meta.oh >= Components.minImgSizeSlider.value
-        );
+        if (!isRelatedImage) {
+            img.__defineGetter__('meta', () => getMeta(img));
+            img.__defineGetter__('satisfiesDimensions', () =>
+                img.meta.ow >= Components.minImgSizeSlider.value && img.meta.oh >= Components.minImgSizeSlider.value
+            );
 
+            // choosing one of them (prioritizing the description over the title)
+            img.__defineGetter__('alt', () => {
+                const title = [img.meta.pt, img.meta.s].join('_');
+                img.setAttribute('alt', title);
+                return title;
+            });
+            img.__defineGetter__('name', () => {
+                const title = [img.meta.pt, img.meta.s].join('_');
+                img.setAttribute('name', title);
+                return title;
+            });
+
+            img.classList.add('blur');
+        } else {
+            addImgExtensionBox(imageBox);
+            addImgDownloadButton(imageBox);
+        }
+
+        // just wait until exists `meta`, cuz some of them didn't load yet
+        elementReady(() => getMeta(imageBox)).then(function () {
+            addImgExtensionBox(imageBox);
+            addImgDownloadButton(imageBox);
+        });
 
         /**
          * Adds a mouseover listener to showOriginal if you hover over an image for a moment
@@ -2624,15 +2655,19 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     }
                 };
 
+                function replaceImg() {
+                    showImages.replaceImgSrc(imgBx.img, imgBx.img.closest('a'));
+                }
+
                 const onMouseUpdate = (e) => {
                     if (e[Preferences.shortcuts.hotkey]) {
-                        imgBx.img.showOriginal();
+                        replaceImg();
                     }
 
                     checkAndResetTimer(e);
                     timeout = setTimeout(function () {
                         checkAndResetTimer(e);
-                        imgBx.img.showOriginal();
+                        replaceImg();
                     }, Preferences.page.showImgHoverPeriod);
                     imgBx.mouseX = e.clientX;
                     imgBx.mouseY = e.clientY;
@@ -2651,7 +2686,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         function addImgExtensionBox(imgBox) {
             if (imgBox.querySelector('.text-block')) return;
 
-            const img = imgBox.querySelector('img.rg_ic.rg_i');
+            const img = imgBox.querySelector('img.rg_ic.rg_i, img.irc_rii');
             const meta = getMeta(img);
             const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
 
@@ -2667,7 +2702,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             if (imgBox.querySelector('.download-block'))
                 return;
 
-            const img = imgBox.querySelector('img.rg_i');
+            const img = imgBox.querySelector('img.rg_i, img.irc_rii');
             const link = img.closest('a');
             const meta = getMeta(img);
 
@@ -2692,27 +2727,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             img.after($dlBtn[0]);
         }
-
-        // just wait until exists `meta`, cuz some of them didn't load yet
-        elementReady(() => getMeta(imageBox)).then(function () {
-            addImgExtensionBox(imageBox);
-            addImgDownloadButton(imageBox);
-        });
-
-        // choosing one of them (prioritizing the description over the title)
-        img.__defineGetter__('alt', () => {
-            var title = [img.meta.pt, img.meta.s].join('_');
-            img.setAttribute('alt', title);
-            return title;
-        });
-        img.__defineGetter__('name', () => {
-            var title = [img.meta.pt, img.meta.s].join('_');
-            img.setAttribute('name', title);
-            return title;
-        });
-
-
-        img.classList.add('blur');
 
         addHoverListener(imageBox);
     }
@@ -2765,6 +2779,15 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             // nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
         }
 
+
+        const getFakeRisMeta = ris_img => {
+            const titleDiv = ris_img.querySelector('a.iKjWAf.irc-nic.isr-rtc .nJGrxf');
+            return ({
+                ou: ris_img.getAttribute('fullres-src'),
+                pt: titleDiv ? titleDiv.innerText : '',
+            });
+        };
+
         var metaObj = {};
         if (!img)
             return metaObj;
@@ -2773,13 +2796,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
         try {
-            var rg_meta = div.querySelector('.rg_meta');
-            if (!rg_meta) {// this is probably gonna be the case for ris
-                var selector = '[data-ved="' + $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx div.rg_meta';
-                rg_meta = document.querySelector(selector);
+            const selector = '[data-ved="' + $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx div.rg_meta';
+            const rg_meta = div.querySelector('.rg_meta') || document.querySelector(selector);
+            if (rg_meta && !Object.keys(metaObj).length) {
+                metaObj = JSON.parse(rg_meta.innerText);
+            } else {
+                metaObj = getFakeRisMeta(img);
             }
-
-            metaObj = JSON.parse(rg_meta.innerText);
 
             metaObj.src = img.src;
             metaObj.dim = [metaObj.ow, metaObj.oh];
