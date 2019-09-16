@@ -157,19 +157,21 @@ var normalizeUrl = (function () {
 
     var debug = true;
     var showImages = new ShowImages({
-        loadMode: 'serial',
+        loadMode: 'parallel',
         imagesFilter: (img, anchor) => {
             var conditions = [
                 // !img.classList.contains(showImages.ClassNames.DISPLAY_ORIGINAL),
                 // !img.closest('.' + this.ClassNames.DISPLAY_ORIGINAL),
                 // /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(anchor.href),
-                !img.classList.contains('irc_mut'),
+                // !img.classList.contains('irc_mut'),
                 !img.closest('div.irc_rismo'),
                 !/^data:/.test(anchor.href || img.src),
             ];
             return conditions.reduce((a, b) => a && b);
         },
     });
+    showImages.imageManager.loadTimeout = -1;
+
     console.log('SuperGoogle showImages:', showImages);
     unsafeWindow.showImagesSuperGoogle = showImages;
 
@@ -1249,7 +1251,29 @@ var normalizeUrl = (function () {
                 }
             })();
 
-            // ImagePanel.updateP(panel);
+            //
+
+            const mainImage = panel.mainImage;
+
+            // mainImage.updateLink = function () {
+            //     const anchor = this.closest('a');
+            //     anchor.href = this.src;
+            //     console.log('panel.mainImage.src updating link:', anchor);
+            // };
+            // mainImage.__setAttribute = mainImage.setAttribute; // HACK: making a copy
+            // mainImage.setAttribute = (attr, val) => {
+            //     if (attr !== 'src') {
+            //         mainImage.__setAttribute(attr, val);
+            //     } else {
+            //         mainImage.__setAttribute(attr, val);
+            //         mainImage.updateLink();
+            //     }
+            // }; // overriding setAttribute
+            // mainImage.__defineSetter__('src', function (val) {
+            //     mainImage.__setAttribute('src', val);
+            //     mainImage.updateLink();
+            // });
+
             return panel;
         }
         /**
@@ -1294,14 +1318,12 @@ var normalizeUrl = (function () {
             panel.update_sbi();
 
             // the focused ris img
-            const img_ris = panel.ris_fc_Div.querySelector('img');
-            const tu = getMeta(img_ris).tu; //thumbnail url
-            if (tu)
-                panel.loaderImage.src = tu;
-            if (img_ris.getAttribute('loaded') === 'error') {
-                if (tu)
-                    panel.mainImage.src = tu;
-            }
+            // const img_ris = panel.ris_fc_Div.querySelector('img');
+            // const tu = getMeta(img_ris).tu; //thumbnail url
+            // if (tu) panel.mainThumbnail.src = tu;
+            // if (img_ris.getAttribute('loaded') === 'error') {
+            //     if (tu) panel.mainImage.src = tu;
+            // }
 
 
             // update sTitle href to point to the panel page
@@ -3665,7 +3687,7 @@ div.rg_bx {
     margin: 10px;
 }
 
-/*fixes the selection area of main image anchors*/
+/*fixes size of main image link*/
 .irc_asc {
     display: inline-block !important;
 }
@@ -3674,6 +3696,16 @@ div.rg_bx {
     width: 80% !important;
 }
 
+/*this is for the pTitle a.irc_pt so it won't take more space than it should*/
+a.irc_pt {
+    display: contents !important;
+}
+
+/*for the imagebox info link*/
+a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
+    padding: 2px 4px 0 0;
+    /*display: contents;*/
+}
 /*for the container of .site-span (the info text on the ris images)*/
 #irc_bg a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration.phref {
     bottom: 15px;
@@ -3705,11 +3737,6 @@ div.text-block {
 div.text-block.download-block:hover {
     transform: scale(1.5);
     opacity: 1;
-}
-
-/*for the imagebox info link*/
-a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
-    padding: 2px 4px 0 0;
 }
 
 .ext-gif {
