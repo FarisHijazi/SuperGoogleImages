@@ -466,6 +466,20 @@ var normalizeUrl = (function () {
     var directLinkReplacer = googleDirectLinksInit();
     unsafeWindow.directLinkReplacer = directLinkReplacer;
 
+    document.cursor = {
+        pageX: 0,
+        pageY: 0,
+        clientX: 0,
+        clientY: 0,
+    };
+    document.addEventListener('mousemove', function (e) {
+        document.cursor.pageX = e.pageX;
+        document.cursor.pageY = e.pageY;
+        document.cursor.clientX = e.clientX;
+        document.cursor.clientY = e.clientY;
+    });
+
+
     class GSaves {
         static get initialItem() {
             return google.pmc.colmob.initial_item.map(item => JSON.parse(item));
@@ -2070,6 +2084,23 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind(['numpad9'], () => ImagePanel.focP.lookupTitle(), 'keydown');
         Mousetrap.bind([';'], () => ImagePanel.focP.siteSearch());
 
+        document.addEventListener('keydown', e => {
+            if (e[Preferences.shortcuts.hotkey]) {
+                const el = document.elementFromPoint(document.cursor.clientX, document.cursor.clientY);
+                const hotkeyEvent = new Event('hotkey');
+                hotkeyEvent[Preferences.shortcuts.hotkey] = e[Preferences.shortcuts.hotkey];
+                el.dispatchEvent(hotkeyEvent);
+            }
+        });
+        document.addEventListener('keyup', e => {
+            if (e[Preferences.shortcuts.hotkey]) {
+                const el = document.elementFromPoint(document.cursor.clientX, document.cursor.clientY);
+                const hotkeyEvent = new Event('hotkeyup');
+                hotkeyEvent[Preferences.shortcuts.hotkey] = e[Preferences.shortcuts.hotkey];
+                el.dispatchEvent(hotkeyEvent);
+            }
+        });
+
         console.log('added super google key listener');
     }
 
@@ -2673,6 +2704,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     imgBx.mouseY = e.clientY;
                 };
 
+                imgBx.img.addEventListener('hotkey', replaceImg, false);
+                imgBx.addEventListener('hotkey', replaceImg, false);
+
                 imgBx.addEventListener('mousemove', onMouseUpdate, false);
                 imgBx.addEventListener('mouseenter', onMouseUpdate, false);
                 imgBx.addEventListener('mouseout', () => clearTimeout(timeout));
@@ -2862,7 +2896,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         const enhanceLink = function (a) {
             // at this point, href= the gimg search page url
             /** stop propagation onclick */
-            var purifyLink = function (a) {
+            const purifyLink = function (a) {
                 if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
                     a.removeAttribute('onmousedown');
                 }
@@ -2886,13 +2920,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             const phref = link.getAttribute('phref');
 
             // @faris, storing fullres-src attribute to images
-            var imgs = [].slice.call(link.querySelectorAll('div~img'));
+            const imgs = [].slice.call(link.querySelectorAll('div~img'));
             if (imgs.length > 0) imgs.forEach(function (img) {
                 if (o.debug) console.log('img fullres-src="' + link.href + '"');
                 img.setAttribute('fullres-src', link.href); //@faris
 
                 //DEBUG: checking what the hell is causing "&reload=on"
-                img.__defineGetter__('src', () => img.getAttribute('src'));
+                img.__defineGetter__('src', () => normalizeUrl(img.getAttribute('src')));
                 img.__defineSetter__('src', (value) => {
                     if (/&reload=on/.test(value))
                         if (o.debug) console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
@@ -2954,17 +2988,29 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                         siteSpan.style.display = 'none';
                     };
 
-                    var handleHover = function (e) {
+                    const handleHover = function (e) {
                         if (e[Preferences.shortcuts.hotkey]) { // change to site:search
-                            this.oghref = this.href;
-                            const sitesearchUrl = GoogleUtils.url.siteSearchUrl(this.querySelector('div > span:nth-child(2)').innerText);
-                            this.setAttribute('href', sitesearchUrl);
+                            footLink.oghref = footLink.href;
+                            const span = footLink.querySelector('div > span:not(.site-span)');
+                            const sitesearchUrl = GoogleUtils.url.siteSearchUrl(span.innerText);
+                            footLink.setAttribute('href', sitesearchUrl);
                             siteSpan.style.display = 'inline';
                         } else {
-                            __restoreFootlink(this);
+                            __restoreFootlink(footLink);
                         }
                     };
 
+
+                    const hostnameSpan = footLink.querySelector('span:not(.site-span)');
+                    hostnameSpan.addEventListener('hotkey', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
+                    hostnameSpan.addEventListener('hotkeyup', e => e[Preferences.shortcuts.hotkey] && __restoreFootlink(footLink), false);
+
+                    const parentDiv = footLink.closest('div');
+                    parentDiv.addEventListener('hotkey', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
+                    parentDiv.addEventListener('hotkeyup', e => e[Preferences.shortcuts.hotkey] && __restoreFootlink(footLink), false);
+
+                    footLink.addEventListener('hotkey', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
+                    footLink.addEventListener('hotkeyup', e => e[Preferences.shortcuts.hotkey] && __restoreFootlink(footLink), false);
 
                     footLink.addEventListener('key', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
                     footLink.addEventListener('mouseenter', handleHover, false);
