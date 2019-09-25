@@ -177,8 +177,8 @@ var normalizeUrl = (function () {
 
     const pageUrl = new URL(location.href);
 
-    // const Mousetrap = Mousetrap();
-    // unsafeWindow.Mousetrap = Mousetrap;
+    const mousetrap = Mousetrap();
+    unsafeWindow.mousetrap = mousetrap;
 
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
     console.debug('SuperGoogle running');
@@ -668,7 +668,7 @@ var normalizeUrl = (function () {
     if (/google\..+\/save/.test(location.href)) {
         console.log('beginning of google.com/save site...');
 
-        Mousetrap.bind('`', function () {
+        mousetrap.bind('`', function () {
             GSaves.wrapPanels();
         });
 
@@ -1796,10 +1796,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
         const menuItems = getMenuItems();
         for (const item of Object.keys(menuItems)) {
-            Mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], function (e) {
+            const callback = function (e) {
                 var elChild = menuItems[item].firstElementChild;
                 if (elChild) elChild.click();
-            });
+            };
+            callback._name = 'Go to [' + item + '] tab';
+            mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], callback);
         }
 
         const ssLink = document.querySelector('#ss-bimodal-strict');
@@ -1819,7 +1821,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         if (!(GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel)) {
             // bind each result to the corresponding number
             for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
-                Mousetrap.bind(String(i + 1), (e) => {
+                mousetrap.bind(String(i + 1), (e) => {
                     results[i].querySelector('a').click();
                 });
                 results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
@@ -1943,7 +1945,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
 
         // toggle forcedHostname
-        Mousetrap.bind('f h', function toggle_forcedHostname(e) {
+        mousetrap.bind('f h', function toggle_forcedHostname(e) {
             const wasForced = Preferences.location.forcedHostname.charAt(0) !== '!';
             const toForced = !wasForced && pageUrl.hostname !== Preferences.location.forcedHostname;
 
@@ -1968,31 +1970,31 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
 
         // S S: SafeSearch toggle
-        Mousetrap.bind('s s', toggle_safesearch);
+        mousetrap.bind('s s', toggle_safesearch);
 
-        Mousetrap.bind(['c c'], cleanupSearch);
+        mousetrap.bind(['c c'], cleanupSearch);
         // to https://yandex.com/images/search?text=
-        Mousetrap.bind('y d x', function switchEngineToYandex() {
+        mousetrap.bind('y d x', function switchEngineToYandex() {
             var x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
             console.log('Yandex url = ', x);
             location.assign(x);
         });
 
-        Mousetrap.bind(['alt+a'], function switchToAnimatedResults() {
+        mousetrap.bind(['alt+a'], function switchToAnimatedResults() {
             (!document.querySelector('#itp_animated').firstElementChild ? document.querySelector('#itp_').firstElementChild : document.querySelector('#itp_animated').firstElementChild).click();
         });
-        Mousetrap.bind(['D'], function downloadAll() {
+        mousetrap.bind(['D'], function downloadAll() {
             document.querySelector('#downloadBtn').click();
         });
-        Mousetrap.bind(['h'], function toggle_hideFailedImages() {
+        mousetrap.bind(['h'], function toggle_hideFailedImages() {
             document.querySelector('#hideFailedImagesBox').click();
         });
-        Mousetrap.bind(['g'], function toggle_gifsOnlyCheckbox() {
+        mousetrap.bind(['g'], function toggle_gifsOnlyCheckbox() {
             document.querySelector('#GIFsOnlyBox').click();
         });
-        Mousetrap.bind(['esc', 'escape'], removeHash);
+        mousetrap.bind(['esc', 'escape'], removeHash);
 
-        Mousetrap.bind(['/'], function focusSearchbar(e) { // focus search box
+        mousetrap.bind(['/'], function focusSearchbar(e) { // focus search box
             const searchBar = document.querySelector(Consts.Selectors.searchBox);
             if (!$(searchBar).is(':focus')) {
                 searchBar.focus();
@@ -2008,50 +2010,107 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         // // keys between 1 and (#buttons-1)
         // for (let i = 1; i <= 5; i++) { /*it should have around 5 buttons, not sure how many it actually has*/
-        //     Mousetrap.bind(i.toString(), function (e) {
+        //     mousetrap.bind(i.toString(), function (e) {
         //         ImagePanel.focP && ImagePanel.focP.buttons && i <= ImagePanel.focP.buttons.length && ImagePanel.focP.buttons[i - 1].click();
         //     });
         // }
 
-        Mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
-        Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
+        mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
+        mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
-        Mousetrap.bind(['['], function stepDown_minImgSizeSlider(e) {
+        mousetrap.bind(['['], function stepDown_minImgSizeSlider(e) {
             Components.minImgSizeSlider.stepDown();
         });
-        Mousetrap.bind([']'], function stepUp_minImgSizeSlider(e) {
+        mousetrap.bind([']'], function stepUp_minImgSizeSlider(e) {
             Components.minImgSizeSlider.stepUp();
         });
 
 
-        Mousetrap.bind([`'`], function toggle_enableLoopRelatedImages(e) {
+        mousetrap.bind([`'`], function toggle_enableLoopRelatedImages(e) {
             Preferences.panels.loopbackWhenCyclingRelatedImages = !Preferences.panels.loopbackWhenCyclingRelatedImages;
             GM_setValue('LOOP_RELATED_IMAGES', Preferences.panels.loopbackWhenCyclingRelatedImages);
             console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.panels.loopbackWhenCyclingRelatedImages);
         });
-        Mousetrap.bind(['c'], function goToCollections(e) {
+        mousetrap.bind(['c'], function goToCollections(e) {
             var btn_ViewSaves = document.querySelector("#ab_ctls > li > a.ab_button") || ImagePanel.focP.q('.i18192');
             console.debug('btn_ViewSaves', btn_ViewSaves);
             if (!!btn_ViewSaves) btn_ViewSaves.click();
         });
-        Mousetrap.bind(['numpad4'], function previousImage(e) {// ◀
+        mousetrap.bind(['numpad4'], function previousImage(e) {// ◀
             ImagePanel.previousImage();
         }, 'keydown');
-        Mousetrap.bind(['numpad6'], function nextImage(e) { // ▶
+        mousetrap.bind(['numpad6'], function nextImage(e) { // ▶
             ImagePanel.nextImage();
         }, 'keydown');
+
+        mousetrap.bind(['?'], function toggleShowKeymap(e) {
+            var keymap = document.querySelector('#keymap');
+            if (keymap) {
+                keymap.remove();
+                return;
+            } else {
+                keymap = getKeymap();
+            }
+
+            /**
+             *
+             * @param {Array} entries - assumed to be a list of lists (2d array)
+             * @returns {HTMLDivElement}
+             */
+            function tableFromEntries(entries) {
+                var html = "<table><tr>";
+
+                // Loop through array and add table cells
+                for (const row of entries) {
+                    for (const cell of row) {
+                        html += "<td>" + cell + "</td>";
+                    }
+                    html += "</tr><tr>";// Break into next row
+                }
+                html += "</tr></table>";
+
+                // ATTACH HTML TO CONTAINER
+                const container = document.createElement('div');
+                container.innerHTML = html;
+                return container;
+            }
+
+            const keymapTable = tableFromEntries(keymap);
+            keymapTable.style = 'left: 30%;' +
+                'width: 50%;' +
+                'top: 10%;' +
+                'z-index: 1002;' +
+                'color: rgb(255, 255, 255);' +
+                'position: fixed;' +
+                'text-align: center;' +
+                'text-shadow: rgb(0, 0, 0) 1px 1px 7px;' +
+                'font-weight: bold;' +
+                'background: none 0px center repeat scroll rgb(0, 0, 0);' +
+                'overflow: hidden;' +
+                'border-radius: 10px;';
+            keymapTable.id = 'keymap';
+            Mousetrap(keymapTable).bind('escape', function (e) {
+                closeKeymap();
+            });
+            document.body.appendChild(keymapTable);
+
+            function closeKeymap() {
+                keymapTable.remove();
+            }
+        }, 'keydown');
+
 
         // ==== panel-specific bindings ========
         // TODO: maybe it's cleaner to bind the panels using Mousetrap(panel).bind ...
 
-        Mousetrap.bind(['v'], function saveToCollections(e) {
+        mousetrap.bind(['v'], function saveToCollections(e) {
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             var btn_Save = ImagePanel.focP.q('.i15087');
             console.debug('btn_Save', btn_Save);
             if (!!btn_Save) btn_Save.click();
         });
-        Mousetrap.bind(['b', 'numpad1'], function searchByImage(e) {// ⬋ Search by image
+        mousetrap.bind(['b', 'numpad1'], function searchByImage(e) {// ⬋ Search by image
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             if (ImagePanel.focP.mainImage) {
@@ -2060,13 +2119,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 console.error('Image not found', ImagePanel.focP.ris_fc_Url);
             }
         }, 'keydown');
-        Mousetrap.bind(['d', 'numpad5', 'enter'], function downloadCurrentImage() {
+        mousetrap.bind(['d', 'numpad5', 'enter'], function downloadCurrentImage() {
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             ImagePanel.downloadCurrentImage();
         }, 'keydown');
 
-        Mousetrap.bind(['numpad3'], function open_related_images_in_new_tab(e) {// ⬊ Open related images in new tab
+        mousetrap.bind(['numpad3'], function open_related_images_in_new_tab(e) {// ⬊ Open related images in new tab
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             const moreRelatedImagesLink = ImagePanel.focP.q('.irc_rismo.irc_rimask a');
@@ -2074,26 +2133,26 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 openInTab(moreRelatedImagesLink.href);
             }
         }, 'keydown');
-        Mousetrap.bind(['space'], function openCurrentImage(e) {
+        mousetrap.bind(['space'], function openCurrentImage(e) {
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             openInTab(ImagePanel.focP.imgUrl);
         });
-        Mousetrap.bind([',', 'up', 'numpad8'], function prevRelatedImg(e) { // ▲ Prev/Left relImage
+        mousetrap.bind([',', 'up', 'numpad8'], function prevRelatedImg(e) { // ▲ Prev/Left relImage
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             ImagePanel.prevRelImg();
             e.preventDefault();
         }, 'keydown');
-        Mousetrap.bind(['.', 'down', 'numpad2'], function nextRelatedImg(e) {// Next related mainImage
+        mousetrap.bind(['.', 'down', 'numpad2'], function nextRelatedImg(e) {// Next related mainImage
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             ImagePanel.nextRelImg();
             e.preventDefault();
         }, 'keydown');
-        Mousetrap.bind(['o'], ImagePanel.showRis);
-        Mousetrap.bind(['m'], ImagePanel.download_ris);
-        Mousetrap.bind(['numpad7'], function visit_page(e) {// ⬉ visit page
+        mousetrap.bind(['o'], ImagePanel.showRis);
+        mousetrap.bind(['m'], ImagePanel.download_ris);
+        mousetrap.bind(['numpad7'], function visit_page(e) {// ⬉ visit page
             const visitUrl = ImagePanel.focP.buttons.Visit.href;
             // const visitTitleUrl = subtitleEl.href;
 
@@ -2101,10 +2160,10 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             openInTab(visitUrl);
         }, 'keydown');
         // Search title
-        Mousetrap.bind(['numpad9', 's t'], function lookupTitle() {// lookup the image's title.
+        mousetrap.bind(['numpad9', 's t'], function lookupTitle() {// lookup the image's title.
             ImagePanel.focP.lookupTitle();
         }, 'keydown');
-        Mousetrap.bind([';'], function siteSearchCurrentImage() {
+        mousetrap.bind([';'], function siteSearchCurrentImage() {
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
             return ImagePanel.focP.siteSearch();
@@ -3617,6 +3676,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         console.log('menuItemsObj=', menuItemsObj);
         return menuItemsObj;
+    }
+
+    function getKeymap() {
+        return Object.entries(mousetrap._directMap).map(e => {
+            return [e[0].replace(/:.*$/, ''), e[1]._name || e[1].name]
+        }).filter(entry => !!entry[1])
     }
 
     /** @return {Array} returns an array of words with the most common word in the first index */
