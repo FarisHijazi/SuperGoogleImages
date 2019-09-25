@@ -2089,6 +2089,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 'overflow: hidden;' +
                 'border-radius: 10px;';
             keymapTable.id = 'keymap';
+            const closeLink = createElement('<a href="#" style="float: right;">Close</a>');
+            closeLink.onclick = closeKeymap;
+            keymapTable.firstElementChild.before(closeLink);
             Mousetrap(keymapTable).bind('escape', function (e) {
                 closeKeymap();
             });
