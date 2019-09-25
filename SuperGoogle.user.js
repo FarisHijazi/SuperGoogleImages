@@ -1454,7 +1454,10 @@ var normalizeUrl = (function () {
             const className = 'search-by-image';
             const html = `<a class="o5rIVb ${className}" target="${Preferences.page.defaultAnchorTarget}" href="${href}" data-ved="${dataVed}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" data-ctbtn="2"<span dir="ltr" style="text-align: left;float: right;">Search&nbsp;by&nbsp;image</span></a>`;
 
-            return this.addElementAfterSTitle(html, className, null, 'BOTTOM');
+            const clickListener = function (e) {
+                localStorage.setItem('clickShowAllSizes', "true");
+            };
+            return this.addElementAfterSTitle(html, className, clickListener, 'BOTTOM');
         }
         update_sbi() {
             // updating ImageHost
@@ -1799,6 +1802,20 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             });
         }
 
+        const ssLink = document.querySelector('#ss-bimodal-strict');
+        const ussLink = document.querySelector('#ss-bimodal-default');
+        const safeSearchListener = function (e) {
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            e.preventDefault();
+
+            toggle_safesearch();
+        };
+        if (ssLink) ssLink.addEventListener('click', safeSearchListener, true);
+        if (ussLink) ussLink.addEventListener('click', safeSearchListener, true);
+
+
+        // if NOT google images:
         if (!(GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel)) {
             // bind each result to the corresponding number
             for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
@@ -1813,12 +1830,30 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     }, false);
 
     // click showAllSizes link when it appears
-    elementReady(Consts.Selectors.showAllSizes).then(el => el.click());
+    if (localStorage.getItem('clickShowAllSizes') === "true") {
+        elementReady(Consts.Selectors.showAllSizes).then(function (el) {
+            localStorage.setItem('clickShowAllSizes', "");
+            return el.click();
+        });
+    }
 
     // === start of function definitions ===
 
     function go() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
+            // force safe search if already attempted and shouldBeUnsafesearch
+            if (document.querySelector('#ss-bimodal-default') && localStorage.getItem('shouldBeUnsafesearch') === "true") {
+                location.assign(unsafeSearchUrl()); // force unsafesearch
+                localStorage.setItem('shouldBeUnsafesearch', "");
+                return;
+            }
+            const targetHostname = localStorage.getItem('targetHostname');
+            if (targetHostname && (targetHostname !== location.hostname)) {
+                localStorage.setItem('targetHostname', '');
+                location.hostname = targetHostname;
+                return;
+            }
+
             // directLinkReplacer.observe();
 
             bindKeys();
@@ -1909,11 +1944,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
 
         // toggle forcedHostname
-        Mousetrap.bind('shift+f5', function (e) {
+        Mousetrap.bind('f h', function toggle_forcedHostname(e) {
             const wasForced = Preferences.location.forcedHostname.charAt(0) !== '!';
             const toForced = !wasForced && pageUrl.hostname !== Preferences.location.forcedHostname;
 
-            console.log('shift+f5 [toggle forcedHostname]\nto:', toForced ? 'forced' : 'www.');
+            console.log('"f h" [toggle forcedHostname]\nto:', toForced ? 'forced' : 'www.');
 
             if (toForced) {
                 Preferences.location.forcedHostname = Preferences.location.forcedHostname.replace(/^!/, '');
@@ -1934,23 +1969,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         });
 
         // S S: SafeSearch toggle
-        Mousetrap.bind('s s', function () {
-            console.log('safeSearch toggle');
-            const ssLink = document.querySelector('#ss-bimodal-strict');
-            // const ussLink = document.querySelector('#ss-bimodal-default');
-
-            if (ssLink) {
-                console.log('sslink', ssLink.href, ssLink);
-                ssLink.click(); // to safe search
-            } else {
-                // to unsafe search
-                location.assign(unsafeSearchUrl());
-            }
-        });
-
-        Mousetrap.bind(['u'], () => {
-            location.assign(unsafeSearchUrl());
-        });
+        Mousetrap.bind('s s', toggle_safesearch);
 
         Mousetrap.bind(['c c'], cleanupSearch);
         // to https://yandex.com/images/search?text=
@@ -3951,6 +3970,27 @@ a.download-related {
             adjustTopMargin();
             return topnavContent;
         });
+    }
+
+    function toggle_safesearch() {
+        // by default, it'll toggle, but if enableSs was passed true or false, it will follow that
+
+        console.log('safeSearch toggle');
+        const ssLink = document.querySelector('#ss-bimodal-strict');
+        const ussLink = document.querySelector('#ss-bimodal-default');
+
+        if (ssLink && !ussLink) {
+            console.log('sslink', ssLink.href, ssLink);
+            localStorage.setItem('targetHostname', 'www.google.com'); // force normal hostname to avoid ipv4 issues
+            location.assign(ssLink.href); // to safe search
+        } else {// to unsafe search
+            if (document.querySelector('#ss-bimodal-default') && localStorage.getItem('shouldBeUnsafesearch') === "true") { // if already attempted and shouldBeUnsafesearch
+                location.assign(unsafeSearchUrl()); // force unsafesearch
+            } else {
+                localStorage.setItem('triedSafesearchButton', "true");
+                location.assign(ussLink.href);
+            }
+        }
     }
 
     function removeHash() {
