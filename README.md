@@ -28,12 +28,16 @@ See [demo video here](https://youtu.be/ceFuBh8r8GQ?t=24).
 
 1. Install [Tampermonkey](install:tampermonkey-chrome) (or any [UserScript client][guide:get-user-script]) for your browser.
 2. Click [DOWNLOAD][download-link] (or visit the RAW file url).
-3. [Optional: for downloading images] Enable downlaods  
-    For Tampmonkey, do the following
-      - Enable `Browser API`. See guide here: "[How do I setup userscript-triggered downloads][guide:browser-API-beta]".  
-        ![enable browser API beta][guide:browser-API-beta-gif]
-      - When prompted, allow the script to load images, click `always allow all domains` (only needed once).  
-        <img src="Screenshots/Screenshot_tampermonkey_allow_connect.png" alt="allow connect permissions" width="250"/>
+3. [Optional: for downloading images] Enable downlaods (see details)
+<details> <summary>Click to expand: How to enable downloads (for Tampermonkey)</summary>
+  <div>
+    <li>Enable `Browser API`. See guide at "<a href="https://www.tampermonkey.net/faq.php#Q302">How do I setup userscript-triggered downloads</a>"<br>
+<img alt="enable browser API beta" src="https://www.tampermonkey.net/images/animated/gm_download.gif">
+</li>
+<li>When prompted, allow the script to load images, click `always allow all domains` (only needed once).<br>
+  <img src="/Screenshots/Screenshot_tampermonkey_allow_connect.png" alt="allow connect permissions" width="250"/></li>
+</details>
+
 4. Open any [google image search page](https://www.google.com/search?q=example&tbm=isch&safe=strict) and enjoy the enhanced experience
 
 ### Browser extension
