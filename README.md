@@ -1,5 +1,15 @@
 # SuperGoogle for Google Images
 
+## Description
+
+A [browser plugin](https://openuserjs.org/about/Userscript-Beginners-HOWTO) (a browser script/plugin/extension) to add features to Google images, like:  
+display full resolution images, zip+download all images, and more. See a list of [all features here](#Features);
+
+<a href="https://youtu.be/ceFuBh8r8GQ?t=24">See demo video<br>
+  <img alt="video screenshot" src="./Screenshots/Screenshot_imageBoxes_playing_GIFs.gif">
+</a>
+
+
 - [SuperGoogle for Google Images](#supergoogle-for-google-images)
   - [Description](#description)
   - [Installation](#installation)
@@ -15,16 +25,9 @@
   - [Contributing](#contributing)
   - [License](#license)
 
-## Description
-
-A [browser plugin](https://openuserjs.org/about/Userscript-Beginners-HOWTO) (a browser script/plugin/extension) to add features to Google images, like:  
-display full resolution images, zip+download all images, and more. See a list of [all features here](#Features);
-
-See [demo video here](https://youtu.be/ceFuBh8r8GQ?t=24).
-
 ## Installation
 
-### UserScript (Tampermonkey)
+### UserScript ([Tampermonkey](install:tampermonkey-chrome))
 
 1. Install [Tampermonkey](install:tampermonkey-chrome) (or any [UserScript client][guide:get-user-script]) for your browser.
 2. Click [DOWNLOAD][download-link] (or visit the RAW file url).
@@ -50,7 +53,7 @@ Below is a list of the available features, listed from what is most useful (IMO)
 
 One of the most important features, replaces thumbnails with the original source images, even GIFs!
 
-![original images](Screenshots/Screenshot_imageBoxes_playing_GIFs.gif)
+![original images](./Screenshots/Screenshot_imageBoxes_playing_GIFs.gif)
 
 ### Zip and download all the images
 
@@ -60,7 +63,7 @@ You can even specify the minimum allowed dimensions for images
 
 Adds the following features to the image panel:
 
-![image panel screenshot](Screenshots/Screenshot_1_ImagePanel_Details.png)
+![image panel screenshot](./Screenshots/Screenshot_1_ImagePanel_Details.png)
 
 - 1 - Add `view image` button
 
