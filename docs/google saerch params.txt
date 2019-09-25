@@ -1,0 +1,28 @@
+
+
+https://developers.google.com/custom-search/v1/cse/list
+
+https://stenevang.wordpress.com/2013/02/22/google-advanced-power-search-url-request-parameters/
+
+"https://www.googleapis.com/customsearch/v1?q={searchTerms}&num={count?}&start={startIndex?}&lr={language?}&safe={safe?}&cx={cx?}&sort={sort?}&filter={filter?}&gl={gl?}&cr={cr?}&googlehost={googleHost?}&c2coff={disableCnTwTranslation?}&hq={hq?}&hl={hl?}&siteSearch={siteSearch?}&siteSearchFilter={siteSearchFilter?}&exactTerms={exactTerms?}&excludeTerms={excludeTerms?}&linkSite={linkSite?}&orTerms={orTerms?}&relatedSite={relatedSite?}&dateRestrict={dateRestrict?}&lowRange={lowRange?}&highRange={highRange?}&searchType={searchType}&fileType={fileType?}&rights={rights?}&imgSize={imgSize?}&imgType={imgType?}&imgColorType={imgColorType?}&imgDominantColor={imgDominantColor?}&alt=json"
+
+tbs=isz:l                       Large images
+tbs=isz:m                       Medium images
+tba=isz:i                       Icon sized images
+tbs=isz:lt,islt:qsvga           Image size larger than 400×300
+tbs=isz:lt,islt:vga             Image size larger than 640×480
+tbs=isz:lt,islt:svga            Image size larger than 800×600
+tbs=isz:lt,islt:xga             Image size larger than 1024×768
+tbs=isz:lt,islt:2mp             Image size larger than 1600×1200
+tbs=isz:lt,islt:4mp             Image size larger than 2272×1704
+tbs=isz:ex,iszw:1000,iszh:1000  Image sized exactly 1000×1000
+tbs=ic:color                    Images in full color
+tbs=ic:gray                     Images in black and white
+tbs=ic:specific,isc:red         [orange, yellow, green, teal, blue, purple, pink, white, gray, black, brown] Images that are red
+tbs=itp:face                    Image type Face
+tbs=itp:photo                   Image type Photo
+tbs=itp:clipart                 Image type Clipart
+tbs=itp:lineart                 Image type Line drawing
+tbs=itp:animated                Image type Animated (gif)
+tbs=isg:to                      Group images by subject
+tbs=imgo:1                      Show image sizes in search results

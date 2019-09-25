@@ -1,11 +1,17 @@
 # Todo for SuperGoogle.user.js
 
-## Todo
+Brain dump/ideas
+- [ ] using OCR to get some text from the image
+- [ ] have a separate directory for downloading google zips
+- [x] fix zip index, don't make the html by string, use the element APIs, cuz there are issues with undefined objects and `href` and those are causing issues
+- for the download function, maybe there's no need for a `directory` option, because you may want nested directories
 
 notes and observations:
 - some imgs at the top don't react to showing original images, this is probably from the Google Bypass scripts
 - it seems that the part in charge of telling when an image loads is not working, all images get greyed out and they still play
 - you should reset the `loaded` attribute when changing the href
+
+## Todo
 
 ### Refactor
 
@@ -16,16 +22,16 @@ Moving scripts, collecting functions into a library or an object, renaming..
 ### Fixes
 
 - [x] `ShowImages.displayImages()` doesn't show some images, many images are being ignored
-- [ ] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it
-- [ ] Fix clickable description, it doesn't change when changing to related images
-- [ ] Fix `DisplayOriginalImages`
+- [x] Fix: URLs seem to end with `&reload=on`, and this prevents ddgProxy() from working, find cause and stop it
+- [x] Fix clickable description, it doesn't change when changing to related images
+- [x] Fix `DisplayOriginalImages`
   - [x] Make a specialized copy for the google script
   - [x] Remove all google-specific functionality from DisplayOriginalImages, make them independent
   - [x] Fix inconsistent "loaded" attribute
   - [x] Make it so that `ShowImages.js` can be instantiated and you can choose the callbacks and how it modifies the borders and etc
-- [ ] Fix the auto-loader (clicking load next page), you can't click anything other menus because of it, use ajax instead of clicking the button itself
-- [ ] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
-- [ ] Fix: dlLimit slider doesn't select anything the first time it's used
+- [x] Fix the auto-loader (clicking load next page), you can't click anything other menus because of it, use ajax instead of clicking the button itself
+- [x] Fix: `displayOriginal()` doesn't work on images that don't have a type/extension
+- [x] Fix: dlLimit slider doesn't select anything the first time it's used
 
 ### New features
 
