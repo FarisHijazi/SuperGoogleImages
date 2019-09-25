@@ -175,7 +175,10 @@ var normalizeUrl = (function () {
     console.log('SuperGoogle showImages:', showImages);
     unsafeWindow.showImagesSuperGoogle = showImages;
 
-    var pageUrl = new URL(location.href);
+    const pageUrl = new URL(location.href);
+
+    // const Mousetrap = Mousetrap();
+    // unsafeWindow.Mousetrap = Mousetrap;
 
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
     console.debug('SuperGoogle running');
@@ -271,7 +274,7 @@ var normalizeUrl = (function () {
             page: {
                 defaultAnchorTarget: '_blank',
                 staticNavbar: false,
-                autoLoadMoreImages: true,
+                autoLoadMoreImages: false,
                 showImgHoverPeriod: 350,
                 disableDragging: true, //disable dragging images to reverse image search
             },
@@ -295,7 +298,7 @@ var normalizeUrl = (function () {
             },
         };
 
-        var o = $.extend(DEFAULTS, GM_getValue('Preferences'));
+        const o = $.extend(DEFAULTS, GM_getValue('Preferences'));
 
         o.store = () => GM_setValue('Preferences', o);
         o.get = () => GM_getValue('Preferences');
@@ -660,7 +663,7 @@ var normalizeUrl = (function () {
      */
 
 
-    // todo: move GSaves code to another script
+    // TODO: move GSaves code to another script
     // if on google.com/saves, add keyboard shortcuts
     if (/google\..+\/save/.test(location.href)) {
         console.log('beginning of google.com/save site...');
@@ -739,7 +742,7 @@ var normalizeUrl = (function () {
         }
         static get isPanelCurrentlyOpen() {
             const irc_bg = document.querySelector('#irc_bg');
-            return irc_bg.style.display !== 'none' && irc_bg.getAttribute('aria-hidden') !== 'true';
+            return ImagePanel.focP.mainImage && irc_bg.style.display !== 'none' && irc_bg.getAttribute('aria-hidden') !== 'true';
         }
         /**
          @return {Meta}
@@ -1318,9 +1321,9 @@ var normalizeUrl = (function () {
             imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
             imgAnchor.addEventListener('click', function (e) {
                 window.open(this.querySelector('img').getAttribute('src'), '_blank');
-                e.preventDefault();
-                e.stopPropagation();
                 e.stopImmediatePropagation();
+                e.stopPropagation();
+                e.preventDefault();
             });
 
 
@@ -1562,10 +1565,6 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 console.warn('Site Search element not found:', siteSearchAnchor);
             }
 
-            $('.ddgSearch').attr({
-                'href': PProxy.DDG.proxy(this.pTitle_Anchor.href)
-            });
-
             if (ublSitesSet.has(hostname))
                 setStyleInHTML(this.sTitle_Anchor, 'color', `${Preferences.loading.successColor} !important`);
         }
@@ -1721,8 +1720,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
             (function updateSliderLimits() {
                 // TODO: optimization: have a global `metaDatas` object that gets updated when new images are loaded, this prevents unneeded excessive calls
-                // OR: use the already binded meta objects with the images
-                const metaDatas = Array.from(getImgBoxes()).map(getMeta); // FIXME: this is expensive
+                //       OR: use the already binded meta objects with the images
+                const metaDatas = Array.from(getImgBoxes()).map(getMeta);
                 const dimensions = metaDatas.map(meta => [meta.ow, meta.oh]);
                 const maxDimension = Math.max.apply(this, dimensions.map(wh => Math.max.apply(this, wh)));
                 const minDimension = Math.min.apply(this, dimensions.map(wh => Math.min.apply(this, wh)));
@@ -1791,10 +1790,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     processLocation();
 
     elementReady('body').then(go);
+    // TODO: why do we have to functions that run? why wait for body and then wait for DOMContentLoaded? see which one needs to stay and make it only one
 
     document.addEventListener('DOMContentLoaded', function () {
         // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
-        var menuItems = getMenuItems();
+        const menuItems = getMenuItems();
         for (const item of Object.keys(menuItems)) {
             Mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], function (e) {
                 var elChild = menuItems[item].firstElementChild;
@@ -1824,8 +1824,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 });
                 results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
             }
+        } else {
+
         }
-        // if NOT google images:
 
     }, false);
 
@@ -1855,9 +1856,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             }
 
             // directLinkReplacer.observe();
-
             bindKeys();
-
 
             // // iterating over the stored ubl sites
             // for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
@@ -1973,34 +1972,27 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         Mousetrap.bind(['c c'], cleanupSearch);
         // to https://yandex.com/images/search?text=
-        Mousetrap.bind('y d x', () => {
+        Mousetrap.bind('y d x', function switchEngineToYandex() {
             var x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
             console.log('Yandex url = ', x);
             location.assign(x);
         });
 
-
-        Mousetrap.bind(['alt+a'], () => {
+        Mousetrap.bind(['alt+a'], function switchToAnimatedResults() {
             (!document.querySelector('#itp_animated').firstElementChild ? document.querySelector('#itp_').firstElementChild : document.querySelector('#itp_animated').firstElementChild).click();
         });
-        Mousetrap.bind(['D'], () => {
+        Mousetrap.bind(['D'], function downloadAll() {
             document.querySelector('#downloadBtn').click();
         });
-        Mousetrap.bind(['h'], () => {
+        Mousetrap.bind(['h'], function toggle_hideFailedImages() {
             document.querySelector('#hideFailedImagesBox').click();
         });
-        Mousetrap.bind(['g'], () => {
+        Mousetrap.bind(['g'], function toggle_gifsOnlyCheckbox() {
             document.querySelector('#GIFsOnlyBox').click();
         });
         Mousetrap.bind(['esc', 'escape'], removeHash);
 
-
-        // keys that don't need a focusedPanel and all those other variables
-        Mousetrap.bind(['ctrl+alt+r'], function () {
-            // not implemented
-            console.log('not implemented, find something to put here');
-        });
-        Mousetrap.bind(['/'], function (e) { // focus search box
+        Mousetrap.bind(['/'], function focusSearchbar(e) { // focus search box
             const searchBar = document.querySelector(Consts.Selectors.searchBox);
             if (!$(searchBar).is(':focus')) {
                 searchBar.focus();
@@ -2024,88 +2016,106 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         Mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
         Mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
-        Mousetrap.bind(['['], function (e) {
+        Mousetrap.bind(['['], function stepDown_minImgSizeSlider(e) {
             Components.minImgSizeSlider.stepDown();
         });
-        Mousetrap.bind([']'], function (e) {
+        Mousetrap.bind([']'], function stepUp_minImgSizeSlider(e) {
             Components.minImgSizeSlider.stepUp();
         });
 
 
-        Mousetrap.bind([`'`], function (e) {
+        Mousetrap.bind([`'`], function toggle_enableLoopRelatedImages(e) {
             Preferences.panels.loopbackWhenCyclingRelatedImages = !Preferences.panels.loopbackWhenCyclingRelatedImages;
             GM_setValue('LOOP_RELATED_IMAGES', Preferences.panels.loopbackWhenCyclingRelatedImages);
             console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.panels.loopbackWhenCyclingRelatedImages);
         });
-        Mousetrap.bind([''], function openTorrent(e) {
-            console.debug('Torrent search');
-            openInTab(GoogleUtils.url.gImgSearchURL + encodeURIComponent('+torrent +rarbg ' + cleanSymbols(ImagePanel.focP.bestNameFromTitle)));
+        Mousetrap.bind(['c'], function goToCollections(e) {
+            var btn_ViewSaves = document.querySelector("#ab_ctls > li > a.ab_button") || ImagePanel.focP.q('.i18192');
+            console.debug('btn_ViewSaves', btn_ViewSaves);
+            if (!!btn_ViewSaves) btn_ViewSaves.click();
         });
-        Mousetrap.bind(['v'], function (e) {
+        Mousetrap.bind(['numpad4'], function previousImage(e) {// ◀
+            ImagePanel.previousImage();
+        }, 'keydown');
+        Mousetrap.bind(['numpad6'], function nextImage(e) { // ▶
+            ImagePanel.nextImage();
+        }, 'keydown');
+
+        // ==== panel-specific bindings ========
+        // TODO: maybe it's cleaner to bind the panels using Mousetrap(panel).bind ...
+
+        Mousetrap.bind(['v'], function saveToCollections(e) {
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
             var btn_Save = ImagePanel.focP.q('.i15087');
             console.debug('btn_Save', btn_Save);
             if (!!btn_Save) btn_Save.click();
         });
-        Mousetrap.bind(['c'], function collection(e) {
-            var btn_ViewSaves = ImagePanel.focP.q('.i18192');
-            console.debug('btn_ViewSaves', btn_ViewSaves);
-            if (!!btn_ViewSaves) btn_ViewSaves.click();
-        });
-        Mousetrap.bind(['b', 'numpad1'], function (e) {// ⬋ Search by image
+        Mousetrap.bind(['b', 'numpad1'], function searchByImage(e) {// ⬋ Search by image
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
             if (ImagePanel.focP.mainImage) {
                 ImagePanel.focP.q('a.search-by-image').click();
             } else {
                 console.error('Image not found', ImagePanel.focP.ris_fc_Url);
             }
         }, 'keydown');
-        Mousetrap.bind(['numpad4'], function (e) {// ◀
-            ImagePanel.previousImage();
+        Mousetrap.bind(['d', 'numpad5', 'enter'], function downloadCurrentImage() {
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
+            ImagePanel.downloadCurrentImage();
         }, 'keydown');
-        Mousetrap.bind(['numpad6'], function (e) { // ▶
-            ImagePanel.nextImage();
-        }, 'keydown');
-        Mousetrap.bind(['numpad3'], function (e) {// ⬊ Open related images in new tab
+
+        Mousetrap.bind(['numpad3'], function open_related_images_in_new_tab(e) {// ⬊ Open related images in new tab
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
             const moreRelatedImagesLink = ImagePanel.focP.q('.irc_rismo.irc_rimask a');
             if (moreRelatedImagesLink != null) {
                 openInTab(moreRelatedImagesLink.href);
             }
         }, 'keydown');
-        Mousetrap.bind(['d', 'numpad5'], ImagePanel.downloadCurrentImage, 'keydown');
+        Mousetrap.bind(['space'], function openCurrentImage(e) {
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
 
-
-        Mousetrap.bind(['enter'], function (e) {
-            if (ImagePanel.isPanelCurrentlyOpen) {
-                openInTab(ImagePanel.focP.imgUrl);
-            }
+            openInTab(ImagePanel.focP.imgUrl);
         });
-        Mousetrap.bind([',', 'up', 'numpad8'], function (e) { // ▲ Prev/Left relImage
+        Mousetrap.bind([',', 'up', 'numpad8'], function prevRelatedImg(e) { // ▲ Prev/Left relImage
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
             ImagePanel.prevRelImg();
             e.preventDefault();
         }, 'keydown');
-        Mousetrap.bind(['.', 'down', 'numpad2'], function (e) {// Next related mainImage
+        Mousetrap.bind(['.', 'down', 'numpad2'], function nextRelatedImg(e) {// Next related mainImage
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
             ImagePanel.nextRelImg();
             e.preventDefault();
         }, 'keydown');
         Mousetrap.bind(['o'], ImagePanel.showRis);
-        Mousetrap.bind(['h'], function (e) {
-            document.querySelector('#rcnt').style.visibility = (/hidden/i).test(document.querySelector('#rcnt').style.visibility) ? 'visible' : 'hidden';
-            e.preventDefault();
-        });
         Mousetrap.bind(['m'], ImagePanel.download_ris);
-        Mousetrap.bind(['numpad7'], function (e) {// ⬉ lookup the images title.
-            const visitUrl = ImagePanel.focP.buttons[0].href;
+        Mousetrap.bind(['numpad7'], function visit_page(e) {// ⬉ visit page
+            const visitUrl = ImagePanel.focP.buttons.Visit.href;
             // const visitTitleUrl = subtitleEl.href;
 
             console.log('Visit:', visitUrl);
             openInTab(visitUrl);
         }, 'keydown');
-        // Search using title
-        Mousetrap.bind(['numpad9'], () => ImagePanel.focP.lookupTitle(), 'keydown');
-        Mousetrap.bind([';'], () => ImagePanel.focP.siteSearch());
+        // Search title
+        Mousetrap.bind(['numpad9', 's t'], function lookupTitle() {// lookup the image's title.
+            ImagePanel.focP.lookupTitle();
+        }, 'keydown');
+        Mousetrap.bind([';'], function siteSearchCurrentImage() {
+            if (!ImagePanel.isPanelCurrentlyOpen) return;
+
+            return ImagePanel.focP.siteSearch();
+        });
+
+        //
 
         document.addEventListener('keydown', e => {
             if (e[Preferences.shortcuts.hotkey]) {
                 const el = document.elementFromPoint(document.cursor.clientX, document.cursor.clientY);
+                if (!el) return;
                 const hotkeyEvent = new Event('hotkey');
                 hotkeyEvent[Preferences.shortcuts.hotkey] = e[Preferences.shortcuts.hotkey];
                 el.dispatchEvent(hotkeyEvent);
@@ -2910,6 +2920,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
         /**
          * - purifyLink
+         * - remove "onmousedown"
          * - set rel="noreferrer", referrerpolicy="no-referrer"
          * - stopImmediatePropagation onclick */
         const enhanceLink = function (a) {
@@ -2923,6 +2934,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     a.addEventListener('click', function (e) {
                         e.stopImmediatePropagation();
                         e.stopPropagation();
+                        e.preventDefault();
                     }, true);
                 }
             };
@@ -2956,9 +2968,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 // img.phref = phref; //@faris
             });
 
-            var infos = [].slice.call(link.querySelectorAll('img~div.rg_ilmbg'));
+            const pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
+            const infos = [].slice.call(link.querySelectorAll('img~div.rg_ilmbg'));
             if (infos.length > 0) {
-                var pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
                 infos.forEach(function (info) {
                     var pagelink = document.createElement('a');
                     enhanceLink(pagelink);
@@ -2972,10 +2984,40 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
 
             //@faris
-            var footLink = link.parentElement.querySelector('a.irc-nic');
-            if (footLink && !footLink.parentElement.querySelector('.phref')) {
-                // splitting the 2 lines of the footlink to 2 links, one with the phref
-                const footLinkTop = footLink.cloneNode();
+            // @info about html @structure:
+
+            /*
+             *<a class="iKjWAf irc-nic isr-rtc a-no-hover-decoration">
+             *     <div class="mVDMnf nJGrxf">cool cat pic</div>
+             *     <div class="nJGrxf FnqxG">
+             *         <span>example.com</span>
+             *     </div>
+             *</a>
+             */
+
+            //goal:
+            /* 
+             * <a class="iKjWAf irc-nic isr-rtc a-no-hover-decoration phref panel-page footLinkTop">
+             *     <div class="mVDMnf nJGrxf">
+             *         <span class="info-span">cool cat pic</span>
+             *     </div>
+             * </a>
+             * <a class="iKjWAf irc-nic isr-rtc a-no-hover-decoration host-page footLink">
+             *     <div class="nJGrxf FnqxG">
+             *         <span class="site-span" style="display:none">site:</span>
+             *         <span class="hostname-spane">example.com</span>
+             *     </div>
+             * </a>
+             */
+
+
+            // footlink is the main link, it will be duplicated and the description text will be moved and used as the panelpage link
+
+            // splitting the 2 lines of the footlink to 2 links, one with the phref
+            const footLink = link.parentElement.querySelector('a.irc-nic'); // the info link with the host-page
+            const existingLink = footLink.parentElement.querySelector('.panel-page.phref[phref]:not([phref="#"])');
+            if (footLink && !existingLink) {
+                const footLinkTop = footLink.cloneNode(false);
                 footLinkTop.classList.add('phref');
 
                 enhanceLink(footLink);
@@ -2999,11 +3041,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
                 // hold hotkey and click to site:search
                 {
-                    const siteSpan = createElement('<span class="site-span" style="display:none">site:</span>');
-                    footLink.querySelector('div').firstElementChild.before(siteSpan);
 
-                    const __restoreFootlink = function (theLink) {
-                        theLink.setAttribute('href', theLink.oghref || theLink.getAttribute('href'));
+                    const __restoreFootlink = function (theLink) { // returning the original (hostpage) link
+                        theLink.setAttribute('href', pageUrl);
                         siteSpan.style.display = 'none';
                     };
 
@@ -3054,6 +3094,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             newUrl = newUrl.replace(/&reload=on/, '');
 
             var matches = newUrl.match(re);
+            if (!matches) {
+                matches = newUrl.match(/[?&]imgrefurl=([^&#]+)/);
+                if (matches) {
+                    matches = decodeURIComponent(matches[1]);
+                }
+            }
             if (matches) {
                 if (o.debug) console.log('restoring', link._x_id, newUrl);
 
@@ -3074,12 +3120,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
         };
 
 
-        const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block')) &&
+        // will only handle redirect links that pass this filter (must return true)
+        const filter = a => !(a.parentElement && a.parentElement.classList.contains('text-block'))
             // /^\/imgres\?imgurl=/.test(a.getAttribute('href')) &&
-            a.matches('.rg_l')
+            // && !(a.matches('.host-page, .irc_lth')) // replace anything that isn't a host-page or irc_lth link
+            // (a.matches('.rg_l, .irc_mi'))
         ;
 
-        const handler = function (a) {
+        o.handler = function (a) {
             if (!filter(a)) //@faris
                 return;
 
@@ -3127,9 +3175,9 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if ((mutation.attributeName || mutation.attrName) === 'href') {
                     if (o.debug) console.log('restore attribute', target._x_id, target.getAttribute('href'));
                 }
-                handler(target);
+                o.handler(target);
             } else if (target instanceof Element) {
-                target.querySelectorAll('a').forEach(handler);
+                target.querySelectorAll('a').forEach(o.handler);
             }
         };
 
@@ -3692,7 +3740,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
 
     img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"],
         img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] {
-        -webkit-filter: grayscale(1) !important; /* Webkit */
+        -webkit-filter: grayscale(0.5) !important; /* Webkit */
         opacity: 0.5 !important;
     }`);
 
@@ -3717,13 +3765,11 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
     img[loaded="error"],
     img[loaded="loading"] {
         opacity: 0.5;
-        filter: alpha(opacity=50); /* For IE8 and earlier */
         filter: opacity(50%);
     }
 
     img[loaded="true"] {
         opacity: 1;
-        filter: alpha(opacity=100); /* For IE8 and earlier */
         filter: opacity(100%);
     }`);
 
@@ -3775,6 +3821,12 @@ div.rg_bx {
     margin: 10px;
 }
 
+/*for moving the footcnt bar at the bottom more to the bottom*/
+#footcnt {
+    bottom: -354px;
+    position: absolute;
+}
+
 /*fixes size of main image link*/
 .irc_asc {
     display: inline-block !important;
@@ -3795,7 +3847,7 @@ a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
     /*display: contents;*/
 }
 /*for the container of .site-span (the info text on the ris images)*/
-#irc_bg a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration.phref {
+#irc_bg a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration.panel-page {
     bottom: 15px;
     z-index: 5;
 }
@@ -3828,7 +3880,7 @@ div.text-block.download-block:hover {
 }
 
 .ext-gif {
-    background-color: #2c0330 !important;
+    background-color: #4b00ff8c !important
 }
 div.text-block.ext:not(.ext-gif) {
     background-color: #00cbff;
