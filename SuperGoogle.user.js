@@ -230,7 +230,7 @@ var normalizeUrl = (function () {
                 ptitle: 'div.irc_mmc.irc_b.i8152 > div.i30053 > div > div.irc_it > span > a.irc_pt.irc_tas.irc-cms.i3598.irc_lth',
                 buttonDropdown: 'div.irc_mmc.irc_b.i8152 > div.i30053 > div > div.irc_m.i8164',
                 focusedPanel: [
-                    'div#irc_cc > div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
+                    'div#irc_cc div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
                     '#irc-ss > div.irc_c.immersive-container:not([style*="display: none;"])' // for side panel mode
                 ].join(),
                 panels: '#irc_cc div.irc_c',
