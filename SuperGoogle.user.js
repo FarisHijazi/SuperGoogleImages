@@ -275,7 +275,7 @@ var normalizeUrl = (function () {
                 defaultAnchorTarget: '_blank',
                 staticNavbar: false,
                 autoLoadMoreImages: false,
-                showImgHoverPeriod: 350,
+                showImgHoverPeriod: 350, // if negative, then hovering functionality is disabled
                 disableDragging: true, //disable dragging images to reverse image search
             },
             shortcuts: {
@@ -916,19 +916,18 @@ var normalizeUrl = (function () {
          * @return {*}
          */
         get sbiUrl() {
-            if (this.imgUrl) {
-                const sbiUrl = new URL(GoogleUtils.url.getGImgReverseSearchURL(this.imgUrl));
-                sbiUrl.searchParams.append('allsizes', '1');
-                return sbiUrl.toString();
-            }
+            const sbiUrl = new URL(GoogleUtils.url.getGImgReverseSearchURL(this.imgUrl || this.mainThumbnail.src));
+            sbiUrl.searchParams.append('allsizes', '1');
+            return sbiUrl.toString();
         }
         /**
          * waits for the first panel to be in focus, then binds mutation observers to panels firing "panelMutation" events
          * Also applies modifications to panels (by calling modifyP)
+         * @returns {Promise}
          */
         static init() {
             // wait for panel to appear then start modding
-            elementReady(Consts.Selectors.Panel.focusedPanel).then(function () {
+            return elementReady(Consts.Selectors.Panel.focusedPanel).then(function () {
 
                 // bind clicking the image panel 'X' button remove the hash from the address bar
                 // there exists only a single X button common for all 3 image panels
@@ -975,8 +974,8 @@ var normalizeUrl = (function () {
         }
         /**Goes to the previous (Left) main mainImage*/
         static previousImage() {
-            const previousImageArrow = document.querySelector('div#irc-lac > a');  // id that starts with "irc-la"
-            var x = previousImageArrow && previousImageArrow.style.display !== 'none' ? // is it there?
+            const previousImageArrow = document.querySelector('a[jsaction="irc.arb"], div[id^="irc-la"] > a');
+            const x = previousImageArrow && previousImageArrow.style.display !== 'none' ? // is it there?
                 !previousImageArrow.click() : // returns true
                 false;
             if (!x) console.log('prev arrow doesn\'t exist');
@@ -984,8 +983,8 @@ var normalizeUrl = (function () {
         }
         /**Goes to the next (Right) main mainImage*/
         static nextImage() {
-            const nextImageArrow = document.querySelector('div#irc-rac > a');  // id that starts with "irc-ra"
-            var x = nextImageArrow && nextImageArrow.style.display !== 'none' ? // is it there?
+            const nextImageArrow = document.querySelector('a[jsaction="irc.arf"], div[id^="irc-ra"] > a');
+            const x = nextImageArrow && nextImageArrow.style.display !== 'none' ? // is it there?
                 !nextImageArrow.click() : // returns true
                 false;
             if (!x) if (debug) console.log('next arrow doesn\'t exist');
@@ -1025,7 +1024,7 @@ var normalizeUrl = (function () {
             });
         }
         static download_ris() {
-            const dir = 'GImgRis ' + document.title.replace(/google|com/gi, '');
+            const dir = 'Google_related ' + document.title.replace(/google|com/gi, '');
             const relatedImageDivs = ImagePanel.focP.ris_DivsAll;
             console.log('download related images:', relatedImageDivs);
 
@@ -1039,20 +1038,13 @@ var normalizeUrl = (function () {
                 var meta = getMeta(img);
                 var imgTitle = '';
 
-                if (Object.keys(meta).length <= 2) {
-                    console.debug(
-                        'Found a metaObject that is too small:', meta,
-                        '\nReplacing with:', meta = getImgMetaById(meta.id)
-                    );
-                }
-
                 imgTitle = meta.pt;
                 const href = imgDiv.querySelector('a[href]').href;
 
                 return {
                     url: href,
                     name: imgTitle,
-                    directory: 'Google related images',
+                    directory: dir,
                     element: img
                 };
             });
@@ -1189,64 +1181,65 @@ var normalizeUrl = (function () {
 
             //@info .irc_ris    class of the relatedImgsDivContainer
             //@info div#isr_mc  the main container containing all the image boxes, and the panels (only 2 children)
-            if (Preferences.panels.enableWheelNavigation && !GoogleUtils.isRightViewLayout)
-                panel.el.addEventListener(
-                    'wheel',
-                    /**
-                     * @param {WheelEvent} wheelEvent
-                     * @return {boolean}
-                     */
-                    function handleScroll(wheelEvent) {
-                        if (!wheelEvent.ctrlKey && !wheelEvent.metaKey && !wheelEvent.shiftKey && !wheelEvent.altKey) {
-                            const elUnderMouse = elementUnderMouse(wheelEvent);
-                            if (ImagePanel.mainPanelEl.contains(elUnderMouse)) {
-                                try {
-                                    // Listen for scroll events
-                                    const leftPart = ImagePanel.focP.leftPart,
-                                        rightPart = ImagePanel.focP.rightPart, // this is NOT the entire RIGHT part
-                                        irc_ris = ImagePanel.focP.q('.irc_ris'), // the relative images panel
-                                        onLeftSide = isOrContains(leftPart, elUnderMouse), //containsClassName(elUnderMouse, '.irc_t');// on left half of panel
-                                        onRightPart = isOrContains(rightPart, elUnderMouse), // on RIGHT half of panel
-                                        delta = Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail))); // getting wheel delta
+            if (Preferences.panels.enableWheelNavigation && !GoogleUtils.isRightViewLayout) {
+                // binding scroll handler (navigating between related images using mousewheel)
+                panel.el.addEventListener('wheel', function (wheelEvent) {
+                    if (!wheelEvent.ctrlKey && !wheelEvent.metaKey && !wheelEvent.shiftKey && !wheelEvent.altKey) {
+                        const elUnderMouse = elementUnderMouse(wheelEvent);
+                        if (ImagePanel.mainPanelEl.contains(elUnderMouse)) {
+                            try {
+                                // Listen for scroll events
+                                const leftPart = ImagePanel.focP.leftPart,
+                                    rightPart = ImagePanel.focP.rightPart, // this is NOT the entire RIGHT part
+                                    irc_ris = ImagePanel.focP.q('.irc_ris'), // the relative images panel
+                                    onLeftSide = isOrContains(leftPart, elUnderMouse), //containsClassName(elUnderMouse, '.irc_t');// on left half of panel
+                                    onRightPart = isOrContains(rightPart, elUnderMouse), // on RIGHT half of panel
+                                    delta = Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail))); // getting wheel delta
 
-                                    if (Math.abs(delta) < 0.1) { // Do nothing if didn't scroll
-                                        console.debug('Mousewheel didn\'t move');
-                                        return false;
-                                    }
-                                    // Wheel definetely moved at this point
-                                    let wheelUp = Preferences.panels.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
-                                    if (!onLeftSide) {   // If the mouse is under the RIGHT side of the image panel
-                                        if (isOrContains(elUnderMouse, leftPart)) {
-                                            if (wheelUp) {
-                                                ImagePanel.nextImage();
-                                            } else {
-                                                ImagePanel.previousImage();
-                                            }
-                                        }
-                                        if (onRightPart || isOrContains(irc_ris, elUnderMouse) || (elUnderMouse.classList.contains('irc_mut'))) {
-                                            // console.log('elUnderMouse:', elUnderMouse);
-                                            if (wheelUp) {
-                                                ImagePanel.nextRelImg();
-                                            } else {
-                                                ImagePanel.prevRelImg();
-                                            }
-                                        } else {
-                                            console.debug('Mouse wheel did NOT scroll while over a container element.\nelUnderMouse:', elUnderMouse);
-                                        }
-                                        wheelEvent.preventDefault();
-                                    }
+                                if (Math.abs(delta) < 0.1) { // Do nothing if didn't scroll
+                                    console.debug('Mousewheel didn\'t move');
                                     return false;
-                                } catch (e) {
-                                    console.warn(e);
                                 }
+                                // Wheel definetely moved at this point
+                                let wheelUp = Preferences.panels.invertWheelRelativeImageNavigation ? (delta > 0.1) : (delta < 0.1);
+                                if (!onLeftSide) {   // If the mouse is under the RIGHT side of the image panel
+                                    if (isOrContains(elUnderMouse, leftPart)) {
+                                        if (wheelUp) {
+                                            ImagePanel.nextImage();
+                                        } else {
+                                            ImagePanel.previousImage();
+                                        }
+                                    }
+                                    if (onRightPart || isOrContains(irc_ris, elUnderMouse) || (elUnderMouse.classList.contains('irc_mut'))) {
+                                        // console.log('elUnderMouse:', elUnderMouse);
+                                        if (wheelUp) {
+                                            ImagePanel.nextRelImg();
+                                        } else {
+                                            ImagePanel.prevRelImg();
+                                        }
+                                    } else {
+                                        console.debug('Mouse wheel did NOT scroll while over a container element.\nelUnderMouse:', elUnderMouse);
+                                    }
+                                    wheelEvent.preventDefault();
+                                }
+                                return false;
+                            } catch (e) {
+                                console.warn(e);
                             }
                         }
                     }
-                );
+                });
 
-            /**
-             *TODO: find a library to do this instead, with tooltips as well
-             */
+            }
+
+            // add space between buttons, rather than stitle flexing and taking up all the space
+            {
+                const sTitleAnchor = this.sTitle_Anchor;
+                sTitleAnchor.after(createElement('<div class="" tabindex="0" referrerpolicy="no-referrer" style="padding-right: 5px;text-decoration: none;display: inline-block;flex-grow: 1;"></div>'));
+                sTitleAnchor.style.display = 'contents';
+            }
+
+            /** TODO: find a library to do this instead, with tooltips as well */
             function underliningBinded() {
                 // Underlining binded keys
                 var keymap = new Map([ // Key: selector, Value: character
@@ -1270,8 +1263,7 @@ var normalizeUrl = (function () {
 
             //
 
-            const mainImage = panel.mainImage;
-
+            // const mainImage = panel.mainImage;
             // mainImage.updateLink = function () {
             //     const anchor = this.closest('a');
             //     anchor.href = this.src;
@@ -1300,24 +1292,11 @@ var normalizeUrl = (function () {
         __update() {
             let panel = this;
             // panel.removeLink();
-            // panel.injectSearchByImage();
-            // panel.addDownloadRelatedImages();
 
             //TODO: maybe this is what's preventing the main image from changing even when the ris loads
 
             // make sure that main image link points to the main image (and not to the website)
             const imgAnchor = panel.q('a.irc_mutl');
-            try {
-                imgAnchor.__defineSetter__('href', function (value) {
-                    this.setAttribute('href', value);
-                });
-                imgAnchor.__defineGetter__('href', function () {
-                    imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
-                    return this.getAttribute('href');
-                });
-            } catch (e) {
-                console.warn(e);
-            }
             imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
             imgAnchor.addEventListener('click', function (e) {
                 window.open(this.querySelector('img').getAttribute('src'), '_blank');
@@ -1500,22 +1479,23 @@ var normalizeUrl = (function () {
             }
         }
         inject_ImageHost() {
+            const panel = this;
             // console.debug('this.qa(".irc_msc"):', this.qa('.irc_msc, .irc_ris'));
-            let container = this.q('.irc_msc, .irc_ris');
+            let ris_container = panel.q('.irc_msc, .irc_ris');
 
-            if (this.sTitle_Anchor) {
-                // const summaryTable = this.element.querySelector('table[summary]._FKw.irc_but_r');
+            if (panel.sTitle_Anchor) {
+                // const summaryTable = panel.element.querySelector('table[summary]._FKw.irc_but_r');
                 const className = 'image-host hover-click';
                 const element = createElement(`<a class="${className}" href="" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0"  data-ved="" data-ctbtn="2" 
-style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
+style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:none;"
 <span class="irc_ho" dir="ltr" style="text-align: center;">Image&nbsp;Host</span></a>`);
-                // const button = this.addElementAfterSTitle(html, "image-host hover-click", null, 'NONE');
-                container.after(element);
+                ris_container.before(element);
+                panel.update_ImageHost();
                 return element;
             }
         }
         update_ImageHost() {
-            const focusedImageDiv = ImagePanel.focP.ris_fc_Div;
+            const focusedImageDiv = this.ris_fc_Div;
             if (focusedImageDiv) {
                 const url = focusedImageDiv.querySelector('a').href;
                 const hostname = getHostname(PProxy.DDG.test(url) ? PProxy.DDG.reverse(url) : url);
@@ -1523,7 +1503,8 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 const ih = this.q('a.image-host');
                 if (ih) {
                     ih.innerText = hostname;
-                    ih.href = GoogleUtils.url.gImgSearchURL + 'site:' + hostname;
+                    ih.style.display = '';
+                    ih.href = GoogleUtils.url.siteSearchUrl(hostname);
 
                     if (ublSitesSet.has(hostname))
                         setStyleInHTML(ih, 'color', `${Preferences.loading.successColor} !important`);
@@ -2688,7 +2669,7 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
      * @param parameters
      * @param parameters.exception4smallGifs
      * @param parameters.ignoreDlLimit
-     * @returns {(ImgBox|HTMLImageElement)[]} they will have img.url, img.
+     * @returns {(ImgBox|HTMLImageElement)[]} list of images that match, (they will have img.url).
      *
      */
     function getQualifiedGImgs(parameters = {}) {
@@ -2787,12 +2768,13 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                     }
 
                     checkAndResetTimer(e);
-                    timeout = setTimeout(function () {
-                        checkAndResetTimer(e);
-                        replaceImg();
-                    }, Preferences.page.showImgHoverPeriod);
                     imgBx.mouseX = e.clientX;
                     imgBx.mouseY = e.clientY;
+                    if (!(Preferences.page.showImgHoverPeriod < 0)) // if not negative
+                        timeout = setTimeout(function () {
+                            checkAndResetTimer(e);
+                            replaceImg();
+                        }, Preferences.page.showImgHoverPeriod);
                 };
 
                 imgBx.img.addEventListener('hotkey', replaceImg, false);
@@ -3018,11 +3000,12 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
                 if (o.debug) console.log('img fullres-src="' + link.href + '"');
                 img.setAttribute('fullres-src', link.href); //@faris
 
+                //FIXME: maybe just use a mutationobserver instead? cuz this is problematic
                 //DEBUG: checking what the hell is causing "&reload=on"
                 img.__defineGetter__('src', () => normalizeUrl(img.getAttribute('src')));
                 img.__defineSetter__('src', (value) => {
                     if (/&reload=on/.test(value))
-                        if (o.debug) console.log('image has been set with "&reload=on"!!!!!', img, value, new Error().stack);
+                        if (o.debug) console.trace('image has been set with "&reload=on"!!!!!', img, value);
 
                     return img.setAttribute('src', value.replace(/&reload=on$/, ''));
                 });
@@ -3031,17 +3014,14 @@ style="padding-right: 5px; padding-left: 5px; text-decoration:none;"
             });
 
             const pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
-            const infos = [].slice.call(link.querySelectorAll('img~div.rg_ilmbg'));
-            if (infos.length > 0) {
-                infos.forEach(function (info) {
-                    var pagelink = document.createElement('a');
-                    enhanceLink(pagelink);
-                    pagelink.href = pageUrl;
-                    pagelink.className = 'x_source_link';
-                    pagelink.textContent = info.textContent;
-                    info.textContent = '';
-                    info.appendChild(pagelink);
-                });
+            for (const info of link.querySelectorAll('img~div.rg_ilmbg')) {
+                const pagelink = document.createElement('a');
+                enhanceLink(pagelink);
+                pagelink.href = pageUrl;
+                pagelink.className = 'x_source_link';
+                pagelink.textContent = info.textContent;
+                info.textContent = '';
+                info.appendChild(pagelink);
             }
 
 
@@ -4071,7 +4051,7 @@ a.download-related {
 
         document.body.firstElementChild.before($navbar[0]);
 
-        function adjustTopMargin() { // moves the rest of the page down a bit so it won't be covered by the navbar
+        function reAdjustTopMargin() { // moves the rest of the page down a bit so it won't be covered by the navbar
             const offsetHeight = document.querySelector('#topnav').offsetHeight;
 
             document.querySelectorAll('#rcnt, #irc_bg').forEach(el => {
@@ -4080,14 +4060,14 @@ a.download-related {
             });
         }
 
-        window.addEventListener('resize', adjustTopMargin);
-        // observe for elements being added, need to readjust topmargine
-        observeDocument(adjustTopMargin, {baseNode: '#topnav'});
+        window.addEventListener('resize', reAdjustTopMargin);
+        // observe for elements being added, need to readjust topMargine
+        observeDocument(reAdjustTopMargin, {baseNode: '#topnav'});
 
         document.body.style.position = 'relative';
 
         return elementReady('#topnav-content').then((topnavContent) => {
-            adjustTopMargin();
+            reAdjustTopMargin();
             return topnavContent;
         });
     }
@@ -4107,7 +4087,7 @@ a.download-related {
             if (document.querySelector('#ss-bimodal-default') && localStorage.getItem('shouldBeUnsafesearch') === "true") { // if already attempted and shouldBeUnsafesearch
                 location.assign(unsafeSearchUrl()); // force unsafesearch
             } else {
-                localStorage.setItem('triedSafesearchButton', "true");
+                localStorage.setItem('shouldBeUnsafesearch', "true");
                 location.assign(ussLink.href);
             }
         }
@@ -4229,6 +4209,7 @@ a.download-related {
 })();
 
 function addCss(cssStr, id = '') {
+    cssStr = String(cssStr).replace(/\n\n/g, '\n');
     // check if already exists
     const style = document.getElementById(id) || document.createElement('style');
 
@@ -4410,11 +4391,18 @@ function observeDocument(callback, options = {}) {
  *      function: getter(mutationRecords|{})-> Element[]
  *          a getter function returning an array of elements (the return value will be directly passed back to the promise)
  *          the function will be passed the `mutationRecords`
- * @param {Number=0} timeout - timeout in milliseconds, how long to wait before throwing an error (default is 0, meaning no timeout (infinite))
+ * @param {Object} opts
+ * @param {Number=0} opts.timeout - timeout in milliseconds, how long to wait before throwing an error (default is 0, meaning no timeout (infinite))
+ * @param {Element} opts.target - element to be observed
+ *
  * @returns {Promise<Element|any>} the value passed will be a single element matching the selector, or whatever the function returned
  */
-function elementReady(getter, timeout = 0) {
+function elementReady(getter, opts = {}) {
     return new Promise((resolve, reject) => {
+        opts = $.extend({
+            timeout: 0,
+            target: document.documentElement
+        }, opts);
         var returnMultipleElements = getter instanceof Array && getter.length === 1;
         var _timeout;
         var _getter = typeof getter === 'function' ?
@@ -4442,12 +4430,12 @@ function elementReady(getter, timeout = 0) {
             return;
         }
 
-        if (timeout)
+        if (opts.timeout)
             _timeout = setTimeout(() => {
-                const error = new Error(`elementReady(${getter}) timed out at ${timeout}ms`);
+                const error = new Error(`elementReady(${getter}) timed out at ${opts.timeout}ms`);
                 reject(error);
                 console.warn(error);
-            }, timeout);
+            }, opts.timeout);
 
 
         new MutationObserver((mutationRecords, observer) => {
@@ -4455,7 +4443,7 @@ function elementReady(getter, timeout = 0) {
             if (completed) {
                 observer.disconnect();
             }
-        }).observe(document.documentElement, {
+        }).observe(opts.target, {
             childList: true,
             subtree: true
         });
