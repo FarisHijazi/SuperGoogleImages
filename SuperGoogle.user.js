@@ -2684,13 +2684,31 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
     }
 
     /**
+     * Note: an error is thrown if getMeta() fails
+     * @param img
+     * @returns {string} (jpg|jpeg|tiff|png|gif)
+     */
+    function getExt(img) {
+        const meta = getMeta(img);
+        function getRegExpMatchArrayElement(s) {
+            if (!s) return '';
+            const match = s.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
+            return !!match && match.length ? match[1] : '';
+        }
+        let ext = meta.ity
+            || getRegExpMatchArrayElement(meta.ou)
+            || getRegExpMatchArrayElement(meta.src);
+
+        if (typeof (ext) === 'object') ext = ext[1];
+        return ext || '';
+    }
+    /**
      * @param {(Element|Meta)} img_bx - image box or image or meta
      * @returns {boolean}
      */
     function isGif(img_bx) {
         try {
-            const meta = (img_bx instanceof Element) ? getMeta(img_bx) : img_bx;
-            return meta.ity === 'gif' || /\.gif($|\?)/.test(meta.ou);
+            return getExt(img_box) === 'gif';
         } catch (e) {
             return false;
         }
@@ -2739,6 +2757,19 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         return meta;
     }
 
+    /**
+     *
+     * @param img
+     * @returns {Promise<Meta>}
+     */
+    function getMetaPromise(img) {
+        return elementReady(function (mutationRecord) {
+            const meta = getMeta(img);
+            if (Object.keys(meta).length !== 0) {
+                return meta;
+            }
+        });
+    }
 
     function enhanceImageBox(imageBox) {
         imageBox.classList.add('rg_bx_listed'); // adding a class just to keep track of which one's were already done
@@ -2833,16 +2864,38 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             if (imgBox.querySelector('.text-block')) return;
 
             const img = imgBox.querySelector('img.rg_ic.rg_i, img.irc_rii');
-            const meta = getMeta(img);
-            const ext = meta ? meta.ity : img.src.match(/\.(jpg|jpeg|tiff|png|gif)($|[?&])/i);
+            const link = img.closest('a');
 
-            if (!(ext && ext.toUpperCase))
-                return;
+            getMetaPromise(img).then((meta) => {
+                const ext = getExt(img);
 
-            const textBox = $('<div class="text-block ext ext-' + ext + '">')
-                .text(ext.toUpperCase())[0];
-            img.after(textBox);
-            imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
+                if (!ext) return;
+
+                let gifboxDiv = link.querySelector('div.bMBVpc');
+                // if gif: adding a gif-label at the bottom left corner
+                if (ext === 'gif') {
+                    if (!gifboxDiv) gifboxDiv = createElement('<div class="bMBVpc">'); // "div.bMBVpc"
+
+                    if (!gifboxDiv.querySelector('svg')) { // if it doesn't already have the giflabel, put it
+                        // goes right before the image
+                        img.before(gifboxDiv);
+                        // this is the copied html of the gif-label from the official mobile site
+                        gifboxDiv.innerHTML = '<div class="gJNf0"><div class="PMxv3e rg_ai"><div class="GQDPdd">' +
+                            '<span class="S2Caaf BmvKjd z1asCe Y6aT2b" style="height:30px;line-height:30px;width:30px">' +
+                            '<svg focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">' +
+                            '<path d="M11.5 9H13v6h-1.5zM9 9H6c-.6 0-1 .5-1 1v4c0 .5.4 1 1 1h3c.6 0 1-.5 1-1v-2H8.5v1.5h-2v-3H10V10c0-.5-.4-1-1-1zm10 1.5V9h-4.5v6H16v-2h2v-1.5h-2v-1z">' +
+                            '</path></svg></span></div></div></div>';
+
+                        // moving resolution anchor to the side to prevent blocking
+                        const resolutionAnchor = link.querySelector('.rg_ilmbg');
+                        if (resolutionAnchor) resolutionAnchor.style.left = '28px';
+                    }
+                } else if (gifboxDiv) { // not gif, remove giflabel
+                    gifboxDiv.innerHTML = '';
+                }
+
+                imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
+            });
         }
         function addImgDownloadButton(imgBox) {
             if (imgBox.querySelector('.download-block'))
