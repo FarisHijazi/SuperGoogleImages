@@ -1138,6 +1138,23 @@ var normalizeUrl = (function () {
             // make the buttons container take more space so the buttons can be bigger
             panel.q('.eg084e.irc_ab').style.display = 'inline-flex';
 
+            // adding the "search by title" link
+            {
+                const titleSearch = createElement(
+                    '<div style="font-size: smaller; padding: 10px; display: inline-block;">' +
+                    '(<a class="search-by-title" href="#">more from this title</a>)' +
+                    '</div>'
+                );
+                const titleSearchLink = titleSearch.querySelector('a');
+                titleSearchLink.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    window.open(GoogleUtils.url.gImgSearchURL + encodeURIComponent(panel.pTitle_Text));
+                });
+                panel.pTitle_Anchor.after(titleSearch);
+            }
+
             panel.inject_SiteSearch();
 
             panel.inject_ViewImage();
@@ -1308,6 +1325,7 @@ var normalizeUrl = (function () {
 
             panel.linkifyDescription();
             panel.addImageAttributes();
+            panel.inject_Download_ris();
             panel.update_SiteSearch();
             panel.update_ViewImage();
             panel.update_ImageHost();
@@ -1392,26 +1410,46 @@ var normalizeUrl = (function () {
                     target: '_blank'
                 });
         }
-        inject_Download_ris() {
+        inject_Download_ris() { // download related images button
             var panel = this;
             // const risContainer = this.relatedImage_Container.parentNode;
-            const targetEl = panel.q('.irc_msc, .irc_ris');//this.q('div.irc_ris');
+            // this is the "related iamges" text
+            const targetEl = panel.q('.irc_msc > div > div.yJbeqd:nth-child(1) > span, div.irc_ris > div > div.yJbeqd:nth-child(1) > span');
             if (!targetEl) {
-                console.error('q(\'.irc_msc\') element not found and is needed in inject_Download_ris');
                 return;
             }
             const className = 'download-related hover-click';
-            const text = 'Download&nbsp;Related&nbsp;↓';
-            var dataVed = '';
+            const text = '[↓]&nbsp;Download&nbsp;Related';
 
-            const buttonHtml = `<a class="${className}" role="button" jsaction="" data-rtid="" jsl="" tabindex="0" data-ved="${dataVed}" style="padding-right: 5px; padding-left: 5px; text-decoration:none;"> <span>${text}</span></a>`;
-            var button = createElement(buttonHtml);
-            button.addEventListener('click', function (element) {
-                ImagePanel.download_ris(element);
-                return false;
-            });
-            targetEl.after(button);
+            let dl_button = panel.q('.download-related');
+            if (!dl_button) {
+                dl_button = createElement(`<a class="${className}" role="button" style="padding: 5px; text-decoration:none;"><span>${text}</span></a>`);
+                dl_button.addEventListener('click', function (element) {
+                    ImagePanel.download_ris(element);
+                    return false;
+                });
+
+            }
+            targetEl.after(dl_button);
+
+            { // inject_Show_ris
+                const className = 'show-ris hover-click';
+                const text = 'Show&nbsp;originals';
+
+                let show_button = panel.q('.show-ris');
+                if (!show_button) {
+                    show_button = createElement(`<a class="${className}" role="button" style="padding: 5px; text-decoration:none;"><span>${text}</span></a>`);
+                    show_button.addEventListener('click', function (e) {
+                        ImagePanel.showRis();
+                        return false;
+                    });
+
+                }
+                dl_button.before(show_button);
+            }
+
         }
+
         inject_DownloadImage() {
             const text = 'Download&nbsp;↓';
             if (this.sTitle_Anchor) {
