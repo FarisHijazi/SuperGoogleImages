@@ -151,6 +151,44 @@ var normalizeUrl = (function () {
         return new Set(Array.from(this).filter(x => !other.has(x)));
     };
 
+    function equivalentObjects(a, b) {
+        if (a == null) {
+            return b == null;
+        } else if (b == null) {
+            return false;
+        }
+        var aProps = Object.getOwnPropertyNames(a);
+        var bProps = Object.getOwnPropertyNames(b);
+
+        if (aProps.length !== bProps.length)// If number of properties is different, objects are not equivalent
+            return false;
+
+        for (const propName of aProps) // If values of same property are not equal, objects are not equivalent
+            if (a[propName] !== b[propName])
+                return false;
+        return true;
+    }
+
+    //TODO: move this to UrlUtils
+    /**
+     * @return {Object} searchParams as an object
+     */
+    URL.prototype.__defineGetter__('sp', function () {
+        return Object.fromEntries(this.searchParams.entries());
+    });
+
+    URL.prototype.equals = function (other, hashSensitive = false) {
+        function equalUrls(url1, url2, hashSensitive = false) {
+            return (
+                equivalentObjects(url1.sp, url2.sp) && // equal search params
+                (url1.hostname === url2.hostname) &&
+                (!hashSensitive || url1.hash === url2.hash)
+            );
+        }
+
+        return equalUrls(this, other, hashSensitive);
+    };
+
 
     // === end of basic checks and imports ===
 
@@ -311,7 +349,21 @@ var normalizeUrl = (function () {
     })();
 
     /** TODO: write jsdoc
-     * @type {{elements: {}, url: {isOnGoogle, isOnGoogleImages, isOnGoogleImagesPanel, isRightViewLayout}}}
+     * @type {{
+     *  elements: {
+     *
+     *  },
+     *  url: {
+     *      gImgSearchURL,
+     *      reverseImageSearchUrl,
+     *      getGImgReverseSearchURL: function,
+     *      siteSearchUrl: function,
+     *      isOnGoogle,
+     *      isOnGoogleImages,
+     *      isOnGoogleImagesPanel,
+     *      isRightViewLayout
+     *  }
+     *  }}
      */
     const GoogleUtils = (function () {
         var isOnGoogle = () => GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
@@ -2226,7 +2278,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             console.debug('new location:', pageUrl.toString());
         }
 
-        if (!equalUrls(new URL(location.href), pageUrl)) {
+        if (!new URL(location.href).equals(pageUrl)) {
             location.assign(pageUrl.toString());
             return true;
         }
