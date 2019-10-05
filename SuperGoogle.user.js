@@ -1877,6 +1877,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             }
 
             // directLinkReplacer.observe();
+            createStyles();
             bindKeys();
 
             // // iterating over the stored ubl sites
@@ -3767,272 +3768,307 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
     };
 
 
-    /* Overlay CSS for highlighting selected images */
-    // language=CSS
-    addCss(`.highlight, .drop-shadow {
-        filter: drop-shadow(8px 8px 10px gray) !important;
-    }
+    function createStyles() {
+        // language=CSS - gif labels
+        addCss(`
+            .gJNf0, .sP8UF {
+                box-sizing: border-box;
+                font-family: Roboto, HelveticaNeue, Arial, sans-serif;
+                line-height: 12px;
+                margin-left: 0;
+                overflow: hidden;
+                position: absolute;
+                white-space: nowrap;
+                background: rgba(255, 255, 255, 0.9);
+                bottom: 0;
+                border-radius: 0 2px 0 0;
+                box-shadow: 0 0 1px 0 rgba(0, 0, 0, .16);
+                color: #70757a;
+                font-size: 10px;
+                padding: 4px;
+            }
 
-    .blur.in {
-        -webkit-transition: all 0.1s ease-in !important;
-        /*-webkit-filter: blur(6px) !important;*/
-        transform: scale(0.7) !important;
-        opacity: 0.3 !important;
-    }
+            /*for the giflabels (div)*/
+            .bMBVpc, .irc-rito {
+                z-index: 5;
+                background-color: rgba(0, 0, 0, .03);
+                height: 100%;
+                pointer-events: none;
+                position: absolute;
+                width: 100%;
+            }
 
-    .blur.out:not(.in) {
-        -webkit-filter: blur(0px) !important;
-        /*filter: blur(0px) !important;*/
-        transform: scale(1) !important;
-        opacity: 1 !important;
-        -webkit-transition: all 0.25s ease-out !important;
-        transition: all 0.25s ease-out !important;
-    }
-
-    .transparent {
-        opacity: 0.4 !important;
-    }
-
-    .sg-too-small {
-
-    }
-
-    .sg-too-small-hide {
-        display: none !important;
-    }
-
-    .hide-img {
-        display: none !important;
-    }`, 'filters-style');
-    /* "border-bottom: 1px dotted black;" is for if you want dots under the hover-able text */
+        `, 'gif-label');
 
 
-    // GoogleDirectLinksPagesImages script css
-    addCss('a.x_source_link {' + [
-        'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
-        'text-decoration: none !important',
-        'color: inherit !important',
-        'display: block !important'
-    ].join(';') + '}');
+        // language=CSS - Overlay CSS for highlighting selected images
+        addCss(`.highlight, .drop-shadow {
+            filter: drop-shadow(8px 8px 10px gray) !important;
+        }
 
-    // give a white border so that we'll have them all the same size
-    addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}');
+        .blur.in {
+            -webkit-transition: all 0.1s ease-in !important;
+            /*-webkit-filter: blur(6px) !important;*/
+            transform: scale(0.7) !important;
+            opacity: 0.3 !important;
+        }
 
-    // language=CSS
-    addCss(`img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"],
+        .blur.out:not(.in) {
+            -webkit-filter: blur(0px) !important;
+            /*filter: blur(0px) !important;*/
+            transform: scale(1) !important;
+            opacity: 1 !important;
+            -webkit-transition: all 0.25s ease-out !important;
+            transition: all 0.25s ease-out !important;
+        }
+
+        .transparent {
+            opacity: 0.4 !important;
+        }
+
+        .sg-too-small {
+
+        }
+
+        .sg-too-small-hide {
+            display: none !important;
+        }
+
+        .hide-img {
+            display: none !important;
+        }`, 'filters-style');
+
+        // GoogleDirectLinksPagesImages script css
+        addCss('a.x_source_link {' + [
+            'line-height: 1.0',  // increment the number for a taller thumbnail info-bar
+            'text-decoration: none !important',
+            'color: inherit !important',
+            'display: block !important'
+        ].join(';') + '}', 'GoogleDirectLinksPagesImages-script-css');
+
+        // give a white border so that we'll have them all the same size
+        addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}', 'white-borders');
+
+        //image-effects
+        // language=CSS
+        addCss(`/*red borders to the failed images*/
         img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] {
-        border: 3px #F00 solid;
+            -webkit-filter: grayscale(1);
+            border: 3px #F00 solid;
+            opacity: 0.5 !important;
+        }
+        
+        /*grayscale and low opacity for loading images*/
+        img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"] {
+            -webkit-filter: grayscale(0.5) !important; /* Webkit */
+            opacity: 0.5 !important;
+        }
+        
+        /*set borders*/
+        div.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="true"]:not(.irc_mimg):not(.irc_mutc) {
+            border-radius: 5px;
+            border: 3px #0F0 solid;
+        }
+        
+        .grey-scale {
+            -webkit-filter: grayscale(1);
+        }
+            
+        img[loaded="true"] {
+            opacity: 1;
+            filter: opacity(100%);
+        }
+        `, 'image-effects');
+
+
+        // toolbar
+        // language=CSS
+        addCss(`/*sg=SuperGoogle, this is padding for the buttons and controls*/
+        .sg {
+            margin: 8px;
+        }
+
+        label[for] {
+            padding: 2px;
+            border-radius: 4px;
+            background: darkgrey;
+        }
+
+        /* sliders*/
+        [type="range"] {
+            -webkit-appearance: none;
+            /*width: 70%;*/
+            height: 15px;
+            border-radius: 5px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        [type="range"]:hover {
+            opacity: 1;
+        }
+
+        [type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: darkorange;
+            cursor: pointer;
+        }
+
+        input[type="range"] + label { /*The label elements displaying the slider readings*/
+            padding: 6px;
+        }
+        `, 'toolbar');
+
+        // language=CSS
+        addCss(`
+            .hover-click:hover,
+            .hover-click:focus {
+                color: #999;
+                text-decoration: none;
+                cursor: pointer;
+            }
+
+            /*takes care of the main image link, makes sure it's exactly the same size of the image */
+            div.irc_mic > a, a.irc_mutl, a.irc_mi, a.irc_mil {
+                display: contents !important;
+            }
+
+            /*The right upper part of the image panel (containing description and title and stuff)*/
+            div.irc_hd * {
+                margin-right: 3px;
+                margin-bottom: 2px;
+            }
+
+            div#extrares {
+                display: none !important;
+            }
+
+            /*bigger space between image boxes*/
+            div.rg_bx {
+                margin: 10px;
+            }
+
+            /*fixes size of main image link*/
+            /*description*/
+            div.irc_asc {
+                display: inline-block !important;
+            }
+
+            .irc_ris {
+                height: fit-content !important;
+            }
+
+            /*primary title a.irc_pt: so it won't take more space than it should*/
+            a.irc_pt {
+                display: contents !important;
+            }
+
+            /*for the imagebox info link*/
+            a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
+                padding: 2px 4px 0 0;
+                /*display: contents;*/
+            }
+
+            /*for .site-span container (the info text on the ris images)*/
+            #irc_bg a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration.panel-page {
+                bottom: 15px;
+                z-index: 5;
+            }
+
+            /**/
+            div.text-block {
+                display: block;
+                position: absolute;
+                color: white;
+                opacity: 0.4;
+
+                padding: 5px;
+                margin: 2px;
+
+                min-height: 15px;
+                min-width: 15px;
+                width: fit-content;
+                height: fit-content;
+                top: 0;
+                left: 0;
+
+                border-radius: 5px;
+                font: normal 11px arial, sans-serif;
+                white-space: nowrap;
+                transition: 0.2s;
+            }
+
+            div.text-block.download-block:hover {
+                transform: scale(1.5);
+                opacity: 1;
+            }
+
+            /*TODO: split this to multiple addCss() calls*/
+            .ext-gif {
+                background-color: #4b00ff8c !important
+            }
+
+            div.text-block.ext:not(.ext-gif) {
+                background-color: #00cbff;
+            }
+
+            a.download-related, a.show-ris {
+                border-radius: 4px;
+                border: #454545 2px solid;
+                background-color: #454545;
+
+                margin-right: 8px;
+                margin-left: 8px;
+
+                box-shadow: 0 1px 0 rgba(255, 255, 255, .06),
+                1px 1px 0 rgba(255, 255, 255, .03),
+                -1px -1px 0 rgba(0, 0, 0, .02),
+                inset 1px 1px 0 rgba(255, 255, 255, .05);
+            }
+
+            /*
+            .scroll-nav:hover,
+            .scroll-nav *:hover:not(.hover-click),
+            .scroll-nav *:focus:not(.hover-click) {
+                cursor: crosshair;
+            }
+            */
+
+            /*coloring links, make them easier to see*/
+            .mblink:visited, a:visited {
+                color: #d684ff;
+            }
+
+            a:link, .w, #prs a:visited, #prs a:active, .q:active, .q:visited, .kl:active, .tbotu {
+                color: #988fff;
+            }
+        `, 'panel');
+
+        /*for moving the footcnt bar at the bottom more to the bottom*/
+        // language=CSS
+        addCss(`
+    /*#footcnt {
+        bottom: -354px;
+        position: absolute;
+    }*/
+    
+    /*keeps the bar at a fixed position when scrolling*/
+    /*.rshdr, .jsrp{position:fixed; height:100%; width:100%; left:0; top:0; z-index:2;}
+    #rcnt{position:relative; z-index:1; margin:100% 0 0;}*/
+    
+    .fixed-position ${Preferences.page.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
+        position: fixed;
+        top: 0;
+        z-index: 1000;
     }
-
-    img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"],
-        img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] {
-        -webkit-filter: grayscale(0.5) !important; /* Webkit */
-        opacity: 0.5 !important;
-    }`);
-
-    // language=CSS
-    addCss(
-        ` /*set borders*/
-    div.${showImages.ClassNames.DISPLAY_ORIGINAL}:not(.irc_mimg):not(.irc_mutc) {
-        border-radius: 5px;
-        border: 3px #0F0 solid;
+    `, 'navbar-positioning');
     }
-
-    div.${showImages.ClassNames.FAILED_PROXY}:not(.irc_mimg):not(.irc_mutc) {
-        border: 3px #FFA500 solid;
-    }`);
-
-    // language=CSS
-    addCss(`.grey-scale,
-    img[loaded="error"] {
-        -webkit-filter: grayscale(1);
-    }
-
-    img[loaded="error"],
-    img[loaded="loading"] {
-        opacity: 0.5;
-        filter: opacity(50%);
-    }
-
-    img[loaded="true"] {
-        opacity: 1;
-        filter: opacity(100%);
-    }`);
-
-
-    // language=CSS
-    addCss(`.hover-click:hover,
-.hover-click:focus {
-    color: #999;
-    text-decoration: none;
-    cursor: pointer;
-}
-
-/*sg=SuperGoogle, this is padding for the buttons and controls*/
-.sg {
-    margin: 8px;
-}
-
-label[for] {
-    padding: 2px;
-    border-radius: 4px;
-    background: darkgrey;
-}
-
-input[type="range"] + label { /*The label elements displaying the slider readings*/
-    padding: 6px;
-}
-
-/*takes care of the main image link, makes sure it's exactly the same size of the image */
-div.irc_mic > a, a.irc_mutl, a.irc_mi, a.irc_mil {
-    display: contents !important;
-}
-
-/*The right upper part of the image panel (containing description and title and stuff)*/
-div.irc_hd * {
-    margin-right: 3px;
-    margin-bottom: 2px;
-}
-
-/*keeps the bar at a fixed position when scrolling*/
-/*.rshdr, .jsrp{position:fixed; height:100%; width:100%; left:0; top:0; z-index:2;}
-#rcnt{position:relative; z-index:1; margin:100% 0 0;}*/
-
-div#extrares {
-    display: none !important;
-}
-
-/*bigger space between image boxes*/
-div.rg_bx {
-    margin: 10px;
-}
-
-/*for moving the footcnt bar at the bottom more to the bottom*/
-#footcnt {
-    bottom: -354px;
-    position: absolute;
-}
-
-/*fixes size of main image link*/
-.irc_asc {
-    display: inline-block !important;
-}
-.irc_ris {
-    height: fit-content !important;
-    width: 80% !important;
-}
-
-/*this is for the pTitle a.irc_pt so it won't take more space than it should*/
-a.irc_pt {
-    display: contents !important;
-}
-
-/*for the imagebox info link*/
-a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration {
-    padding: 2px 4px 0 0;
-    /*display: contents;*/
-}
-/*for the container of .site-span (the info text on the ris images)*/
-#irc_bg a.iKjWAf.irc-nic.isr-rtc.a-no-hover-decoration.panel-page {
-    bottom: 15px;
-    z-index: 5;
-}
-/**/
-div.text-block {
-    display: block;
-    position: absolute;
-    color: white;
-    opacity: 0.4;
-
-    padding: 5px;
-    margin: 2px;
-
-    min-height: 15px;
-    min-width: 15px;
-    width: fit-content;
-    height: fit-content;
-    top: 0;
-    left: 0;
-
-    border-radius: 5px;
-    font: normal 11px arial, sans-serif;
-    white-space: nowrap;
-    transition: 0.2s;
-}
-
-div.text-block.download-block:hover {
-    transform: scale(1.5);
-    opacity: 1;
-}
-
-.ext-gif {
-    background-color: #4b00ff8c !important
-}
-div.text-block.ext:not(.ext-gif) {
-    background-color: #00cbff;
-}
-
-a.download-related {
-    border-radius: 4px;
-    border: #454545 2px solid;
-    background-color: #454545;
-
-    box-shadow: 
-    0 1px 0 rgba(255, 255, 255, .06),
-    1px 1px 0 rgba(255, 255, 255, .03),
-    -1px -1px 0 rgba(0, 0, 0, .02),
-    inset 1px 1px 0 rgba(255, 255, 255, .05);
-}
-
-/* sliders*/
-[type="range"] {
-    -webkit-appearance: none;
-    /*width: 70%;*/
-    height: 15px;
-    border-radius: 5px;
-    background: #d3d3d3;
-    outline: none;
-    opacity: 0.7;
-    -webkit-transition: .2s;
-    transition: opacity .2s;
-}
-
-[type="range"]:hover {
-    opacity: 1;
-}
-
-[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: darkorange;
-    cursor: pointer;
-}
-
-[type="range"]::-moz-range-thumb {
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    background: darkorange;
-    cursor: pointer;
-}
-
-.fixed-position${Preferences.page.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
-    position: fixed;
-    top: 0;
-    z-index: 1000;
-}
-
-.ubl-site {
-    color: ${Preferences.loading.successColor} !important;
-}
-
-.scroll-nav:hover,
-.scroll-nav *:hover:not(.hover-click),
-.scroll-nav *:focus:not(.hover-click) {
-    cursor: crosshair, auto;
-} `, 'superGoogleStyle');
 
 
     function setStyleInHTML(el, styleProperty, styleValue) {
