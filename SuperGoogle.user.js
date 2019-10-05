@@ -1860,48 +1860,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
     processLocation();
 
-    elementReady('body').then(go);
-    // TODO: why do we have to functions that run? why wait for body and then wait for DOMContentLoaded? see which one needs to stay and make it only one
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
-        const menuItems = getMenuItems();
-        for (const item of Object.keys(menuItems)) {
-            const callback = function (e) {
-                var elChild = menuItems[item].firstElementChild;
-                if (elChild) elChild.click();
-            };
-            callback._name = 'Go to [' + item + '] tab';
-            mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], callback);
-        }
-
-        const ssLink = document.querySelector('#ss-bimodal-strict');
-        const ussLink = document.querySelector('#ss-bimodal-default');
-        const safeSearchListener = function (e) {
-            e.stopImmediatePropagation();
-            e.stopPropagation();
-            e.preventDefault();
-
-            toggle_safesearch();
-        };
-        if (ssLink) ssLink.addEventListener('click', safeSearchListener, true);
-        if (ussLink) ussLink.addEventListener('click', safeSearchListener, true);
-
-
-        // if NOT google images:
-        if (!(GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel)) {
-            // bind each result to the corresponding number
-            for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
-                mousetrap.bind(String(i + 1), (e) => {
-                    results[i].querySelector('a').click();
-                });
-                results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
-            }
-        } else {
-
-        }
-
-    }, false);
+    elementReady('body').then(onload);
 
     // click showAllSizes link when it appears
     if (localStorage.getItem('clickShowAllSizes') === "true") {
@@ -1913,51 +1872,14 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
     // === start of function definitions ===
 
-    function go() {
+    // called as soon as the "body" is loaded
+    function onload() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
-            // force safe search if already attempted and shouldBeUnsafesearch
-            if (document.querySelector('#ss-bimodal-default') && localStorage.getItem('shouldBeUnsafesearch') === "true") {
-                location.assign(unsafeSearchUrl()); // force unsafesearch
-                localStorage.setItem('shouldBeUnsafesearch', "");
-                return;
-            }
-            const targetHostname = localStorage.getItem('targetHostname');
-            if (targetHostname && (targetHostname !== location.hostname)) {
-                localStorage.setItem('targetHostname', '');
-                location.hostname = targetHostname;
-                return;
-            }
-
-            // directLinkReplacer.observe();
             createStyles();
             bindKeys();
 
-            // // iterating over the stored ubl sites
-            // for (const ublHostname of GM_getValue(Consts.GMValues.ublSites, new Set())) ublSitesSet.add(ublHostname);
-            // for (const ublURL of GM_getValue(Consts.GMValues.ublUrls, new Set())) ublMetas.add(ublURL);
-            // for (const [ublHostname, data] of new Map(GM_getValue(Consts.GMValues.ublSitesMap, new Map()))) ublMap.set(ublHostname, data);
-            // if (Preferences.ubl.periodicUblSaving)
-            //     setInterval(storeUblSitesSet, 5000);
-
-            ImagePanel.init();
-
             // wait for searchbar to load
-            elementReady('#hdtb-msb').then(function () {
-                injectGoogleButtons();
-
-                // setting unsafe search URL
-                {
-                    // const ssDefault = document.querySelector('#ss-bimodal-default');
-                    // if (ssDefault) {
-                    //     enhanceLink(ssDefault);
-                    //     ssDefault.href = unsafeSearchUrl();
-                    //     ssDefault.onclick = function () {
-                    //         location.assign(unsafeSearchUrl());
-                    //     };
-                    //     console.log('ssDefault', ssDefault);
-                    // }
-                }
-            });
+            elementReady('#hdtb-msb').then(onContentLoaded);
 
 
             // onImageBatchLoaded observe new image boxes that load
@@ -1996,8 +1918,67 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         } else { // else if not google images
 
+            // bind each result to the corresponding number
+            for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
+                mousetrap.bind(String(i + 1), function (e) {
+                    results[i].querySelector('a').click();
+                });
+                results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
+            }
         }
     }
+
+    // called when the searchbar is loaded (used for functionality that needs elements to be loaded)
+    function onContentLoaded() {
+        // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
+        const menuItems = getMenuItems();
+        for (const item of Object.keys(menuItems)) {
+            const callback = function (e) {
+                var elChild = menuItems[item].firstElementChild;
+                if (elChild) elChild.click();
+            };
+            callback._name = 'Go to [' + item + '] tab';
+            mousetrap.bind([`shift+${item.charAt(0).toLowerCase()}`], callback);
+        }
+
+        //
+        // handling safe search and location operations here
+        //
+        const ssLink = document.querySelector('#ss-bimodal-strict');
+        const ussLink = document.querySelector('#ss-bimodal-default');
+        const safeSearchListener = function (e) {
+            e.stopImmediatePropagation();
+            e.stopPropagation();
+            e.preventDefault();
+
+            toggle_safesearch();
+        };
+        if (ssLink) ssLink.addEventListener('click', safeSearchListener, true);
+        if (ussLink) ussLink.addEventListener('click', safeSearchListener, true);
+        // force safe search if already attempted and shouldBeUnsafesearch
+        if (ussLink && localStorage.getItem('shouldBeUnsafesearch') === "true") {
+            console.info('"shouldBeUnsafesearch"=true, but this is not unsafe search, forcing unsafe search using "ipv4"...');
+            location.assign(unsafeSearchUrl()); // force unsafesearch
+            localStorage.setItem('shouldBeUnsafesearch', "");
+            return;
+        }
+        const targetHostname = localStorage.getItem('targetHostname');
+        if (targetHostname && (targetHostname !== location.hostname)) {
+            localStorage.setItem('targetHostname', '');
+            location.hostname = targetHostname;
+            return;
+        }
+
+
+        injectGoogleButtons();
+
+        ImagePanel.init();
+        elementReady(() => google && google.isr && typeof (google.isr.layoutInit) === 'function').then(function () {
+            google.isr.layoutInit();
+        });
+    }
+
+    // ============
 
     function bindKeys() {
 
@@ -2276,37 +2257,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
     // return true when there will be a change
     function processLocation() {
-        //TODO: move this to UrlUtils
-        function equalUrls(url1, url2, hashSensitive = false) {
-            const equalUrlSearchParams = function equalUrlSearchParams(url1, url2) {
-                const sp1 = url1.searchParams;
-                const sp2 = url2.searchParams;
-                sp1.sort();
-                sp2.sort();
-
-                const s1 = sp1.toString();
-                const s2 = sp2.toString();
-                const eq = s1 === s2;
-
-                console.debug(
-                    '\nequal: ' + eq,
-                    `\n"${s1}"\n===\n"${s2}"`
-                );
-                return (eq);
-            };
-            // console.log(url1.toString() + '\n' + url2.toString());
-            return (
-                equalUrlSearchParams(url1, url2) &&
-                (url1.hostname === url2.hostname) &&
-                (!hashSensitive || url1.hash === url2.hash)
-            );
-        }
-
-        URL.prototype.equal = function (other, hashSensitive) {
-            return equalUrls(this, other, hashSensitive);
-        };
-
-
         // switch to specific google domain/hostname (like ipv4.google.com)
         if (typeof (Preferences.location.forcedHostname) === 'string' && Preferences.location.forcedHostname.charAt(0) !== '!') {
             pageUrl.hostname = Preferences.location.forcedHostname;
