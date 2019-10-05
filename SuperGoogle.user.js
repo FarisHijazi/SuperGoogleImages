@@ -2555,18 +2555,18 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         const link_animated = createElement(`<a class="sg q qs" href="${location.pathname + location.search + '&tbs=itp:animated'}"><u>A</u>nimated</a>`);
         const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
-            const imgLinks = Array.from(document.querySelectorAll('a.rg_l[href]'));
-            console.log('imgLinks:', imgLinks);
-
-            for (const a of imgLinks) {
-                const img = a.querySelector('img');
-                const dlName = cleanGibberish(getMeta(img).pt);
-
-                // img.setAttribute('download-name', dlName);
-                img.setAttribute('alt', dlName);
-                console.log('Preloading image:', `"${dlName}"`, !isBase64ImageData(img.src) ? img.src : 'Base64ImageData');
-            }
+            const imgs = Array.from(document.querySelectorAll('a.rg_l[href] img'));
+            const progressSpan = btn_preload.querySelector('span.preload-progress');
+            let counter = 0;
+            progressSpan.innerText = `(${counter}/${imgs.length})`;
+            Promise.all(Array.from(imgs).map(img => ShowImages.loadPromise(img, [img.src || img.getAttribute('data-src')]).then(res => {
+                progressSpan.innerText = `(${++counter}/${imgs.length})`;
+            }))).then(res => {
+                console.log("YAAA!!! preloaded all these images:", imgs)
+            });
         });
+        btn_preload.appendChild(createElement('<span class="preload-progress" style="margin: 5px;">'));
+
         const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
         const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
 
