@@ -1540,6 +1540,7 @@ var normalizeUrl = (function () {
                 console.warn('SearchByImage element not found:', sbi);
             }
         }
+
         inject_ViewImage() {
             const text = 'View&nbsp;image';
             if (this.sTitle_Anchor) {
@@ -1568,6 +1569,7 @@ var normalizeUrl = (function () {
                 console.warn('viewImage element not found');
             }
         }
+
         inject_ImageHost() {
             const panel = this;
             // console.debug('this.qa(".irc_msc"):', this.qa('.irc_msc, .irc_ris'));
@@ -1603,6 +1605,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 }
             }
         }
+
         siteSearch() {
             try {
                 const hostname = getHostname(this.sTitle_Anchor.href);
@@ -2557,6 +2560,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         });
 
         const link_animated = createElement(`<a class="sg q qs" href="${location.pathname + location.search + '&tbs=itp:animated'}"><u>A</u>nimated</a>`);
+
         const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
             const imgs = Array.from(document.querySelectorAll('a.rg_l[href] img'));
             const progressSpan = btn_preload.querySelector('span.preload-progress');
@@ -2660,6 +2664,9 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
     function downloadImages() {
         const zipBox = document.querySelector('#zipInsteadOfDownload');
+        const qualifiedGImgs = getQualifiedGImgs({
+            exception4smallGifs: document.querySelector('#GIFsExceptionBox').checked
+        });
         if (zipBox && zipBox.checked) {
             if (!zip || Object.keys(zip.files).length < 1) {
                 gZipImages();
@@ -2672,10 +2679,9 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             } else {
                 console.log('currentDownloadCount < dlNumSlider.value');
             }
-            const qualifiedGImgs = Array.from(getQualifiedGImgs({}));
 
             let i = 0;
-            const btns = document.querySelectorAll('.text-block.download-block');
+            const btns = [].map.call(qualifiedGImgs, img => img.parentElement.querySelector('.download-block'));
             var interval = setInterval(function () {
                 if (i < Math.min(btns.length, document.querySelector('#minImgSizeSlider').value))
                     btns[i++].click();
@@ -3117,7 +3123,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 info.textContent = '';
                 info.appendChild(pagelink);
             }
-
 
             //@faris
             // @info about html @structure:
