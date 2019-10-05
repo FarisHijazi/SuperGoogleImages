@@ -588,9 +588,7 @@ var normalizeUrl = (function () {
             if (document.querySelector('#add-direct-urls-button')) return;
             const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
 
-            if (!threeDots) {
-                console.warn('dropdown was not found, unable to addJsonToDropdown()');
-            } else {
+            if (threeDots) {
                 const dlj = createElement(`<button id="add-direct-urls-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Direct urls</span></button>`);
                 threeDots.closest('div[role="button"]').after(dlj);
                 dlj.onclick = function () {
@@ -598,11 +596,13 @@ var normalizeUrl = (function () {
                 };
             }
         }
-        static addDirectUrls(mutationTarget) {
+        static addDirectUrls(mutationTarget = {}) {
+            GSaves.replaceWithDirectUrls();
+            return;
+
             addCss('.RggFob .mL2B4d { text-align: center; }', 'gsaves-center-anchors');
+            if (!mutationTarget) return;
             console.log('GSaves.addDirectUrls();');
-            if (!mutationTarget)
-                return;
 
             for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
                 const usp = new URL(a.href, location.href).searchParams;
@@ -624,9 +624,7 @@ var normalizeUrl = (function () {
 
             const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
 
-            if (!threeDots) {
-                console.warn('dropdown was not found, unable to addJsonToDropdown()');
-            } else {
+            if (threeDots) {
                 const dlj = createElement(`<button id="download-json-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Download JSON {}</span></button>`);
                 threeDots.closest('div[role="button"]').after(dlj);
                 dlj.onclick = function () {
@@ -634,12 +632,14 @@ var normalizeUrl = (function () {
                 };
             }
         }
-        static replaceWithDirectUrls(mutationTarget) {
+        static replaceWithDirectUrls(mutationTarget = document) {
             console.log('GSaves.toDirectUrls();');
             for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
-                const usp = new URL(a.href, location.href).searchParams;
-                if (usp.get('imgrefurl')) {
-                    a.href = usp.get('imgrefurl');
+                const usp = new URL(a.href).searchParams;
+                const imgurl = usp.get('imgrefurl') || usp.get('imgurl');
+                if (imgurl) {
+                    a.href = imgurl;
+                    console.log('imgurl', imgurl);
                 }
             }
         }
