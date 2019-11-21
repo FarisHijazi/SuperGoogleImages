@@ -1974,11 +1974,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
 
         injectGoogleButtons();
-
-        ImagePanel.init();
-        elementReady(() => google && google.isr && typeof (google.isr.layoutInit) === 'function').then(function () {
-            google.isr.layoutInit();
-        });
     }
 
     // ============
@@ -2242,6 +2237,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         document.addEventListener('keyup', e => {
             if (e[Preferences.shortcuts.hotkey]) {
                 const el = document.elementFromPoint(document.cursor.clientX, document.cursor.clientY);
+                if (!el) return;
                 const hotkeyEvent = new Event('hotkeyup');
                 hotkeyEvent[Preferences.shortcuts.hotkey] = e[Preferences.shortcuts.hotkey];
                 el.dispatchEvent(hotkeyEvent);
@@ -3137,7 +3133,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
              */
 
             //goal:
-            /* 
+            /*
              * <a class="iKjWAf irc-nic isr-rtc a-no-hover-decoration phref panel-page footLinkTop">
              *     <div class="mVDMnf nJGrxf">
              *         <span class="info-span">cool cat pic</span>
