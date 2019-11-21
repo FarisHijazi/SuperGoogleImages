@@ -1573,7 +1573,7 @@ var normalizeUrl = (function () {
                     'div'
                 );
 
-                $(link).on('mouseover click', function(e) {
+                $(link).on('mouseover click', function (e) {
                     panel.update_ViewImage();
                 });
 
@@ -2122,62 +2122,73 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         }, 'keydown');
 
         mousetrap.bind(['?'], function toggleShowKeymap(e) {
-            var keymap = document.querySelector('#keymap');
-            if (keymap) {
-                keymap.remove();
+            let keymapTable = document.querySelector('#keymap');
+            if (keymapTable) {
+                keymapTable.toggle();
                 return;
-            } else {
-                keymap = getKeymap();
             }
 
-            /**
-             *
-             * @param {Array} entries - assumed to be a list of lists (2d array)
-             * @returns {HTMLDivElement}
-             */
-            function tableFromEntries(entries) {
-                var html = "<table><tr>";
+            // create keymap table
+            keymapTable = $(tableFromEntries(getKeymap())).css({
+                'left': '30%',
+                'width': '50%',
+                'top': '10%',
+                'z-index': '1002',
+                'color': 'rgb(255, 255, 255)',
+                'position': 'fixed',
+                'text-align': 'center',
+                'text-shadow': 'rgb(0, 0, 0) 1px 1px 7px',
+                'font-weight': 'bold',
+                'background': 'none 0px center repeat scroll rgb(0, 0, 0)',
+                'overflow': 'hidden',
+                'border-radius': '10px',
+            }).attr({
+                'id': 'keymap'
+            })[0];
 
-                // Loop through array and add table cells
-                for (const row of entries) {
-                    for (const cell of row) {
-                        html += "<td>" + cell + "</td>";
-                    }
-                    html += "</tr><tr>";// Break into next row
+            const setKeymapVisibility = function (visible = false) {
+                if (visible) {
+                    keymapTable.style.display = 'block';
+                    keymapTable.appendChild(keymapTable.styleEl);
+                    keymapTable.invisibleCover.style.display = 'block';
+                } else { // invisible
+                    keymapTable.style.display = 'none';
+                    keymapTable.styleEl.remove();
+                    keymapTable.invisibleCover.style.display = 'none';
                 }
-                html += "</tr></table>";
+            };
 
-                // ATTACH HTML TO CONTAINER
-                const container = document.createElement('div');
-                container.innerHTML = html;
-                return container;
-            }
+            keymapTable.toggle = () => setKeymapVisibility(keymapTable.style.display === 'none');
 
-            const keymapTable = tableFromEntries(keymap);
-            keymapTable.style = 'left: 30%;' +
-                'width: 50%;' +
-                'top: 10%;' +
-                'z-index: 1002;' +
-                'color: rgb(255, 255, 255);' +
-                'position: fixed;' +
-                'text-align: center;' +
-                'text-shadow: rgb(0, 0, 0) 1px 1px 7px;' +
-                'font-weight: bold;' +
-                'background: none 0px center repeat scroll rgb(0, 0, 0);' +
-                'overflow: hidden;' +
-                'border-radius: 10px;';
-            keymapTable.id = 'keymap';
-            const closeLink = createElement('<a href="#" style="float: right;">Close</a>');
-            closeLink.onclick = closeKeymap;
+            // creating the "close" link/button
+            const closeLink = $('<a href="#" class="close" style="float: right;">Close</a>').on('click', (e) => setKeymapVisibility(false))[0];
             keymapTable.firstElementChild.before(closeLink);
-            Mousetrap(keymapTable).bind('escape', function (e) {
-                closeKeymap();
-            });
-            document.body.appendChild(keymapTable);
 
-            function closeKeymap() {
-                keymapTable.remove();
-            }
+            // creating blur style (to blur the background)
+            keymapTable.styleEl = null;
+
+            addCss('body > *:not(#keymap) { filter: blur(3px); }', 'keymap-bg-blur').then(el=>{
+                keymapTable.styleEl = el;
+                keymapTable.appendChild(keymapTable.styleEl);
+            });
+
+            // creating invisible cover (click listener for exiting)
+            keymapTable.invisibleCover = $('<div>').css({
+                'position': 'fixed',
+                'padding': '0px',
+                'margin': '0px',
+                'top': '0px',
+                'left': '0px',
+                'width': '100%',
+                'height': '100%',
+                'background': 'rgba(255, 255, 255, 0.5)',
+            }).on('click', (e) => setKeymapVisibility(false))[0];
+
+            Mousetrap.bind('escape', (e) => setKeymapVisibility(false));
+
+            document.body.appendChild(keymapTable);
+            keymapTable.after(keymapTable.invisibleCover);
+
         }, 'keydown');
 
 
@@ -4178,7 +4189,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         return el;
     }
 
-    function reAdjustAfterScrollEdge(el=null) {
+    function reAdjustAfterScrollEdge(el = null) {
         if (el === null) {
             el = document.querySelector('#irc-ss');
         }
@@ -4192,10 +4203,10 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         if (scrollPosition < 20) { // at top
             // console.log('going up');
-            document.querySelector("#irc_bg").style.top = topnavHeight*2 + 'px';
+            document.querySelector("#irc_bg").style.top = topnavHeight * 2 + 'px';
         } else { // at bottom
             // console.log('going down');
-            document.querySelector("#irc_bg").style.top = '-' + topnavHeight*0.3 + 'px';
+            document.querySelector("#irc_bg").style.top = '-' + topnavHeight * 0.3 + 'px';
         }
     }
 
@@ -4328,8 +4339,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             // autohide the navbar when scrolling down
             // @author taken from example: https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_navbar_hide_scroll
             addRichScrollListener(document.body, function (e) {
-                $navbar[0].style.top = e.movedDown? // moved down?
-                    `-${topnavContent.clientHeight}px`: // hide
+                $navbar[0].style.top = e.movedDown ? // moved down?
+                    `-${topnavContent.clientHeight}px` : // hide
                     '0'; // appear
             });
 
@@ -4340,7 +4351,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 reAdjustAfterScrollEdge(sidepanelScrollEl); // make one adjustment
 
                 // bind to scroll listener
-                addRichScrollListener(sidepanelScrollEl, function(e) {
+                addRichScrollListener(sidepanelScrollEl, function (e) {
                     reAdjustAfterScrollEdge(sidepanelScrollEl);
                 });
             });
@@ -4782,3 +4793,25 @@ function enhanceLink(a) {
 }
 
 
+/**
+ *
+ * @param {Array} entries - assumed to be a list of lists (2d array)
+ * @returns {HTMLDivElement}
+ */
+function tableFromEntries(entries) {
+    let html = "<table><tr>";
+
+    // Loop through array and add table cells
+    for (const row of entries) {
+        for (const cell of row) {
+            html += "<td>" + cell + "</td>";
+        }
+        html += "</tr><tr>";// Break into next row
+    }
+    html += "</tr></table>";
+
+    // ATTACH HTML TO CONTAINER
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    return container;
+}
