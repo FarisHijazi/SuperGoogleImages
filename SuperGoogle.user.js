@@ -1559,17 +1559,23 @@ var normalizeUrl = (function () {
 
         inject_ViewImage() {
             const text = 'View&nbsp;image';
-            if (this.sTitle_Anchor) {
+            const panel = this;
+
+            if (panel.sTitle_Anchor) {
                 const dataVed = '';
                 const className = 'view-image';
 
-                const link = this.addElementAfterSTitle(
+                const link = panel.addElementAfterSTitle(
                     `<td><a href="" target="_blank" class="${className}" role="button" jsaction="" data-rtid="" jsl="" tabindex="0" data-ved="${dataVed}"> <span>${text}</span></a></td>`,
                     '',
                     null,
                     'LEFT',
                     'div'
                 );
+
+                $(link).on('mouseover click', function(e) {
+                    panel.update_ViewImage();
+                });
 
                 const globeIcon = document.querySelector('._RKw._wtf._Ptf, .RL3J9c.Cws1Yc.wmCrUb');
                 if (globeIcon) link.firstElementChild.before(globeIcon.cloneNode(true));
