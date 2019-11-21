@@ -19,6 +19,7 @@
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
 // @require      https://github.com/ccampbell/mousetrap/raw/master/mousetrap.min.js
+// @require      https://rawgit.com/notifyjs/notifyjs/master/dist/notify.js
 // @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/PProxy.js
 // @require      https://github.com/FarisHijazi/GM_downloader/raw/master/GM_Downloader.user.js
 // @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/ShowImages.js
@@ -95,6 +96,21 @@ var meta = getMeta(rg_bxDiv);
  * @property {string} src:  src of the IMG element
  * @property {number[]} dim:  dimensions [width, height]
  */
+
+
+// [x] : mainImage link is sometimes pointing to the ris_fc
+// [ ] : find a way to get the meta for the mainImage
+//  [ ]  there might be a way: panel.dataset.itemId (test this)
+// [x] : fix panel ris links (they don't actually point to the image when you open in a new tab)
+// [ ] TODO: panel buttons (download, view image)
+//          [ ] they don't always work on the first click
+//          [x] download doesn't get the proper name
+//          [ ] "view image" doesn't open the image.src, it just opens the original image url (so now when an image gets proxied it won't use the new proxy url)
+// : add download button to related images (just like the image boxes)
+// : make a function that handles changing all ris image
+// : ris images have the text style mest up, the 2 titles are mixing with eachother
+
+//
 
 
 /** returns full path, not just partial path */
