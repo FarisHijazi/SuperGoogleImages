@@ -1784,6 +1784,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
          */
         onPanelMutation(mutations) {
             // if (debug) console.log('panelMutation()');
+            reAdjustAfterScrollEdge();
+
             this.__update();
 
             // this.mainImage.src = this.ris_fc_Url; // set image src to be the same as the ris
@@ -4113,24 +4115,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             }
         `, 'panel');
 
-        /*for moving the footcnt bar at the bottom more to the bottom*/
-        // language=CSS
-        addCss(`
-    /*#footcnt {
-        bottom: -354px;
-        position: absolute;
-    }*/
-    
-    /*keeps the bar at a fixed position when scrolling*/
-    /*.rshdr, .jsrp{position:fixed; height:100%; width:100%; left:0; top:0; z-index:2;}
-    #rcnt{position:relative; z-index:1; margin:100% 0 0;}*/
-    
-    .fixed-position ${Preferences.page.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
-        position: fixed;
-        top: 0;
-        z-index: 1000;
-    }
-    `, 'navbar-positioning');
     }
 
 
@@ -4156,6 +4140,29 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         return el;
     }
 
+    function reAdjustAfterScrollEdge(el=null) {
+        if (el === null) {
+            el = document.querySelector('#irc-ss');
+        }
+        if (!el) return;
+        const atTop = el.scrollTop <= 0;
+        const atBottom = (el.scrollHeight - el.clientHeight) <= el.scrollTop;
+
+        const scrollPosition = 100 * el.scrollTop / Math.max(el.scrollHeight - el.clientHeight, 1); // as percentage
+        const topnavHeight = document.querySelector('#topnav-content').clientHeight;
+        console.log('scrollPosition', Math.round(scrollPosition));
+
+
+        if (scrollPosition < 20) { // at top
+            // console.log('going up');
+            document.querySelector("#irc_bg").style.top = topnavHeight*2 + 'px';
+        } else { // at bottom
+            // console.log('going down');
+            document.querySelector("#irc_bg").style.top = '-' + topnavHeight*0.3 + 'px';
+        }
+    }
+
+    //TODO: rename "topnav" to "navbar"
     /**
      * Creates a static navbar at the top of the page.
      * Useful for adding buttons and controls to it
@@ -4165,8 +4172,10 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
     function createAndGetNavbar() {
         // Settings up the navbar
 
+        /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
-        addCss(`div#topnav {
+        addCss(`
+        div#topnav {
             position: fixed;
             z-index: 1000;
             min-height: 50px;
@@ -4174,36 +4183,132 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             right: 0;
             left: 0;
             background: #525252;
+            
+            width: 100%;
+            transition: top 0.3s;
         }
-
+        
+        /*#footcnt {
+            bottom: -354px;
+            position: absolute;
+        }*/
+        
+        /*keeps the bar at a fixed position when scrolling*/
+        /*.rshdr, .jsrp{position:fixed; height:100%; width:100%; left:0; top:0; z-index:2;}
+        #rcnt{position:relative; z-index:1; margin:100% 0 0;}*/
+        
+        .fixed-position ${Preferences.page.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
+            position: fixed;
+            top: 0;
+            z-index: 1000;
+        }
         div#topnav-content {
             margin: 5px;
             padding: 10px;
             font-family: inherit;
             /*font-stretch: extra-condensed;
             font-size: 20px;*/
+            transition: top 0.3s;
         }`, 'navbar-css');
 
         const $navbar = $('<div id="topnav"><div id="topnav-content"></div></div>');
 
         document.body.firstElementChild.before($navbar[0]);
+        const physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
+        $navbar.after(physicalDiv);
 
         function reAdjustTopMargin() { // moves the rest of the page down a bit so it won't be covered by the navbar
-            const offsetHeight = document.querySelector('#topnav').offsetHeight;
+            // document.body.style.position = 'relative';
+            const clientHeight = document.querySelector('#topnav').clientHeight;
 
-            document.querySelectorAll('#rcnt, #irc_bg').forEach(el => {
-                el.style.top = offsetHeight.toString() + 'px';
-                el.style.height = (window.innerHeight - offsetHeight).toString() + "px";
+            physicalDiv.css({
+                'height': (clientHeight) + 'px'
             });
         }
 
-        window.addEventListener('resize', reAdjustTopMargin);
+        $(window).on('DOMContentLoaded load resize scroll', reAdjustTopMargin);
+
         // observe for elements being added, need to readjust topMargine
         observeDocument(reAdjustTopMargin, {baseNode: '#topnav'});
 
-        document.body.style.position = 'relative';
+        /**
+         * adds scroll listener but the event is rich with the following members:
+         *
+         * @param {Element} el
+         * @param {Function} callback
+         */
+        function addRichScrollListener(el, callback) {
+            let prevScrollpos = el.scrollTop;
+            const scrollHideThreshold = 2;
+            const handler = function (e) {
+                const currentScrollPos = el.scrollTop;
+                const delta = prevScrollpos - currentScrollPos;
+
+                e.movedDown = delta < -scrollHideThreshold;
+                e.movedUp = delta > scrollHideThreshold;
+
+                e.atTop = el.scrollTop <= 0;
+                e.atBottom = (el.scrollHeight - el.clientHeight) <= el.scrollTop;
+
+                callback.call(el, e);
+
+                prevScrollpos = currentScrollPos;
+            };
+
+            $(el).on('DOMContentLoaded load resize scroll', handler);
+        }
+
+        function isElementInViewport(el) {
+            //special bonus for those using jQuery
+            if (typeof jQuery === "function" && el instanceof jQuery) {
+                el = el[0];
+            }
+
+            var rect = el.getBoundingClientRect();
+
+            return (
+                rect.top >= 0 &&
+                rect.left >= 0 &&
+                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /*or $(window).height() */
+                rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
+            );
+        }
+        function onVisibilityChange(el, callback) {
+            var old_visible;
+            return function () {
+                var visible = isElementInViewport(el);
+                if (visible !== old_visible) {
+                    old_visible = visible;
+                    if (typeof callback == 'function') {
+                        callback();
+                    }
+                }
+            };
+        }
+
 
         return elementReady('#topnav-content').then((topnavContent) => {
+            // autohide the navbar when scrolling down
+            // @author taken from example: https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_navbar_hide_scroll
+            addRichScrollListener(document.body, function (e) {
+                $navbar[0].style.top = e.movedDown? // moved down?
+                    `-${topnavContent.clientHeight}px`: // hide
+                    '0'; // appear
+            });
+
+            // TODO: FIXME: make it show the top when reaching top
+            // this is the scroll part for the sidepanels
+            addCss(`#irc_bg { transition: top 0.5s; }`);
+            elementReady("#irc-ss").then(function (sidepanelScrollEl) {
+                reAdjustAfterScrollEdge(sidepanelScrollEl); // make one adjustment
+
+                // bind to scroll listener
+                addRichScrollListener(sidepanelScrollEl, function(e) {
+                    reAdjustAfterScrollEdge(sidepanelScrollEl);
+                });
+            });
+
+
             reAdjustTopMargin();
             return topnavContent;
         });
