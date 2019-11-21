@@ -440,7 +440,7 @@ var normalizeUrl = (function () {
             }
         );
         o.__defineGetter__('isRightViewLayout', () => { // check if the Google images layout
-                return !!document.querySelector('#irc_bg.irc_por.irc_bg.irc-unt');
+                return !!document.querySelector('#irc_bg.irc-unt');
             }
         );
 
