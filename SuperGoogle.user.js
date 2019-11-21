@@ -3173,33 +3173,53 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
             // splitting the 2 lines of the footlink to 2 links, one with the phref
             const footLink = link.parentElement.querySelector('a.irc-nic'); // the info link with the host-page
-            const existingLink = footLink.parentElement.querySelector('.panel-page.phref[phref]:not([phref="#"])');
-            if (footLink && !existingLink) {
-                const footLinkTop = footLink.cloneNode(false);
-                footLinkTop.classList.add('phref');
-
-                enhanceLink(footLink);
-
+            let footLinkTop = footLink.parentElement;
+            if (footLinkTop) footLinkTop = footLinkTop.querySelector('.panel-page.phref[phref]'); // FIXME: sometimes the parentElement is undefined
+            if (!footLink) debugger;
+            if (footLink && !footLinkTop) {
+                /*
+                 * footLinkTop:
+                 *      contains the title/description, links to the panelpage
+                 *      iKjWAf irc-nic isr-rtc a-no-hover-decoration phref panel-page footLinkTop ext
+                 *
+                 * footLink:
+                 *      at the bottom, links to the hostpage
+                 *      iKjWAf irc-nic isr-rtc a-no-hover-decoration host-page footLink
+                 */
+                footLinkTop = footLinkTop || footLink.cloneNode(false);
+                footLinkTop.classList.remove('host-page', 'footLink');
+                footLinkTop.classList.add('panel-page', 'phref', 'footLinkTop');
                 footLinkTop.phref = phref;
                 footLinkTop.setAttribute('phref', phref);
                 footLinkTop.href = phref;
                 footLinkTop.setAttribute('href', phref);
-
-                footLink.phref = phref;
-                footLink.setAttribute('phref', phref);
-                footLink.href = phref;
-                footLink.setAttribute('href', phref);
-                footLink.classList.add('panel-page', 'phref');
-
                 enhanceLink(footLinkTop);
 
+                footLink.classList.add('host-page', 'footLink');
+                footLink.classList.remove('phref', 'footLinkTop');
+                enhanceLink(footLink);
+
+
                 // get first div and move it up
-                footLinkTop.appendChild(footLink.querySelector('div'));
-                footLink.before(footLinkTop);
+                const infoDivTop = footLink.querySelector('div.mVDMnf.nJGrxf');
+                footLinkTop.appendChild(infoDivTop);
+                // make sure that there is a span, not just innerText
+                if (!infoDivTop.querySelector('span')) {
+                    infoDivTop.innerHTML = '<span class="info-span">' + infoDivTop.innerText + '</span>';
+                }
+
+                const footLinkDiv = footLink.querySelector('div.nJGrxf.FnqxG') || createElement(`<div class="nJGrxf FnqxG">`);
+                const hostpageSpan = footLinkDiv.querySelector('span') || // get existing hostpageSpan or create it
+                    createElement(`<span class="hostname-spane">${getMeta(link.closest('div')).isu}</span>`);
+                footLink.appendChild(footLinkDiv);
+                footLinkDiv.appendChild(hostpageSpan);
+                const siteSpan = createElement('<span class="site-span" style="display:none">site:</span>');
+
+                hostpageSpan.classList.add('hostname-spane');
+                hostpageSpan.before(siteSpan);
 
                 // hold hotkey and click to site:search
                 {
-
                     const __restoreFootlink = function (theLink) { // returning the original (hostpage) link
                         theLink.setAttribute('href', pageUrl);
                         siteSpan.style.display = 'none';
@@ -3217,10 +3237,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                         }
                     };
 
-
-                    const hostnameSpan = footLink.querySelector('span:not(.site-span)');
-                    hostnameSpan.addEventListener('hotkey', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
-                    hostnameSpan.addEventListener('hotkeyup', e => e[Preferences.shortcuts.hotkey] && __restoreFootlink(footLink), false);
+                    hostpageSpan.addEventListener('hotkey', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
+                    hostpageSpan.addEventListener('hotkeyup', e => e[Preferences.shortcuts.hotkey] && __restoreFootlink(footLink), false);
 
                     const parentDiv = footLink.closest('div');
                     parentDiv.addEventListener('hotkey', e => e[Preferences.shortcuts.hotkey] && handleHover(e), false);
@@ -3236,6 +3254,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                     footLink.addEventListener('mouseout', e => __restoreFootlink(footLink), false);
                     footLink.addEventListener('mouseleave', e => __restoreFootlink(footLink), false);
                 }
+
+                footLink.before(footLinkTop);
             }
 
         };
