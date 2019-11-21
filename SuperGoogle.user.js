@@ -1881,8 +1881,11 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             createStyles();
             bindKeys();
 
+            ImagePanel.init();
+
             // wait for searchbar to load
-            elementReady('#hdtb-msb').then(onContentLoaded);
+            // document.addEventListener('DOMContentLoaded', onContentLoaded);
+            elementReady('#hdtb-msb').then(onSearchbarLoaded);
 
 
             // onImageBatchLoaded observe new image boxes that load
@@ -1932,7 +1935,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
     }
 
     // called when the searchbar is loaded (used for functionality that needs elements to be loaded)
-    function onContentLoaded() {
+    function onSearchbarLoaded() {
         // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
         const menuItems = getMenuItems();
         for (const item of Object.keys(menuItems)) {
