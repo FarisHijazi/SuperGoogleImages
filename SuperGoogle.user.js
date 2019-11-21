@@ -2121,75 +2121,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             ImagePanel.nextImage();
         }, 'keydown');
 
-        mousetrap.bind(['?'], function toggleShowKeymap(e) {
-            let keymapTable = document.querySelector('#keymap');
-            if (keymapTable) {
-                keymapTable.toggle();
-                return;
-            }
-
-            // create keymap table
-            keymapTable = $(tableFromEntries(getKeymap())).css({
-                'left': '30%',
-                'width': '50%',
-                'top': '10%',
-                'z-index': '1002',
-                'color': 'rgb(255, 255, 255)',
-                'position': 'fixed',
-                'text-align': 'center',
-                'text-shadow': 'rgb(0, 0, 0) 1px 1px 7px',
-                'font-weight': 'bold',
-                'background': 'none 0px center repeat scroll rgb(0, 0, 0)',
-                'overflow': 'hidden',
-                'border-radius': '10px',
-            }).attr({
-                'id': 'keymap'
-            })[0];
-
-            const setKeymapVisibility = function (visible = false) {
-                if (visible) {
-                    keymapTable.style.display = 'block';
-                    keymapTable.appendChild(keymapTable.styleEl);
-                    keymapTable.invisibleCover.style.display = 'block';
-                } else { // invisible
-                    keymapTable.style.display = 'none';
-                    keymapTable.styleEl.remove();
-                    keymapTable.invisibleCover.style.display = 'none';
-                }
-            };
-
-            keymapTable.toggle = () => setKeymapVisibility(keymapTable.style.display === 'none');
-
-            // creating the "close" link/button
-            const closeLink = $('<a href="#" class="close" style="float: right;">Close</a>').on('click', (e) => setKeymapVisibility(false))[0];
-            keymapTable.firstElementChild.before(closeLink);
-
-            // creating blur style (to blur the background)
-            keymapTable.styleEl = null;
-
-            addCss('body > *:not(#keymap) { filter: blur(3px); }', 'keymap-bg-blur').then(el=>{
-                keymapTable.styleEl = el;
-                keymapTable.appendChild(keymapTable.styleEl);
-            });
-
-            // creating invisible cover (click listener for exiting)
-            keymapTable.invisibleCover = $('<div>').css({
-                'position': 'fixed',
-                'padding': '0px',
-                'margin': '0px',
-                'top': '0px',
-                'left': '0px',
-                'width': '100%',
-                'height': '100%',
-                'background': 'rgba(255, 255, 255, 0.5)',
-            }).on('click', (e) => setKeymapVisibility(false))[0];
-
-            Mousetrap.bind('escape', (e) => setKeymapVisibility(false));
-
-            document.body.appendChild(keymapTable);
-            keymapTable.after(keymapTable.invisibleCover);
-
-        }, 'keydown');
+        mousetrap.bind(['?'], toggleShowKeymap, 'keydown');
 
 
         // ==== panel-specific bindings ========
@@ -2283,6 +2215,76 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         });
 
         console.log('added super google key listener');
+    }
+
+    function toggleShowKeymap(e) {
+        let keymapTable = document.querySelector('#keymap');
+        if (keymapTable) {
+            keymapTable.toggle();
+            return;
+        }
+
+        // create keymap table
+        keymapTable = $(tableFromEntries(getKeymap())).css({
+            'left': '30%',
+            'width': '30%',
+            'top': '10%',
+            'z-index': '1002',
+            'color': 'rgb(255, 255, 255)',
+            'position': 'fixed',
+            'text-align': 'center',
+            'text-shadow': 'rgb(0, 0, 0) 1px 1px 7px',
+            'font-weight': 'bold',
+            'background': 'none 0px center repeat scroll rgb(0, 0, 0)',
+            'overflow': 'hidden',
+            'border-radius': '10px',
+        }).attr({
+            'id': 'keymap'
+        })[0];
+
+        const setKeymapVisibility = function (visible = false) {
+            if (visible) {
+                keymapTable.style.display = 'block';
+                keymapTable.appendChild(keymapTable.styleEl);
+                keymapTable.invisibleCover.style.display = 'block';
+            } else { // invisible
+                keymapTable.style.display = 'none';
+                keymapTable.styleEl.remove();
+                keymapTable.invisibleCover.style.display = 'none';
+            }
+        };
+
+        keymapTable.toggle = () => setKeymapVisibility(keymapTable.style.display === 'none');
+
+        // creating the "close" link/button
+        const closeLink = $('<a href="#" class="close" style="float: right;">Close</a>').on('click', (e) => setKeymapVisibility(false))[0];
+        keymapTable.firstElementChild.before(closeLink);
+
+        // creating blur style (to blur the background)
+        keymapTable.styleEl = null;
+
+        addCss('body > *:not(#keymap) { filter: blur(3px); }', 'keymap-bg-blur').then(el => {
+            keymapTable.styleEl = el;
+            keymapTable.appendChild(keymapTable.styleEl);
+        });
+
+        // creating invisible cover (click listener for exiting)
+        keymapTable.invisibleCover = $('<div>').css({
+            'position': 'fixed',
+            'padding': '0px',
+            'margin': '0px',
+            'top': '0px',
+            'left': '0px',
+            'width': '100%',
+            'height': '100%',
+            'background': 'rgba(255, 255, 255, 0.5)',
+        }).on('click', (e) => setKeymapVisibility(false))[0];
+
+        Mousetrap.bind('escape', (e) => setKeymapVisibility(false));
+
+        document.body.appendChild(keymapTable);
+        keymapTable.after(keymapTable.invisibleCover);
+
     }
 
     // attach chgMon to document.body
@@ -2611,6 +2613,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
         const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
 
+        const btn_showKeymap = createGButton('showKeymap', '(?) keymap', toggleShowKeymap);
+
         const btn_download = createGButton('downloadBtn', 'Download EVERYTHING ⇓', downloadImages);
         btn_download.style.margin = '20px';
         btn_download.style.border = '20px';
@@ -2650,7 +2654,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         controlsContainer.appendChild(divider);
 
         // appending buttons and controls
-        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, downloadPanel);
+        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, downloadPanel, btn_showKeymap);
         constraintsContainer.after(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
 
