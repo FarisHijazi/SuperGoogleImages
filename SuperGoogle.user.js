@@ -4151,8 +4151,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         const scrollPosition = 100 * el.scrollTop / Math.max(el.scrollHeight - el.clientHeight, 1); // as percentage
         const topnavHeight = document.querySelector('#topnav-content').clientHeight;
-        console.log('scrollPosition', Math.round(scrollPosition));
-
+        // console.log('scrollPosition', Math.round(scrollPosition));
 
         if (scrollPosition < 20) { // at top
             // console.log('going up');
