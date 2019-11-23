@@ -2654,7 +2654,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         controlsContainer.appendChild(divider);
 
         // appending buttons and controls
-        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, downloadPanel, btn_showKeymap);
+        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, btn_showKeymap, downloadPanel);
         constraintsContainer.after(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
 
