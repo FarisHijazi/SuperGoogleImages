@@ -281,8 +281,8 @@ var normalizeUrl = (function () {
             Panel: {
                 mainPanel: 'div#irc_cc',
                 panelExitButton: ['a#irc_cb', 'a#irc_ccbc'].join(),
-                ptitle: 'div.irc_mmc.irc_b.i8152 > div.i30053 > div > div.irc_it > span > a.irc_pt.irc_tas.irc-cms.i3598.irc_lth',
-                buttonDropdown: 'div.irc_mmc.irc_b.i8152 > div.i30053 > div > div.irc_m.i8164',
+                ptitle: 'div.irc_mmc.i8152 > div.i30053 > div > div.irc_it > span > a.irc_pt.irc_tas.irc-cms.i3598.irc_lth',
+                buttonDropdown: 'div.irc_mmc.i8152 > div.i30053 > div > div.irc_m.i8164',
                 focusedPanel: [
                     'div#irc_cc div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
                     '#irc-ss > div.irc_c.immersive-container:not([style*="display: none;"])' // for side panel mode
@@ -829,7 +829,7 @@ var normalizeUrl = (function () {
             if (!this.el) {
                 return;
             }
-            const titleAndDescrDiv = this.q('div.irc_b.irc_mmc div.irc_it');
+            const titleAndDescrDiv = this.q('div.irc_mmc div.irc_it');
             if (!titleAndDescrDiv) {
                 console.warn('TitleAndDescription div not found!');
             }
@@ -976,7 +976,7 @@ var normalizeUrl = (function () {
             return this.q('.irc_t');
         }
         get rightPart() {
-            return this.q('.irc_b.irc_mmc');
+            return this.q('.irc_mmc');
         }
         /**
          * Search-By-Image URL
