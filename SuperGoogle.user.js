@@ -4198,20 +4198,24 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             el = document.querySelector('#irc-ss');
         }
         if (!el) return;
-        const atTop = el.scrollTop <= 0;
-        const atBottom = (el.scrollHeight - el.clientHeight) <= el.scrollTop;
 
-        const scrollPosition = 100 * el.scrollTop / Math.max(el.scrollHeight - el.clientHeight, 1); // as percentage
-        const topnavHeight = document.querySelector('#topnav-content').clientHeight;
-        // console.log('scrollPosition', Math.round(scrollPosition));
+        // 0.0 when at top, 1.0 when at bottom
+        const scrollPositionPercent = el.scrollTop / Math.max(el.scrollHeight - el.clientHeight, 1); // as percentage
 
-        if (scrollPosition < 20) { // at top
-            // console.log('going up');
-            document.querySelector("#irc_bg").style.top = topnavHeight * 2 + 'px';
-        } else { // at bottom
-            // console.log('going down');
-            document.querySelector("#irc_bg").style.top = '-' + topnavHeight * 0.3 + 'px';
+        const newTopPos = 1.0 - (scrollPositionPercent);
+
+        // limit for user scrolling to top? (limit for panel coming down)
+        const topLimit = document.querySelector("#topnav-content").clientHeight * 1.8;
+        // limit for user scrolling to bottom? (limit for panel going up)
+        const bottomLimit = -(document.querySelector("#topnav").scrollHeight - 50);
+
+        // maps from a range to another range linearly (just like the Arduino map function)
+        function mapValue(x, in_min, in_max, out_min, out_max) {
+            return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
         }
+
+        const mapped = mapValue(newTopPos, 0.0, 1.0, bottomLimit, topLimit);
+        document.querySelector("#irc_bg").style.top = String(mapped) + 'px';
     }
 
     //TODO: rename "topnav" to "navbar"
@@ -4237,7 +4241,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             background: #525252;
             
             width: 100%;
-            transition: top 0.3s;
+            transition: top 0.1s;
         }
         
         /*#footcnt {
