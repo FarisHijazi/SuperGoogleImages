@@ -3971,38 +3971,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         // give a white border so that we'll have them all the same size
         addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}', 'white-borders');
 
-        //image-effects
-        // language=CSS
-        addCss(`/*red borders to the failed images*/
-        img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="error"] {
-            -webkit-filter: grayscale(1);
-            border: 3px #F00 solid;
-            opacity: 0.5 !important;
-        }
-        
-        /*grayscale and low opacity for loading images*/
-        img.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="loading"] {
-            -webkit-filter: grayscale(0.5) !important; /* Webkit */
-            opacity: 0.5 !important;
-        }
-        
-        /*set borders*/
-        div.${showImages.ClassNames.DISPLAY_ORIGINAL}[loaded="true"]:not(.irc_mimg):not(.irc_mutc) {
-            border-radius: 5px;
-            border: 3px #0F0 solid;
-        }
-        
-        .grey-scale {
-            -webkit-filter: grayscale(1);
-        }
-            
-        img[loaded="true"] {
-            opacity: 1;
-            filter: opacity(100%);
-        }
-        `, 'image-effects');
-
-
         // toolbar
         // language=CSS
         addCss(`/*sg=SuperGoogle, this is padding for the buttons and controls*/
