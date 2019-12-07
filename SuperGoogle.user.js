@@ -4536,6 +4536,13 @@ function makeTextFile(text) {
 
 function cleanGibberish(str, minWgr, debug = false) {
     if (str) {
+
+        // removing the phrase "Showing ____ Images for_____" that begins in the sentence
+        var m = str.match(/^(Showing.*?Images for\s+)(.*)/i);
+        if (m && m.length >= 3) {
+            str = m[2];
+        }
+
         const gibberishRegex = /(\W{2,})|(\d{3,})|(\d+\w{1,5}\d+){2,}/g;
         let noGibberish = removeDoubleSpaces(str.replace(gibberishRegex, ' '));
         /**
