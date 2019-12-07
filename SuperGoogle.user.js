@@ -2663,10 +2663,10 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
 
 
-        return createAndGetNavbar().then(function (topnavContentDiv) {
+        return createAndGetNavbar().then(function (navbarContentDiv) {
             const gNavbar = document.querySelector('#rshdr');
-            topnavContentDiv.before(gNavbar, document.querySelector('#searchform'));
-            topnavContentDiv.appendChild(controlsContainer);
+            navbarContentDiv.before(gNavbar, document.querySelector('#searchform'));
+            navbarContentDiv.appendChild(controlsContainer);
         });
     }
 
@@ -4177,9 +4177,9 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         const newTopPos = 1.0 - (scrollPositionPercent);
 
         // limit for user scrolling to top? (limit for panel coming down)
-        const topLimit = document.querySelector("#topnav-content").clientHeight * 1.8;
+        const topLimit = document.querySelector("#navbar-content").clientHeight * 1.8;
         // limit for user scrolling to bottom? (limit for panel going up)
-        const bottomLimit = -(document.querySelector("#topnav").scrollHeight - 50);
+        const bottomLimit = -(document.querySelector("#navbar").scrollHeight - 50);
 
         // maps from a range to another range linearly (just like the Arduino map function)
         function mapValue(x, in_min, in_max, out_min, out_max) {
@@ -4190,7 +4190,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         document.querySelector("#irc_bg").style.top = String(mapped) + 'px';
     }
 
-    //TODO: rename "topnav" to "navbar"
     /**
      * Creates a static navbar at the top of the page.
      * Useful for adding buttons and controls to it
@@ -4203,7 +4202,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`
-        div#topnav {
+        div#navbar {
             position: fixed;
             z-index: 1000;
             min-height: 50px;
@@ -4230,7 +4229,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             top: 0;
             z-index: 1000;
         }
-        div#topnav-content {
+        div#navbar-content {
             margin: 5px;
             padding: 10px;
             font-family: inherit;
@@ -4239,7 +4238,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             transition: top 0.3s;
         }`, 'navbar-css');
 
-        const $navbar = $('<div id="topnav"><div id="topnav-content"></div></div>');
+        const $navbar = $('<div id="navbar"><div id="navbar-content"></div></div>');
 
         document.body.firstElementChild.before($navbar[0]);
         const physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
@@ -4247,7 +4246,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         function reAdjustTopMargin() { // moves the rest of the page down a bit so it won't be covered by the navbar
             // document.body.style.position = 'relative';
-            const clientHeight = document.querySelector('#topnav').clientHeight;
+            const clientHeight = document.querySelector('#navbar').clientHeight;
 
             physicalDiv.css({
                 'height': (clientHeight) + 'px'
@@ -4257,7 +4256,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         $(window).on('DOMContentLoaded load resize scroll', reAdjustTopMargin);
 
         // observe for elements being added, need to readjust topMargine
-        observeDocument(reAdjustTopMargin, {baseNode: '#topnav'});
+        observeDocument(reAdjustTopMargin, {baseNode: '#navbar'});
 
         /**
          * adds scroll listener but the event is rich with the following members:
@@ -4315,7 +4314,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         }
 
 
-        return elementReady('#topnav-content').then((topnavContent) => {
+        return elementReady('#navbar-content').then((navbarContent) => {
             // autohide the navbar when scrolling down
             // @author taken from example: https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_navbar_hide_scroll
             addRichScrollListener(document.body, function (e) {
