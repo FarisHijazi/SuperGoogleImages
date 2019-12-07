@@ -328,7 +328,7 @@ var normalizeUrl = (function () {
             page: {
                 defaultAnchorTarget: '_blank',
                 staticNavbar: false,
-                autoLoadMoreImages: false,
+                autoLoadMoreImages: false, // somewhat problematic and can be annoying
                 showImgHoverPeriod: 350, // if negative, then hovering functionality is disabled
                 disableDragging: true, //disable dragging images to reverse image search
             },
@@ -1642,13 +1642,17 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             const dataVed = '';//()=>this.sTitleAnchor.getAttribute('data-ved'); // classes:    _ZR irc_hol i3724 irc_lth
             const hostname = getHostname(this.sTitle_Anchor.href);
             const spanClass = 'site-search';
-            return this.addElementAfterSTitle(
+            const containerEl = this.addElementAfterSTitle(
                 `<a class="${spanClass} _r3 hover-click" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0" href="${href}" data-ved="${dataVed}" data-ctbtn="2"<span class="irc_ho" dir="ltr" style="text-align: left;font-size: 12px;" >Site: ${hostname}</span></a>`,
                 '',
                 null,
                 'BOTTOM',
                 'div'
             );
+
+            this.titleAndDescriptionDiv.after(containerEl);
+
+            return containerEl;
         }
 
         update_SiteSearch() {
@@ -4527,8 +4531,8 @@ function addCss(cssStr, id = '') {
 function isBase64ImageData(str) {
     return /^data:image\/.{1,5};base64/.test(str);
 }
-function urlToAnchor(href) {
-    var a = document.createElement('a');
+function urlToAnchor(href, target='') {
+    const a = document.createElement('a');
     a.setAttribute('href', href);
     a.target = target;
     document.body.appendChild(a);
