@@ -4235,113 +4235,117 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         }
 
         div#navbar-content {
+            z-index: -1;
             margin: 5px;
             font-family: inherit;
             /*font-stretch: extra-condensed;
             font-size: 20px;*/
             transition: top 0.3s;
+            position: relative;
         }`, 'navbar-css');
+        
+        addCss(`#irc_bg { transition: top 0.5s; }`);
 
-        const $navbar = $('<div id="navbar"><div id="navbar-content"></div></div>');
 
-        document.body.firstElementChild.before($navbar[0]);
-        const physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
-        $navbar.after(physicalDiv);
+        const $navbarContent = $('<div id="navbar-content"></div>');
+        // this will be added later
+        const $navbar = $('<div id="navbar"></div>').append($navbarContent).append($('<div id="navbar-hover-sensor" style="height: 30px;"></div>'));
+        const nbarContent = $navbarContent[0];
 
-        function reAdjustTopMargin() { // moves the rest of the page down a bit so it won't be covered by the navbar
+        // adding some handy functions
+        nbarContent.setNavbarPos = function (e, pos = 0) {
+            clearTimeout(nbarContent.timeout);
+            const googleControlsContainer = document.querySelector('#google-controls-container');
+            nbarContent.style.top = `${(pos - 1) * googleControlsContainer.clientHeight}px`;
+            nbarContent.pos = pos;
+        };
+
+        // make physical div to push elements down
+        const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
+        $navbar.after($physicalDiv);
+
+        const rshdr = document.querySelector("#rshdr");
+        const searchform = document.querySelector('#searchform');
+        rshdr.append($navbar[0], searchform);
+
+        function reAdjustTopMargin(e) { // moves the rest of the page down a bit so it won't be covered by the navbar
+            nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
+            return;
+
             // document.body.style.position = 'relative';
-            const clientHeight = document.querySelector('#navbar').clientHeight;
+            const clientHeight = document.querySelector('#navbar-content').offsetTop + 200;
 
-            physicalDiv.css({
+            $physicalDiv.css({
                 'height': (clientHeight) + 'px'
             });
         }
-
-        $(window).on('DOMContentLoaded load resize scroll', reAdjustTopMargin);
-
+        // $(window).on('DOMContentLoaded load resize scroll', reAdjustTopMargin);
         // observe for elements being added, need to readjust topMargine
-        observeDocument(reAdjustTopMargin, {baseNode: '#navbar'});
+        // observeDocument(reAdjustTopMargin, {baseNode: '#navbar'});
+        
+        return elementReady('#navbar-content').then((navbarContent) => {
+            // auto-hide the navbar when scrolling down
+            // @author taken from example: https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_navbar_hide_scroll
 
-        /**
-         * adds scroll listener but the event is rich with the following members:
-         *
-         * @param {Element} el
-         * @param {Function} callback
-         */
-        function addRichScrollListener(el, callback) {
-            let prevScrollpos = el.scrollTop;
-            const scrollHideThreshold = 2;
-            const handler = function (e) {
-                const currentScrollPos = el.scrollTop;
-                const delta = prevScrollpos - currentScrollPos;
+            const navbarHoverSensor = $('#navbar-hover-sensor')[0];
 
-                e.movedDown = delta < -scrollHideThreshold;
-                e.movedUp = delta > scrollHideThreshold;
+            const onscrollAutoHideNavbar = function (e) {
+                const delta = getWheelDelta(e);
 
-                e.atTop = el.scrollTop <= 0;
-                e.atBottom = (el.scrollHeight - el.clientHeight) <= el.scrollTop;
+                // if sidepanel, just always hide the navbar (doesn't matter if scrolling up or down)
+                const sidepanelScrollEl = document.querySelector('#irc-ss');
+                if (sidepanelScrollEl && new Set(e.path).has(sidepanelScrollEl)) {
+                    navbarContent.setNavbarPos(e, 0);
+                    return;
+                }
 
-                callback.call(el, e);
-
-                prevScrollpos = currentScrollPos;
-            };
-
-            $(el).on('DOMContentLoaded load resize scroll', handler);
-        }
-
-        function isElementInViewport(el) {
-            //special bonus for those using jQuery
-            if (typeof jQuery === "function" && el instanceof jQuery) {
-                el = el[0];
-            }
-
-            var rect = el.getBoundingClientRect();
-
-            return (
-                rect.top >= 0 &&
-                rect.left >= 0 &&
-                rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && /*or $(window).height() */
-                rect.right <= (window.innerWidth || document.documentElement.clientWidth) /*or $(window).width() */
-            );
-        }
-        function onVisibilityChange(el, callback) {
-            var old_visible;
-            return function () {
-                var visible = isElementInViewport(el);
-                if (visible !== old_visible) {
-                    old_visible = visible;
-                    if (typeof callback == 'function') {
-                        callback();
-                    }
+                if (delta < 0 || navbarContent.pos > 1) { // if scrolled down, hide
+                    navbarContent.setNavbarPos(e, 0);
+                } else { // show
+                    navbarContent.setNavbarPos(e, 1);
                 }
             };
-        }
 
-
-        return elementReady('#navbar-content').then((navbarContent) => {
-            // autohide the navbar when scrolling down
-            // @author taken from example: https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_navbar_hide_scroll
-            addRichScrollListener(document.body, function (e) {
-                $navbar[0].style.top = e.movedDown ? // moved down?
-                    `-${topnavContent.clientHeight}px` : // hide
-                    '0'; // appear
+            // bind to main images container
+            elementReady("#isr_mc").then(function (mainImagesContainer) {
+                mainImagesContainer.addEventListener('wheel', onscrollAutoHideNavbar);
             });
 
-            // TODO: FIXME: make it show the top when reaching top
-            // this is the scroll part for the sidepanels
-            addCss(`#irc_bg { transition: top 0.5s; }`);
+            // sidepanel scroll handler
             elementReady("#irc-ss").then(function (sidepanelScrollEl) {
-                reAdjustAfterScrollEdge(sidepanelScrollEl); // make one adjustment
+                sidepanelScrollEl.addEventListener('wheel', (e) => navbarContent.setNavbarPos(e, 0));
+            });
 
-                // bind to scroll listener
-                addRichScrollListener(sidepanelScrollEl, function (e) {
-                    reAdjustAfterScrollEdge(sidepanelScrollEl);
-                });
+
+            // when hovering over the google toolbars, move the navbar down
+            $([navbarContent, navbarHoverSensor]).on('mouseover mousemove', function (e) {
+                // moveNavbarDown
+                if (navbarContent.pos <= 1) {
+                    navbarContent.setNavbarPos(e, 1);
+                }
+            }).on('mouseout', function (e) {
+                // when not hovering, set a timer to go back
+                // nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
+            });
+            
+            $('#navbar').on('wheel scroll scrollwheel', (e)=>{
+                console.log('navbar: onscroll:', e);
+                onscrollAutoHideNavbar(e);
+            });
+
+            // bind listeners to these elements, for showing and hiding the navbar when scrolled to top
+            // when hovering over the google toolbars, move the navbar down
+            $('#top_nav, #sfcnt, #searchform').on('mouseover mousemove', function (e) {
+                // show navbar x2
+                navbarContent.setNavbarPos(e, 2);
+            }).on('mouseout', function (e) {
+                // when not hovering, set a timer to go back
+                // nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
             });
 
 
             reAdjustTopMargin();
-            return topnavContent;
+            return navbarContent;
         });
     }
 
