@@ -2228,9 +2228,50 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             return;
         }
 
+        //TODO; collapse duplicate keybindings
+        /** @returns {HTMLDivElement} */
+        function createKeymapTable(mousetrap=mousetrap) {
+            function getKeymap(funcNames = false) {
+                return Object.entries(mousetrap._directMap).map(e => {
+                    return [e[0].slice(0, e[0].lastIndexOf(':')), funcNames ? (e[1]._name || e[1].name) : e[1]]
+                }).filter(entry => !!entry[1])
+            }
+
+            const entries = getKeymap();
+            const $table = $($.parseHTML("<table>"));
+
+            // Loop through array and add table cells
+            for (const row of entries){
+                const $row = $($.parseHTML(`<tr>`));
+                $table.append($row)
+
+                for (let cell of row){
+                    // if not function, then just use the text
+                    if (typeof cell !== 'function') {
+                        const $td = $($.parseHTML(`<td>${cell}</td>`));
+                        $row.append($td);
+                    } else {
+                        // if function: choose the name as the text and use a link that calls the function when clicked
+                        const func = cell;
+                        cell = cell._name || cell.name || 'undefined';
+                        const $td = $($.parseHTML(`<td><a href="javascript:void(0);">${cell}</a></td>`));
+                        $row.append($td);
+                        $td.find('a')[0].addEventListener('click', func);
+                    }
+                }
+            }
+
+            // ATTACH HTML TO CONTAINER
+            const container = document.createElement('div');
+            container.appendChild($table[0]);
+
+
+            return container;
+        }
+
         // create keymap table
         const keymapTableContainer = $('<div style="height: 700px; overflow: auto"></div>');
-        keymapTable = keymapTableContainer.append($(tableFromEntries(getKeymap())).css({
+        keymapTable = keymapTableContainer.append($(createKeymapTable(mousetrap)).css({
             'left': '30%',
             'width': '30%',
             'top': '10%',
@@ -4784,30 +4825,6 @@ function enhanceLink(a) {
     purifyLink(a);
     a.setAttribute('rel', 'noreferrer');
     a.setAttribute('referrerpolicy', 'no-referrer');
-}
-
-
-/**
- *
- * @param {Array} entries - assumed to be a list of lists (2d array)
- * @returns {HTMLDivElement}
- */
-function tableFromEntries(entries) {
-    let html = "<table><tr>";
-
-    // Loop through array and add table cells
-    for (const row of entries) {
-        for (const cell of row) {
-            html += "<td>" + cell + "</td>";
-        }
-        html += "</tr><tr>";// Break into next row
-    }
-    html += "</tr></table>";
-
-    // ATTACH HTML TO CONTAINER
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    return container;
 }
 
 function getWheelDelta(wheelEvent) {
