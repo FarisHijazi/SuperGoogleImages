@@ -1810,7 +1810,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
          */
         onPanelMutation(mutations) {
             // if (debug) console.log('panelMutation()');
-            reAdjustAfterScrollEdge();
+            // reAdjustAfterScrollEdge();
 
             this.__update();
 
@@ -1913,7 +1913,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
             // wait for searchbar to load
             // document.addEventListener('DOMContentLoaded', onContentLoaded);
-            elementReady('#hdtb-msb').then(onSearchbarLoaded);
+            elementReady('#hdtb-msb, .iSZmU').then(onSearchbarLoaded);
 
 
             // onImageBatchLoaded observe new image boxes that load
@@ -2229,7 +2229,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         }
 
         // create keymap table
-        keymapTable = $(tableFromEntries(getKeymap())).css({
+        const keymapTableContainer = $('<div style="height: 700px; overflow: auto"></div>');
+        keymapTable = keymapTableContainer.append($(tableFromEntries(getKeymap())).css({
             'left': '30%',
             'width': '30%',
             'top': '10%',
@@ -2242,7 +2243,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             'background': 'none 0px center repeat scroll rgb(0, 0, 0)',
             'overflow': 'hidden',
             'border-radius': '10px',
-        }).attr({
+        })).attr({
             'id': 'keymap'
         })[0];
 
@@ -2631,7 +2632,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             downloadPanel.appendChild(el);
         }
 
-        // todo: move this to another function, where it will also be appended with the web search (not only the image search)
+        // TODO: move this to another function, where it will also be appended with the web search (not only the image search)
         // search engine dropdown
         const searchEngineSelect = createElement(`<select id="search-engine-select">
     <option id="google-search">Google</option>
@@ -2664,9 +2665,9 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
 
         return createAndGetNavbar().then(function (navbarContentDiv) {
-            const gNavbar = document.querySelector('#rshdr');
-            navbarContentDiv.before(gNavbar, document.querySelector('#searchform'));
-            navbarContentDiv.appendChild(controlsContainer);
+            // const gNavbar = document.querySelector('#rshdr');
+            // navbarContentDiv.before(gNavbar, document.querySelector('#searchform'));
+            navbarContentDiv.appendChild(controlsContainer).after(document.querySelector('#navbar-hover-sensor'));
         });
     }
 
@@ -3587,7 +3588,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
      * @param minified: delete unneeded meta attributes?
      * @returns {Array} an array containing the meta objects of the images
      */
-    function getResultsData(minified = true) {
+    function getResultsData(minified = false) {
         let imgBoxes = getImgBoxes();
         let set = new Set();
         for (let box of imgBoxes) {
@@ -3626,7 +3627,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             base64urls: true
         }, options);
 
-        const metas = getResultsData();
+        const metas = getResultsData(options.minified);
 
         if (options.base64urls === false) {
             for (const meta of metas) {
@@ -4025,11 +4026,11 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             }
 
             /*takes care of the main image link, makes sure it's exactly the same size of the image */
-            div.irc_mic > a, a.irc_mutl, a.irc_mi, a.irc_mil {
+            div.irc_mic > a, a.irc_mutl, a.irc_mil {
                 display: contents !important;
             }
 
-            /*The right upper part of the image panel (containing description and title and stuff)*/
+            /* image panel title&description container (The right upper part)*/
             div.irc_hd * {
                 margin-right: 3px;
                 margin-bottom: 2px;
@@ -4171,10 +4172,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         }
         if (!el) return;
 
-        // 0.0 when at top, 1.0 when at bottom
-        const scrollPositionPercent = el.scrollTop / Math.max(el.scrollHeight - el.clientHeight, 1); // as percentage
-
-        const newTopPos = 1.0 - (scrollPositionPercent);
+        const newTopPos = 1.0 - (e.progress);
 
         // limit for user scrolling to top? (limit for panel coming down)
         const topLimit = document.querySelector("#navbar-content").clientHeight * 1.8;
@@ -4198,18 +4196,18 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
      */
     function createAndGetNavbar() {
         // Settings up the navbar
+        const DELAY_UNTIL_HIDE = 2000;
 
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`
         div#navbar {
             position: fixed;
-            z-index: 1000;
+            z-index: 2;
             min-height: 50px;
             top: 0;
             right: 0;
             left: 0;
-            background: #525252;
             
             width: 100%;
             transition: top 0.1s;
@@ -4220,18 +4218,24 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             position: absolute;
         }*/
         
-        /*keeps the bar at a fixed position when scrolling*/
-        /*.rshdr, .jsrp{position:fixed; height:100%; width:100%; left:0; top:0; z-index:2;}
-        #rcnt{position:relative; z-index:1; margin:100% 0 0;}*/
+        /*keep the background white for the navbar*/
+        .rshdr {
+            background: rgb(255, 255, 255);
+        }
         
-        .fixed-position ${Preferences.page.staticNavbar ? ', #qbc, #rshdr:not(#sfcnt)' : ''} {
+        .fixed-position ${Preferences.page.staticNavbar ? ', #rshdr, #top_nav' : ''} {
             position: fixed;
             top: 0;
             z-index: 1000;
         }
+        
+        #google-controls-container {
+            padding: 10px;
+            background: #727272;
+        }
+
         div#navbar-content {
             margin: 5px;
-            padding: 10px;
             font-family: inherit;
             /*font-stretch: extra-condensed;
             font-size: 20px;*/
@@ -4498,7 +4502,7 @@ function addCss(cssStr, id = '') {
 function isBase64ImageData(str) {
     return /^data:image\/.{1,5};base64/.test(str);
 }
-function urlToAnchor(href, target='') {
+function urlToAnchor(href, target = '') {
     const a = document.createElement('a');
     a.setAttribute('href', href);
     a.target = target;
@@ -4800,4 +4804,10 @@ function tableFromEntries(entries) {
     const container = document.createElement('div');
     container.innerHTML = html;
     return container;
+}
+
+function getWheelDelta(wheelEvent) {
+    // cross-browser wheel delta
+    wheelEvent = window.event || wheelEvent; // old IE support
+    return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
 }
