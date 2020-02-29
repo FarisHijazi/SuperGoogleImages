@@ -1886,6 +1886,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 const event = new Event('click');
                 btn.dispatchEvent(event);
             }
+
+            updateMetaFromScript();
         }, 1000);
     }
 
@@ -4831,4 +4833,85 @@ function getWheelDelta(wheelEvent) {
     // cross-browser wheel delta
     wheelEvent = window.event || wheelEvent; // old IE support
     return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
+}
+
+
+/**
+ * returns metas, format is a map, key: id, value: meta
+ * @returns {Meta[]}
+ */
+function getMetaFromPage() {
+    const metaData = Array.from(document.querySelectorAll('script[nonce]'))
+        .map(s => s.innerText)
+        .filter(t => /^AF_initDataCallback/.test(t))
+        .map(t => {
+            try {
+                return eval(t.replace('AF_initDataCallback', ''));
+            } catch (e) {
+                console.error(e);
+                return {};
+            }
+        }).filter(o => o.data)
+        .map(o => eval(o.data.toString().replace(/(^function\s*\(\s*\)\s*{\s*return\s*|\s*}\s*$)/g, '')))
+        .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))[0]
+    ;
+
+    if (!metaData) {
+        // if() console.warn('metaData is null');
+        return {};
+    }
+
+    // console.log('yayyyy metaData is here!!', metaData);
+    const metas = metaData && metaData[31][0][12][2].map(meta => meta[1]) // this part is the array
+        .map(meta => { // this is turning the array to an object
+            try {
+                const id = meta[1];
+                const [tu, th, tw] = meta[2];
+                const [ou, oh, ow] = meta[3];
+
+                const siteAndNameInfo = meta[9];
+                const pt = siteAndNameInfo[2003][2];
+                const st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+
+                return ({
+                    'id': id,
+
+                    // thumbnail
+                    'tu': tu,
+                    'th': th,
+                    'tw': tw,
+
+                    // original
+                    'ou': ou,
+                    'oh': oh,
+                    'ow': ow,
+
+                    // site and name
+                    'pt': pt,
+                    'st': st,// info link
+                })
+            } catch (e) {
+            }
+        }).filter(meta => !!meta); // remove null entries
+
+    // same as metas, but is an object with the "id" as the key
+    return Object.fromEntries(metas.map(meta => [meta.id, meta]));
+}
+function updateMetaFromScript() {
+    const metasMap = getMetaFromPage();
+
+    // this will set the "_meta" attribute for each of the images
+    Object.entries(metasMap).forEach(([k, meta]) => {
+        const img = document.querySelector(`[data-tbnid="${meta['id']}"] img.rg_i`);
+        if (!img) {
+            console.warn('no data-tbnid found for', meta['id']);
+            return;
+        }
+        if ((!img._meta || Object.values(img._meta).filter(x => !!x).length <= 2)) {
+            img._meta = meta;
+            img.src = meta.ou;
+            img.closest('a').href = meta.ou;
+            console.log('added meta data:', meta);
+        }
+    });
 }
