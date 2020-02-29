@@ -47,24 +47,6 @@
  *
  */
 
-/*
-
-#### Attributes
-
-- img[id]: id attribute of an image is the same as the meta.id
-- div[data-ved]: the divs of the same image will have the same `data-ved`
-- div[data-item-id]: id
-
-```js
-//getting meta from another div by qurying `data-ved`
-var div = img.closest('div');
-var selector = '[data-ved="'+ $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx';
-var rg_bxDiv = document.querySelector(selector);
-var meta = getMeta(rg_bxDiv);
-```
-
- */
-//  ======
 
 /**
  * Metadata object containing info for each image
@@ -98,21 +80,6 @@ var meta = getMeta(rg_bxDiv);
  */
 
 
-// [x] : mainImage link is sometimes pointing to the ris_fc
-// [ ] : find a way to get the meta for the mainImage
-//  [ ]  there might be a way: panel.dataset.itemId (test this)
-// [x] : fix panel ris links (they don't actually point to the image when you open in a new tab)
-// [ ] TODO: panel buttons (download, view image)
-//          [ ] they don't always work on the first click
-//          [x] download doesn't get the proper name
-//          [ ] "view image" doesn't open the image.src, it just opens the original image url (so now when an image gets proxied it won't use the new proxy url)
-// : add download button to related images (just like the image boxes)
-// : make a function that handles changing all ris image
-// : ris images have the text style mest up, the 2 titles are mixing with eachother
-
-//
-
-
 /** returns full path, not just partial path */
 var normalizeUrl = (function () {
     const fakeLink = document.createElement('a');
@@ -135,8 +102,9 @@ var normalizeUrl = (function () {
     if (typeof unsafeWindow.superGoogle !== 'undefined')
         return;
 
-    unsafeWindow.superGoogle = this;
-
+    var superGoogle = this || {};
+    unsafeWindow.superGoogle = superGoogle;
+    superGoogle.$ = $;
 
     // REFACTOR: TODO: group this into an import-able that will do this simply by importing
     Set.prototype.addAll = function (range) {
@@ -219,7 +187,7 @@ var normalizeUrl = (function () {
                 // /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(anchor.href),
                 // !img.classList.contains('irc_mut'),
                 !img.closest('div.irc_rismo'),
-                !/^data:/.test(anchor.href || img.src),
+                !/^data:/.test(anchor.href),
             ];
             return conditions.reduce((a, b) => a && b);
         },
@@ -227,12 +195,12 @@ var normalizeUrl = (function () {
     showImages.imageManager.loadTimeout = -1;
 
     console.log('SuperGoogle showImages:', showImages);
-    unsafeWindow.showImagesSuperGoogle = showImages;
+    superGoogle.showImages = showImages;
 
     const pageUrl = new URL(location.href);
 
     const mousetrap = Mousetrap();
-    unsafeWindow.mousetrap = mousetrap;
+    superGoogle.mousetrap = mousetrap;
 
     checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
     console.debug('SuperGoogle running');
@@ -551,6 +519,7 @@ var normalizeUrl = (function () {
     });
 
 
+    //TODO: remove this completely
     class GSaves {
         static get initialItem() {
             return google.pmc.colmob.initial_item.map(item => JSON.parse(item));
@@ -782,7 +751,7 @@ var normalizeUrl = (function () {
 
                 // TODO: try extending using the ImagePanel.prototype
                 // extend the element
-                for (var key of Object.keys(this)) {
+                for (const key of Object.keys(this)) {
                     console.debug('extending panel, adding:', key, element);
                     element[key] = this[key];
                 }
@@ -928,8 +897,8 @@ var normalizeUrl = (function () {
             buttons.ViewSaved = this.q(['a.i18192.r-iXoO2jjyyEGY', 'a.irc_vsl.i18192'].join());
             buttons.Share = this.q('a.i17628');
 
-            var notsaved = this.q('a.i15087'); // the button that appears without a star (not saved)
-            var saved = this.q('a.i35661'); // has a star (means it's saved)
+            const notsaved = this.q('a.i15087'); // the button that appears without a star (not saved)
+            const saved = this.q('a.i35661'); // has a star (means it's saved)
 
             buttons.save = function () {
                 if (saved && saved.style.display === 'none') // if not saved, save
@@ -3143,6 +3112,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             const fakeLink = document.createElement('a');
 
             return function (url) {
+                if (!url) return '';
                 fakeLink.href = url;
                 return fakeLink.href;
             };
@@ -3200,7 +3170,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             });
 
             const pageUrl = decodeURIComponent(url.match(/[?&]imgrefurl=([^&#]+)/)[1]);
-            for (const info of link.querySelectorAll('img~div.rg_ilmbg')) {
+            for (const info of link.querySelectorAll('img~div')) {
                 const pagelink = document.createElement('a');
                 enhanceLink(pagelink);
                 pagelink.href = pageUrl;
@@ -3242,9 +3212,12 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
             // splitting the 2 lines of the footlink to 2 links, one with the phref
             const footLink = link.parentElement.querySelector('a.irc-nic'); // the info link with the host-page
+            if (!footLink) {
+                console.warn("footLink is null!", link.href);
+                return;
+            }
             let footLinkTop = footLink.parentElement;
             if (footLinkTop) footLinkTop = footLinkTop.querySelector('.panel-page.phref[phref]'); // FIXME: sometimes the parentElement is undefined
-            if (!footLink) debugger;
             if (footLink && !footLinkTop) {
                 /*
                  * footLinkTop:
@@ -3336,9 +3309,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
          * @param {string=} url
          */
         o.restore = function (link, url) {
-            var oldUrl = link.getAttribute('href') || '';
-            var newUrl = url || oldUrl;
-            newUrl = newUrl.replace(/&reload=on/, '');
+            const oldUrl = link.getAttribute('href') || '';
+            const newUrl = (url || oldUrl || '').replace(/&reload=on/, '');
 
             var matches = newUrl.match(re);
             if (!matches) {
@@ -3348,7 +3320,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 }
             }
             if (matches) {
-                if (o.debug) console.log('restoring', link._x_id, newUrl);
+                if (o.debug) console.log('restoring', link._x_id, `"${newUrl}"`);
 
                 link.phref = oldUrl;
                 link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
@@ -3374,7 +3346,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             // (a.matches('.rg_l, .irc_mi'))
         ;
 
-        o.handler = function (a) {
+        const handler = function (a) {
             if (!filter(a)) //@faris
                 return;
 
@@ -3392,8 +3364,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 o.restore(this, String(v));
             });
             a.__defineGetter__('href', function getter() {
-                if (o.debug) console.log('get', this._x_id, this.getAttribute('href'), this);
-                return normalizeUrl(this.getAttribute('href'));
+                if (o.debug) console.log('get(', this._x_id, '):', `"${this.getAttribute('href')}"`, this);
+                return normalizeUrl(this.getAttribute('href') || '');
             });
 
             if (/^_(?:blank|self)$/.test(a.getAttribute('target')) ||
@@ -3406,25 +3378,25 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             o.restore(a);
         };
 
-        // observe
-        o.checkNewNodes = function (mutations) {
-            if (o.debug) console.log('State:', document.readyState);
-            if (mutations.target) {
-                o.checkAttribute(mutations);
-            } else {
-                if (mutations.forEach) mutations.forEach(o.checkAttribute);
-            }
-        };
-        o.checkAttribute = function (mutation) {
-            var target = mutation.target;
+        const checkAttribute = function (mutation) {
+            const target = mutation.target;
 
             if (target && target.tagName === 'A') {
                 if ((mutation.attributeName || mutation.attrName) === 'href') {
-                    if (o.debug) console.log('restore attribute', target._x_id, target.getAttribute('href'));
+                    if (o.debug) console.log('restore attribute', target._x_id, `"${target.getAttribute('href')}"`);
                 }
-                o.handler(target);
+                handler(target);
             } else if (target instanceof Element) {
-                target.querySelectorAll('a').forEach(o.handler);
+                target.querySelectorAll('a').forEach(handler);
+            }
+        };
+        // observe
+        o.checkNewNodes = function (mutations) {
+            // if (o.debug) console.log('State:', document.readyState);
+            if (mutations.target) {
+                checkAttribute(mutations);
+            } else {
+                if (mutations.forEach) mutations.forEach(checkAttribute);
             }
         };
 
@@ -3441,7 +3413,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 });
             } else {
                 if (o.debug) console.log('MutationEvent: true');
-                document.addEventListener('DOMAttrModified', o.checkAttribute, false);
+                document.addEventListener('DOMAttrModified', checkAttribute, false);
                 document.addEventListener('DOMNodeInserted', o.checkNewNodes, false);
             }
         };
@@ -4235,7 +4207,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
      * Creates a static navbar at the top of the page.
      * Useful for adding buttons and controls to it
      *  do NOT just take the returned value and start adding elements.
-     *  @return {Promise<(HTMLDivElement|HTMLElement)>} returns the parent navbar element
+     *  @return {Promise<Element | any>} returns the parent navbar element
      */
     function createAndGetNavbar() {
         // Settings up the navbar
@@ -4726,7 +4698,7 @@ function observeDocument(callback, options = {}) {
  */
 function elementReady(getter, opts = {}) {
     return new Promise((resolve, reject) => {
-        opts = $.extend({
+        opts = Object.assign({
             timeout: 0,
             target: document.documentElement
         }, opts);
@@ -4735,7 +4707,7 @@ function elementReady(getter, opts = {}) {
         var _getter = typeof getter === 'function' ?
             (mutationRecords) => {
                 try {
-                    return getter(mutationRecords) || [];
+                    return getter(mutationRecords);
                 } catch (e) {
                     return false;
                 }
