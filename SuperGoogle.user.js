@@ -238,24 +238,28 @@ var normalizeUrl = (function () {
             hideFailedImagesOnLoad: 'HIDE_FAILED_IMAGES_ON_LOAD'
         },
         Selectors: {
+
+            imageLinks: 'a[jsname="sTFXNd"]', // includes related images
             /** The "All sizes" link from the SearchByImage page*/
             showAllSizes: '#jHnbRc > div.O1id0e > span:nth-child(2) > a',
             searchModeDiv: 'div#hdtb-msb-vis',
             selectedSearchMode: 'div#hdtb-msb-vis div.hdtb-msel',
             searchBox: 'input[type="text"][title="Search"]',
             googleButtonsContainer: '#hdtb-msb',
+            menuItemsAndButtonsContainer: '#hdtb-msb, .tAcEof',
             sideViewContainer: '#irc_bg',
             /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
             Panel: {
-                mainPanel: 'div#irc_cc',
+                sidepanelScrollEl: '#irc-ss, #islsp',
+                mainPanel: 'div#irc_cc, #islsp',
                 panelExitButton: ['a#irc_cb', 'a#irc_ccbc'].join(),
                 ptitle: 'div.irc_mmc.i8152 > div.i30053 > div > div.irc_it > span > a.irc_pt.irc_tas.irc-cms.i3598.irc_lth',
                 buttonDropdown: 'div.irc_mmc.i8152 > div.i30053 > div > div.irc_m.i8164',
                 focusedPanel: [
                     'div#irc_cc div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
-                    '#irc-ss > div.irc_c.immersive-container:not([style*="display: none;"])' // for side panel mode
+                    '#Sva75c > div' // for side panel mode
                 ].join(),
-                panels: '#irc_cc div.irc_c',
+                panels: '#Sva75c > div, #irc_cc div.irc_c',
             },
         },
         ClassNames: {
@@ -693,7 +697,6 @@ var normalizeUrl = (function () {
         }
     }
 
-
     /*
      * change mouse cursor when hovering over elements for scroll navigation
      * cursor found here:   https://www.flaticon.com/free-icon/arrows_95103#
@@ -759,11 +762,11 @@ var normalizeUrl = (function () {
                 ImagePanel.thePanels.add(element.panel);
             }
 
-            try {
-                this.__modifyPanelEl();
-            } catch (e) {
-                console.error(e);
-            }
+            // try {
+            this.__modifyPanelEl();
+            // } catch (e) {
+            //     console.error(e);
+            // }
         }
         /** The big panel that holds all 3 child panels
          * @return {HTMLDivElement|Node} */
@@ -798,29 +801,30 @@ var normalizeUrl = (function () {
             if (!this.el) {
                 return;
             }
-            const titleAndDescrDiv = this.q('div.irc_mmc div.irc_it');
+            const titleAndDescrDiv = this.q('div.irc_mmc div.irc_it, div.OUZ5W > div.QnfS4e');
             if (!titleAndDescrDiv) {
                 console.warn('TitleAndDescription div not found!');
             }
             return titleAndDescrDiv;
         }
-        /** @return {HTMLSpanElement} */
+        /** @return {HTMLSpanElement|null} */
         get descriptionEl() {
             const titleDescrDiv = this.titleAndDescriptionDiv;
             if (titleDescrDiv) {
-                return titleDescrDiv.querySelector('div.irc_asc span.irc_su');
+                return titleDescrDiv.querySelector('div.irc_asc span.irc_su, .YRasv.mkSNZe');
             } else {
                 console.warn('titleAndDescriptionDiv not found for image panel:', this.el);
             }
         }
         get descriptionText() {
-            const descr = this.titleAndDescriptionDiv.querySelector('div.irc_asc');
+            const descr = this.descriptionEl;
+            const descriptionText = descr ? descr.innerText : '';
 
-            return cleanGibberish((descr.innerText.length < 2) ? this.pTitle_Text : descr.innerText);
+            return cleanGibberish((descriptionText.length < 2) ? this.pTitle_Text : descriptionText);
         }
         /** @return {HTMLAnchorElement} */
         get pTitle_Anchor() {
-            return this.titleAndDescriptionDiv.querySelector('a.irc_pt');
+            return this.titleAndDescriptionDiv.querySelector('a.irc_pt, a.Beeb4e');
         }
         get pTitle_Text() {
             if (!this.pTitle_Anchor) {
@@ -832,7 +836,7 @@ var normalizeUrl = (function () {
         /** Secondary title
          * @return {HTMLAnchorElement, Node} */
         get sTitle_Anchor() {
-            return this.q('a.irc_lth.irc_hol');
+            return this.q('a.irc_lth.irc_hol, a.ZsbmCf');
         }
         get sTitle_Text() {
             const secondaryTitle = this.sTitle_Anchor;
@@ -862,7 +866,7 @@ var normalizeUrl = (function () {
         /** @return {HTMLDivElement[]} returns all related image divs (including the "VIEW MORE" div)*/
         get ris_DivsAll() {
             var c = this.ris_Container;
-            if (c) return Array.from(c.querySelectorAll('div.irc_rimask'));
+            if (c) return Array.from(c.querySelectorAll('div[jsaction] [jsname="neVct"] > div > div'));
         }
         /** @return {HTMLDivElement[]} returns only related image divs (excluding the "VIEW MORE" div)*/
         get ris_Divs() {
@@ -872,7 +876,7 @@ var normalizeUrl = (function () {
         }
         /** @return {HTMLDivElement} returns related image container (div.irc-deck)*/
         get ris_Container() {
-            return Array.from(this.qa('div.irc_ris > div > div.irc_rit.irc-deck.irc_rit')).pop();
+            return Array.from(this.qa('div.irc_ris > div > div.irc_rit.irc-deck.irc_rit, [jsname="neVct"]')).pop();
         }
         /**
          * @type {NodeListOf<HTMLAnchorElement>}
@@ -888,7 +892,7 @@ var normalizeUrl = (function () {
          * @property {Function} buttons.unsave
          */
         get buttons() {
-            const buttonsContainer = this.q(['.irc_but_r > tbody > tr', '.irc_ab'].join());
+            const buttonsContainer = this.q(['.irc_but_r > tbody > tr', '.ZUo4Ze'].join());
             const buttons = this.qa('.irc_but_r > tbody > tr a:first-child, [role="button"]');
             if (!buttons || !buttonsContainer) return {};
 
@@ -915,12 +919,12 @@ var normalizeUrl = (function () {
          * img.irc_mi is the actual main image, , img.irc_mut is the loader image (the thumbnail when it didn't load yet)*/
         get mainImage() {
             if (this.el) {
-                return this.q('a.irc_mil img.irc_mi');
+                return this.q('a.irc_mil img.irc_mi, a[role="link"] img');
             }
         }
         get mainThumbnail() {
             if (this.el) {
-                return this.q('a.irc_mutl img.irc_mut');
+                return this.q('a.irc_mutl img.irc_mut, a[role="link"] img');
             }
         }
 
@@ -942,10 +946,10 @@ var normalizeUrl = (function () {
             return unionPTitleAndDescrAndSTitle;
         }
         get leftPart() {
-            return this.q('.irc_t');
+            return this.q('.irc_t, div.zjoqD');
         }
         get rightPart() {
-            return this.q('.irc_mmc');
+            return this.q('.irc_mmc, div.QnfS4e');
         }
         /**
          * Search-By-Image URL
@@ -964,8 +968,7 @@ var normalizeUrl = (function () {
          */
         static init() {
             // wait for panel to appear then start modding
-            return elementReady(Consts.Selectors.Panel.focusedPanel).then(function () {
-
+            return elementReady('div.QnfS4e [jsname="neVct"]').then(function () {
                 // bind clicking the image panel 'X' button remove the hash from the address bar
                 // there exists only a single X button common for all 3 image panels
                 $(Consts.Selectors.Panel.panelExitButton).click(removeHash);
@@ -1160,6 +1163,7 @@ var normalizeUrl = (function () {
             if (debug) console.debug('Modifying panelEl:', panel.el);
 
             panel.el.addEventListener('panelMutation', () => panel.onPanelMutation());
+            panel.onPanelMutation();
             panel.el.classList.add('modified-panel');
 
             panel.rightPart.classList.add('scroll-nav');
@@ -1173,7 +1177,7 @@ var normalizeUrl = (function () {
                 .after('<div class="' + Consts.ClassNames.belowDiv + ' _r3" style="padding-right: 5px; text-decoration:none;"/>');
 
             // make the buttons container take more space so the buttons can be bigger
-            panel.q('.eg084e.irc_ab').style.display = 'inline-flex';
+            if (panel.q('.eg084e.ZUo4Ze')) panel.q('.eg084e.ZUo4Ze').style.display = 'inline-flex';
 
             // adding the "search by title" link
             {
@@ -1350,7 +1354,7 @@ var normalizeUrl = (function () {
             //TODO: maybe this is what's preventing the main image from changing even when the ris loads
 
             // make sure that main image link points to the main image (and not to the website)
-            const imgAnchor = panel.q('a.irc_mutl');
+            const imgAnchor = panel.q('a[role="link"]');
             imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
             imgAnchor.addEventListener('click', function (e) {
                 window.open(this.querySelector('img').getAttribute('src'), '_blank');
@@ -1411,12 +1415,11 @@ var normalizeUrl = (function () {
                                 '\n', mainImage.src + '->\n    ' + img.src
                             );
 
-
                         mainImage.src = img.src;
                         mainImage.setAttribute('loaded', 'true');
                     }
-                }).catch(e => {
-                    console.warn('showRis failed', this.mainImage, img);
+                }).catch(err => {
+                    console.warn('showRis failed', this.mainImage, img, err);
                 });
             }
         }
@@ -1448,9 +1451,9 @@ var normalizeUrl = (function () {
                 });
         }
         inject_Download_ris() { // download related images button
-            var panel = this;
+            const panel = this;
             // const risContainer = this.relatedImage_Container.parentNode;
-            // this is the "related iamges" text
+            // this is the "related images" text
             const targetEl = panel.q('.irc_msc > div > div.yJbeqd:nth-child(1) > span, div.irc_ris > div > div.yJbeqd:nth-child(1) > span');
             if (!targetEl) {
                 return;
@@ -1563,16 +1566,15 @@ var normalizeUrl = (function () {
 
         inject_ImageHost() {
             const panel = this;
-            // console.debug('this.qa(".irc_msc"):', this.qa('.irc_msc, .irc_ris'));
-            let ris_container = panel.q('.irc_msc, .irc_ris');
+            let sibling = panel.q('[data-navigation="server"], .irc_msc, .irc_ris, [jsname="neVct"]');
 
             if (panel.sTitle_Anchor) {
                 // const summaryTable = panel.element.querySelector('table[summary]._FKw.irc_but_r');
                 const className = 'image-host hover-click';
                 const element = createElement(`<a class="${className}" href="" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0"  data-ved="" data-ctbtn="2" 
-style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:none;"
+style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 <span class="irc_ho" dir="ltr" style="text-align: center;">Image&nbsp;Host</span></a>`);
-                ris_container.before(element);
+                sibling.before(element);
                 panel.update_ImageHost();
                 return element;
             }
@@ -1855,8 +1857,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 const event = new Event('click');
                 btn.dispatchEvent(event);
             }
-
-            updateMetaFromScript();
         }, 1000);
     }
 
@@ -1884,13 +1884,12 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
             // wait for searchbar to load
             // document.addEventListener('DOMContentLoaded', onContentLoaded);
-            elementReady('#hdtb-msb, .iSZmU').then(onSearchbarLoaded);
-
+            elementReady(Consts.Selectors.menuItemsAndButtonsContainer).then(onSearchbarLoaded);
 
             // onImageBatchLoaded observe new image boxes that load
             observeDocument((mutations, me) => {
                 // const addedImageBoxes = [].map.call(mutations, m => m.addedNodes[0])
-                //     .filter(div => div && div.matches && div.matches('div.rg_bx:not(.rg_bx_listed)'));
+                //     .filter(div => div && div.matches && div.matches('div.rg_bx, #islrg > div.islrc > div:not(.rg_bx_listed)'));
 
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
@@ -1919,7 +1918,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 // attributeFilter: ['href'],
                 subtree: true,
             });
-
 
         } else { // else if not google images
 
@@ -1975,7 +1973,9 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         }
 
 
-        injectGoogleButtons();
+        injectGoogleButtons().then(navbarContentDiv => {
+            updateMetaFromScript();
+        });
     }
 
     // ============
@@ -2201,22 +2201,24 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         //TODO; collapse duplicate keybindings
         /** @returns {HTMLDivElement} */
-        function createKeymapTable(mousetrap=mousetrap) {
+        function createKeymapTable(mousetrap = mousetrap) {
             function getKeymap(funcNames = false) {
                 return Object.entries(mousetrap._directMap).map(e => {
                     return [e[0].slice(0, e[0].lastIndexOf(':')), funcNames ? (e[1]._name || e[1].name) : e[1]]
-                }).filter(entry => !!entry[1])
+                }).filter(entry => !!entry[1] &&
+                    (String(entry[1]._name || entry[1].name || entry[1]) !== '_callbackAndReset') &&
+                    String(entry[1]._name || entry[1].name || entry[1]).replace(/\s/g, '') !== "function(){_nextExpectedAction=nextAction;++_sequenceLevels[combo];_resetSequenceTimer();}")
             }
 
             const entries = getKeymap();
             const $table = $($.parseHTML("<table>"));
 
             // Loop through array and add table cells
-            for (const row of entries){
+            for (const row of entries) {
                 const $row = $($.parseHTML(`<tr>`));
                 $table.append($row)
 
-                for (let cell of row){
+                for (let cell of row) {
                     // if not function, then just use the text
                     if (typeof cell !== 'function') {
                         const $td = $($.parseHTML(`<td>${cell}</td>`));
@@ -2224,7 +2226,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                     } else {
                         // if function: choose the name as the text and use a link that calls the function when clicked
                         const func = cell;
-                        cell = cell._name || cell.name || 'undefined';
+                        cell = cell._name || cell.name || '_';
                         const $td = $($.parseHTML(`<td><a href="javascript:void(0);">${cell}</a></td>`));
                         $row.append($td);
                         $td.find('a')[0].addEventListener('click', func);
@@ -2235,7 +2237,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             // ATTACH HTML TO CONTAINER
             const container = document.createElement('div');
             container.appendChild($table[0]);
-
 
             return container;
         }
@@ -2301,7 +2302,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         document.body.appendChild(keymapTable);
         keymapTable.after(keymapTable.invisibleCover);
-
     }
 
     // attach chgMon to document.body
@@ -2404,13 +2404,14 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
     }
 
     /** @param visibleOnly {boolean}: optional: set to true to exclude thumbnails that aren't visible
-     * @returns {NodeListOf<HTMLImageElement>} */
+     * @returns {HTMLImageElement[]} */
     function getThumbnails(visibleOnly = false) {
         // language=CSS
-        const selector = 'div.rg_bx > a.rg_l[jsname="hSRGPd"] > img' +
-            (visibleOnly ? ':not([style*=":none;"]):not([visibility="hidden"])' : '')
-        ;
-        return document.querySelectorAll(selector);
+        const selector = ['div.rg_bx', 'div > a[jsname] img.rg_i'].join();
+        if (visibleOnly) {
+            return [].filter.call(document.querySelectorAll(selector), e => !/(:none;)|(hidden)/.test(e.style.display));
+        }
+        return Array.from(document.querySelectorAll(selector));
     }
 
     function updateQualifiedImagesLabel(value = 0) {
@@ -2447,15 +2448,17 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         updateQualifiedImagesLabel();
     }
 
-    /**Modify the navbar and add custom buttons*/
     // TODO: use jquery to create the elements, it'll be much cleaner
+    /**Modify the navbar and add custom buttons
+     * @returns {Promise<Element>} the navbarContentDiv
+     */
     function injectGoogleButtons() {
         console.log('injectGoogleButtons()');
         const controlsContainer = createElement('<div id="google-controls-container"</div>');
         /*q('#abar_button_opt').parentNode*/ //The "Settings" button in the google images page
-
+        const menuItemsAndButtonsContainer = document.querySelector(Consts.Selectors.menuItemsAndButtonsContainer);
         // auto-click on "tools" if on Google Images @google-specific
-        const toolsButton = document.querySelector('.hdtb-tl');
+        const toolsButton = menuItemsAndButtonsContainer.querySelector('.hdtb-tl, div.PAYrJc > div.ssfWCe');
         if (!!toolsButton) {
             if (!toolsButton.classList.contains('hdtb-tl-sel')) { // if the tools bar is not already visible (not already clicked)
                 toolsButton.click();
@@ -2473,7 +2476,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             }
             return button;
         };
-
 
         /**
          * @param {string} id    the checkbox element id
@@ -2677,9 +2679,10 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
 
         return createAndGetNavbar().then(function (navbarContentDiv) {
-            // const gNavbar = document.querySelector('#rshdr');
+            // const gNavbar = document.querySelector('#rshdr, header > div:nth-child(1)');
             // navbarContentDiv.before(gNavbar, document.querySelector('#searchform'));
             navbarContentDiv.appendChild(controlsContainer).after(document.querySelector('#navbar-hover-sensor'));
+            return navbarContentDiv;
         });
     }
 
@@ -2695,10 +2698,11 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         return [].map.call(
             thumbnails,
             // some may not have been replaced with direct links yet, so wait until that happens then showImages
-            img => img && img.matches('img[fullres-src]') ? // HACK: we shouldn't need this, elementReady should handle this but ok fine it works...
-                showImages.replaceImgSrc(img) :
-                elementReady(img => img && img.matches('img[fullres-src]'))
-                    .then(() => showImages.replaceImgSrc(img))
+            img =>
+                // img && img.matches('img[fullres-src]') ? // HACK: we shouldn't need this, elementReady should handle this but ok fine it works...
+                showImages.replaceImgSrc(img)
+            // :elementReady(img => img && img.matches('img[fullres-src]'))
+            //     .then(() => showImages.replaceImgSrc(img))
         );
     }
 
@@ -2839,9 +2843,9 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         // there are two cases, either an imageBox or an ris image
         let img = imageBox.querySelector('img.rg_i, img.irc_rii');
-
         if (!img) return;
-        const isRelatedImage = img.matches('.irc_rii'); // not an imageBox (rather it's one of the related images in the panels)
+
+        const isRelatedImage = !!img.closest('#islsp'); // not an imageBox (rather it's one of the related images in the panels)
 
         // defining properties
         imageBox.img = img;
@@ -2926,7 +2930,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         function addImgExtensionBox(imgBox) {
             if (imgBox.querySelector('.text-block')) return;
 
-            const img = imgBox.querySelector('img.rg_ic.rg_i, img.irc_rii');
+            const img = imgBox.querySelector('img.rg_i, img.irc_rii');
             const link = img.closest('a');
 
             getMetaPromise(img).then((meta) => {
@@ -2957,7 +2961,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                     gifboxDiv.innerHTML = '';
                 }
 
-                imgBox.querySelector('a.irc-nic.isr-rtc').classList.add('ext', `ext-${ext}`);
+                imgBox.querySelector('a').classList.add('ext', `ext-${ext}`);//TODO: make anchor selector more specific
             });
         }
         function addImgDownloadButton(imgBox) {
@@ -2969,7 +2973,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             const meta = getMeta(img);
 
             const downloadImage = function (e = {}) {
-                const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou;
+                const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou || 'META.OU IS UNDEFINED!';
                 const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity;
                 download(src, fileName, {fileExtension: meta.ity});
                 e.preventDefault();
@@ -3037,8 +3041,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             div = img;
             img = div.querySelector('img');
         } else {
-            div = img.closest('div.irc_rimask, div.rg_bx');
-            // nearest parent div container, `div.rg_bx` for thumbnails and `div.irc_rimask` for related images
+            div = img.closest(`div.irc_rimask, div.rg_bx, #islrg > div.islrc > div`);
+            // nearest parent div container, `div.rg_bx, #islrg > div.islrc > div` for thumbnails and `div.irc_rimask` for related images
         }
 
 
@@ -3053,12 +3057,13 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         var metaObj = {};
         if (!img)
             return metaObj;
-        if (img._meta && Object.keys(img._meta).length !== 0)
-            return img._meta;
 
+        if (img._meta && Object.entries(img._meta).filter(([, v]) => !!v).length !== 0) {
+            return img._meta;
+        }
 
         try {
-            const selector = '[data-ved="' + $.escapeSelector(div.getAttribute('data-ved')) + '"].rg_bx div.rg_meta';
+            const selector = `div.rg_bx, #islrg > div.islrc > div[data-ved="${$.escapeSelector(div.getAttribute('data-ved'))}"] div.rg_meta`;
             const rg_meta = div.querySelector('.rg_meta') || document.querySelector(selector);
             if (rg_meta && !Object.keys(metaObj).length) {
                 metaObj = JSON.parse(rg_meta.innerText);
@@ -3130,7 +3135,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
                     a.removeAttribute('onmousedown');
                 }
-                if (a.parentElement && /\bclick\b/.test(a.parentElement.getAttribute('jsaction') || '')) {
+
+                if (a.matches('[jsaction*="click"]') || a.parentElement && a.parentElement.matches('[jsaction*="click"]')) {
                     a.addEventListener('click', function (e) {
                         e.stopImmediatePropagation();
                         e.stopPropagation();
@@ -3326,7 +3332,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 link.setAttribute('phref', oldUrl); //@faris just saving the old panel href
 
                 link.href = decodeURIComponent(matches[2]);
-                enhanceLink(link);
+                // enhanceLink(link);
                 if (matches[1] === 'imgres') {
                     if (link.querySelector('img[src^="data:"]')) {
                         link._x_href = newUrl;
@@ -3576,7 +3582,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
      * @return {NodeListOf<HTMLDivElement>|NodeListOf<*>}
      */
     function getImgBoxes(selectorExtension = '') {
-        return document.querySelectorAll('#rg_s > .rg_bx' + selectorExtension);
+        return document.querySelectorAll('#rg_s > div.rg_bx, #islrg > div.islrc > div' + selectorExtension);
     }
 
     function updateDownloadBtnText() {
@@ -3748,7 +3754,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
      * @param negateCondition: set to true to negate the result of the filter
      */
     function setVisibilityForImages(visibility, filter = (imgBox) => true, invertVisibilityForNegativeMatches = false, negateCondition = false) {
-        // let bxs = qa(`div.rg_bx > a.rg_l > img.${Consts.ClassNames.FAILED_DDG}, div.rg_bx > a.rg_l > img.${Consts.ClassNames.FAILED}`);
+        // let bxs = qa(`div.rg_bx, #islrg > div.islrc > div > a.rg_l > img.${Consts.ClassNames.FAILED_DDG}, div.rg_bx, #islrg > div.islrc > div > a.rg_l > img.${Consts.ClassNames.FAILED}`);
 
         const _filter = (typeof (filter) === 'string') ?
             (el) => el.matches(filter) :
@@ -3813,7 +3819,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
      * menuItemNames = [ "all", "images", "videos", "news", "maps", "more" ]
      */
     function getMenuItems() {
-        const menuItems = document.querySelectorAll('.hdtb-mitem');
+        //TODO: needs update for new selectors
+        const menuItems = document.querySelector('#hdtb-msb, .tAcEof').querySelectorAll('div > div > div > a');
         const menuItemNames = [
             'all',
             'images',
@@ -3836,12 +3843,6 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
         console.log('menuItemsObj=', menuItemsObj);
         return menuItemsObj;
-    }
-
-    function getKeymap() {
-        return Object.entries(mousetrap._directMap).map(e => {
-            return [e[0].replace(/:.*$/, ''), e[1]._name || e[1].name]
-        }).filter(entry => !!entry[1])
     }
 
     /** @return {Array} returns an array of words with the most common word in the first index */
@@ -3985,7 +3986,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         ].join(';') + '}', 'GoogleDirectLinksPagesImages-script-css');
 
         // give a white border so that we'll have them all the same size
-        addCss('div.rg_bx { border-radius: 2px;border: 3px #fff solid;}', 'white-borders');
+        addCss('div.rg_bx, #islrg > div.islrc > div { border-radius: 2px;border: 3px #fff solid;}', 'white-borders');
 
         // toolbar
         // language=CSS
@@ -4056,7 +4057,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             }
 
             /*bigger space between image boxes*/
-            div.rg_bx {
+            div.rg_bx, #islrg > div.islrc > div {
                 margin: 10px;
             }
 
@@ -4183,7 +4184,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
 
     function reAdjustAfterScrollEdge(el = null) {
         if (el === null) {
-            el = document.querySelector('#irc-ss');
+            el = document.querySelector("#irc-ss");
         }
         if (!el) return;
 
@@ -4238,7 +4239,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             background: rgb(255, 255, 255);
         }
         
-        .fixed-position ${Preferences.page.staticNavbar ? ', #rshdr, #top_nav' : ''} {
+        .fixed-position ${Preferences.page.staticNavbar ? ', #rshdr, header > div:nth-child(1), #top_nav' : ''} {
             position: fixed;
             top: 0;
             z-index: 1000;
@@ -4258,7 +4259,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             transition: top 0.3s;
             position: relative;
         }`, 'navbar-css');
-        
+
         addCss(`#irc_bg { transition: top 0.5s; }`);
 
 
@@ -4279,7 +4280,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
         $navbar.after($physicalDiv);
 
-        const rshdr = document.querySelector("#rshdr");
+        const rshdr = document.querySelector("#rshdr, header > div:nth-child(1)");
         const searchform = document.querySelector('#searchform');
         rshdr.append($navbar[0], searchform);
 
@@ -4297,7 +4298,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
         // $(window).on('DOMContentLoaded load resize scroll', reAdjustTopMargin);
         // observe for elements being added, need to readjust topMargine
         // observeDocument(reAdjustTopMargin, {baseNode: '#navbar'});
-        
+
         return elementReady('#navbar-content').then((navbarContent) => {
             // auto-hide the navbar when scrolling down
             // @author taken from example: https://www.w3schools.com/howto/tryit.asp?filename=tryhow_js_navbar_hide_scroll
@@ -4308,7 +4309,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 const delta = getWheelDelta(e);
 
                 // if sidepanel, just always hide the navbar (doesn't matter if scrolling up or down)
-                const sidepanelScrollEl = document.querySelector('#irc-ss');
+                const sidepanelScrollEl = document.querySelector(Consts.Selectors.sidepanelScrollEl);
                 if (sidepanelScrollEl && new Set(e.path).has(sidepanelScrollEl)) {
                     navbarContent.setNavbarPos(e, 0);
                     return;
@@ -4327,7 +4328,7 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
             });
 
             // sidepanel scroll handler
-            elementReady("#irc-ss").then(function (sidepanelScrollEl) {
+            elementReady(Consts.Selectors.sidepanelScrollEl).then(function (sidepanelScrollEl) {
                 sidepanelScrollEl.addEventListener('wheel', (e) => navbarContent.setNavbarPos(e, 0));
             });
 
@@ -4342,8 +4343,8 @@ style="display: none; padding-right: 5px; padding-left: 5px; text-decoration:non
                 // when not hovering, set a timer to go back
                 // nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
             });
-            
-            $('#navbar').on('wheel scroll scrollwheel', (e)=>{
+
+            $('#navbar').on('wheel scroll scrollwheel', (e) => {
                 console.log('navbar: onscroll:', e);
                 onscrollAutoHideNavbar(e);
             });
@@ -4515,7 +4516,7 @@ function addCss(cssStr, id = '') {
     return elementReady('head').then(head => {
         head.appendChild(style);
         return style;
-    });
+    }).then((args) => (args));
 }
 
 function isBase64ImageData(str) {
@@ -4873,17 +4874,21 @@ function updateMetaFromScript() {
     const metasMap = getMetaFromPage();
 
     // this will set the "_meta" attribute for each of the images
-    Object.entries(metasMap).forEach(([k, meta]) => {
-        const img = document.querySelector(`[data-tbnid="${meta['id']}"] img.rg_i`);
-        if (!img) {
-            console.warn('no data-tbnid found for', meta['id']);
-            return;
+
+    const imgs = document.querySelectorAll(`div[data-tbnid] img.rg_i`);
+    for (const img of imgs) {
+        const div = img.closest('div[data-tbnid]');
+        const id = div.getAttribute('data-tbnid');
+        const meta = metasMap[id];
+
+        if (!meta) {
+            console.warn('no meta found for data-tbnid', id, img.src);
+            continue;
         }
-        if ((!img._meta || Object.values(img._meta).filter(x => !!x).length <= 2)) {
-            img._meta = meta;
-            img.src = meta.ou;
-            img.closest('a').href = meta.ou;
-            console.log('added meta data:', meta);
-        }
-    });
+
+        img._meta = meta;
+        img.src = meta.ou;
+        img.closest('a').href = meta.ou;
+        console.log('added meta data:', meta);
+    }
 }
