@@ -81,7 +81,7 @@
 
 
 /** returns full path, not just partial path */
-var normalizeUrl = (function () {
+const normalizeUrl = (function () {
     const fakeLink = document.createElement('a');
     return function (url) {
         fakeLink.href = url;
@@ -102,7 +102,7 @@ var normalizeUrl = (function () {
     if (typeof unsafeWindow.superGoogle !== 'undefined')
         return;
 
-    var superGoogle = this || {};
+    const superGoogle = this || {};
     unsafeWindow.superGoogle = superGoogle;
     superGoogle.$ = $;
 
@@ -141,8 +141,8 @@ var normalizeUrl = (function () {
         } else if (b == null) {
             return false;
         }
-        var aProps = Object.getOwnPropertyNames(a);
-        var bProps = Object.getOwnPropertyNames(b);
+        const aProps = Object.getOwnPropertyNames(a);
+        const bProps = Object.getOwnPropertyNames(b);
 
         if (aProps.length !== bProps.length)// If number of properties is different, objects are not equivalent
             return false;
@@ -177,11 +177,11 @@ var normalizeUrl = (function () {
     // === end of basic checks and imports ===
 
 
-    var debug = true;
-    var showImages = new ShowImages({
+    const debug = true;
+    const showImages = new ShowImages({
         loadMode: 'parallel',
         imagesFilter: (img, anchor) => {
-            var conditions = [
+            const conditions = [
                 // !img.classList.contains(showImages.ClassNames.DISPLAY_ORIGINAL),
                 // !img.closest('.' + this.ClassNames.DISPLAY_ORIGINAL),
                 // /\.(jpg|jpeg|tiff|png|gif)($|[?&])/i.test(anchor.href),
@@ -354,7 +354,7 @@ var normalizeUrl = (function () {
      *  }}
      */
     const GoogleUtils = (function () {
-        var isOnGoogle = () => GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
+        const isOnGoogle = () => GoogleUtils.elements.selectedSearchMode && GoogleUtils.elements.selectedSearchMode.innerHTML === 'Images';
 
         /**
          * @type {{
@@ -499,14 +499,14 @@ var normalizeUrl = (function () {
      * the zip file
      * @type {JSZip}
      */
-    var zip = new JSZip();
+    let zip = new JSZip();
     zip.name = (document.title).replace(/site:|( - Google Search)/gi, '');
 
-    var shouldShowOriginals = false;
-    var currentDownloadCount = 0;
-    var isTryingToClickLastRelImg = false;
+    let shouldShowOriginals = false;
+    let currentDownloadCount = 0;
+    let isTryingToClickLastRelImg = false;
 
-    var directLinkReplacer = googleDirectLinksInit();
+    const directLinkReplacer = googleDirectLinksInit();
     unsafeWindow.directLinkReplacer = directLinkReplacer;
 
     document.cursor = {
@@ -533,7 +533,7 @@ var normalizeUrl = (function () {
          */
         static get initialItemObjectList() {
             function item2Obj(item) {
-                var itemObj = {};
+                const itemObj = {};
                 try {
                     itemObj.imageUrl = item[9] ? item[9][0] : null; // img url
                     itemObj.url = item[5];
@@ -544,8 +544,8 @@ var normalizeUrl = (function () {
                     const searchParams = new URL(itemObj.redirectUrl, 'https://www.google.com').searchParams;
                     console.log('searchParams for:', item, searchParams);
 
-                    var q = searchParams.get('q');
-                    var qUrl = new URL(q, 'https://google.com');
+                    const q = searchParams.get('q');
+                    const qUrl = new URL(q, 'https://google.com');
 
                     const imgrefurl = qUrl.searchParams.get('imgrefurl') ? qUrl.searchParams.get('imgrefurl') : q;
 
@@ -580,16 +580,16 @@ var normalizeUrl = (function () {
             container.remove();
         }
         static _slipAnchorUnderElement(element, href) {
-            var tempInnerHTML = element.innerHTML;
+            const tempInnerHTML = element.innerHTML;
             element.innerHTML = '';
             element.appendChild(createElement(`<a class="mod-anchor" target="_blank" href="${href}">${tempInnerHTML}</a>`));
         }
         static wrapPanels() {
             console.log('wrapGSavesPanels()');
 
-            var iio = this.initialItemObjectList;
+            const iio = this.initialItemObjectList;
 
-            var i = 0;
+            let i = 0;
             for (const container of this.containers) {
 
                 this.removeClickListeners(container);
@@ -859,18 +859,18 @@ var normalizeUrl = (function () {
         }
         /** @return {HTMLDivElement} returns only the last related image div from `ris_Divs()`*/
         get ris_DivLast() {
-            var c = this.ris_Divs;
+            let c = this.ris_Divs;
             c = c && Array.from(c);
             return c && c.pop();
         }
         /** @return {HTMLDivElement[]} returns all related image divs (including the "VIEW MORE" div)*/
         get ris_DivsAll() {
-            var c = this.ris_Container;
+            const c = this.ris_Container;
             if (c) return Array.from(c.querySelectorAll('div[jsaction] [jsname="neVct"] > div > div'));
         }
         /** @return {HTMLDivElement[]} returns only related image divs (excluding the "VIEW MORE" div)*/
         get ris_Divs() {
-            var d = this.ris_DivsAll;
+            const d = this.ris_DivsAll;
             if (d) return d.filter(div => !div.classList.contains('irc_rismo'));
             return [];
         }
@@ -933,7 +933,7 @@ var normalizeUrl = (function () {
             const sTitle = this.sTitle_Text;
             const pTitle = this.pTitle_Text;
             const description = this.descriptionText;
-            var unionPTitleAndDescrAndSTitle = unionTitleAndDescr(description, unionTitleAndDescr(pTitle, sTitle));
+            const unionPTitleAndDescrAndSTitle = unionTitleAndDescr(description, unionTitleAndDescr(pTitle, sTitle));
 
             console.log(
                 'BestNameFromTitle:',
@@ -1073,10 +1073,10 @@ var normalizeUrl = (function () {
             // URL:     ${location.href}
             // Search:    ${q('#lst-ib').value}`;
 
-            var relatedImageDownloads = Array.from(relatedImageDivs).map(imgDiv => {
-                var img = imgDiv.querySelector('img');
-                var meta = getMeta(img);
-                var imgTitle = '';
+            const relatedImageDownloads = Array.from(relatedImageDivs).map(imgDiv => {
+                const img = imgDiv.querySelector('img');
+                const meta = getMeta(img);
+                let imgTitle = '';
 
                 imgTitle = meta.pt;
                 const href = imgDiv.querySelector('a[href]').href;
@@ -1129,7 +1129,7 @@ var normalizeUrl = (function () {
             }
             isTryingToClickLastRelImg = true; // set global flag to true (this is to prevent the scroll handler from ruining this)
 
-            var timeout = null;
+            let timeout = null;
             const recursivelyClickLastRelImg = function () {
                 console.log('recursivelyClickLastRelImg()');
                 timeout = setTimeout(function tryToClick() {
@@ -1300,12 +1300,12 @@ var normalizeUrl = (function () {
             /** TODO: find a library to do this instead, with tooltips as well */
             function underliningBinded() {
                 // Underlining binded keys
-                var keymap = new Map([ // Key: selector, Value: character
+                const keymap = new Map([ // Key: selector, Value: character
                     ['.i15087', 's'],
                     ['.i18192', 'v']
                 ]);
                 for (const [selector, char] of keymap) {
-                    var bindEl = document.querySelector(selector);
+                    const bindEl = document.querySelector(selector);
                     if (bindEl) {
                         bindEl.outerHTML = bindEl.outerHTML.replace(new RegExp(char, 'i'), `<u>${char}</u>`);
                     }
@@ -1424,7 +1424,7 @@ var normalizeUrl = (function () {
             }
         }
         linkifyDescription() {
-            var self = this;
+            const self = this;
             const descriptionEl = self.descriptionEl;
 
             if (!descriptionEl) {
@@ -1433,7 +1433,7 @@ var normalizeUrl = (function () {
             }
 
 
-            var descriptionAnchor = self.titleAndDescriptionDiv.querySelector('div.irc_asc > a.clickable-descr');
+            let descriptionAnchor = self.titleAndDescriptionDiv.querySelector('div.irc_asc > a.clickable-descr');
             if (!descriptionAnchor) {
                 descriptionAnchor = $(descriptionEl.outerHTML.replace('<span', '<a').replace('</span', '</a'))
                     .text(descriptionEl.innerText);
@@ -1728,7 +1728,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
                     const endRis = Array.from(this.ris_Divs).pop();
                     endRis.click();
                 } else {
-                    var prevArrow = ImagePanel.previousImage();
+                    const prevArrow = ImagePanel.previousImage();
                     if (prevArrow && prevArrow.style.display !== 'none') { // if not on the first picture
                         ImagePanel.__tryToClickBottom_ris_image(30);
                     }
@@ -1937,7 +1937,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         const menuItems = getMenuItems();
         for (const item of Object.keys(menuItems)) {
             const callback = function (e) {
-                var elChild = menuItems[item].firstElementChild;
+                const elChild = menuItems[item].firstElementChild;
                 if (elChild) elChild.click();
             };
             callback._name = 'Go to [' + item + '] tab';
@@ -2012,7 +2012,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             }
 
             Preferences.store();
-            var reload = !processLocation();
+            const reload = !processLocation();
 
             if (reload) {
                 console.log('location didn\'t change');
@@ -2028,7 +2028,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         mousetrap.bind(['c c'], cleanupSearch);
         // to https://yandex.com/images/search?text=
         mousetrap.bind('y d x', function switchEngineToYandex() {
-            var x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
+            const x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
             console.log('Yandex url = ', x);
             location.assign(x);
         });
@@ -2085,7 +2085,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.panels.loopbackWhenCyclingRelatedImages);
         });
         mousetrap.bind(['c'], function goToCollections(e) {
-            var btn_ViewSaves = document.querySelector("#ab_ctls > li > a.ab_button") || ImagePanel.focP.q('.i18192');
+            const btn_ViewSaves = document.querySelector("#ab_ctls > li > a.ab_button") || ImagePanel.focP.q('.i18192');
             console.debug('btn_ViewSaves', btn_ViewSaves);
             if (!!btn_ViewSaves) btn_ViewSaves.click();
         });
@@ -2105,7 +2105,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         mousetrap.bind(['v'], function saveToCollections(e) {
             if (!ImagePanel.isPanelCurrentlyOpen) return;
 
-            var btn_Save = ImagePanel.focP.q('.i15087');
+            const btn_Save = ImagePanel.focP.q('.i15087');
             console.debug('btn_Save', btn_Save);
             if (!!btn_Save) btn_Save.click();
         });
@@ -2433,7 +2433,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         document.querySelector('#dlLimitSliderValue').innerHTML = sliderValueDlLimit;
 
         // Highlighting images that will be downloaded
-        var i = 0;
+        let i = 0;
         for (const img of getImgBoxes(' img')) {
             if (i <= sliderValueDlLimit && img.classList.contains('qualified-dimensions')) {
                 img.classList.add('drop-shadow', 'out');
@@ -2556,8 +2556,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
                 // Highlighting images that will be downloaded
                 // clearAllEffects(); // todo: this is being called too much
                 for (const img of getThumbnails(true)) {
-                    var meta = getMeta(img);
-                    var width = meta.ow, height = meta.oh,
+                    const meta = getMeta(img);
+                    const width = meta.ow, height = meta.oh,
                         isBigger = width >= this.value || height >= this.value;
 
                     if (isBigger) {
@@ -2583,20 +2583,20 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             };
 
             const slider_dlLimit = createElement(`<input id="dlLimitSlider" type="range" min="1" max="${1000}" value="20">`);
-            var sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</strong>`);
+            const sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</strong>`);
             slider_dlLimit.oninput = highlightSelection;
             slider_dlLimit.onchange = clearEffectsDelayed;
 
 
-            var tr1 = document.createElement('tr');
+            const tr1 = document.createElement('tr');
             tr1.appendChild(Components.minImgSizeSlider);
             tr1.appendChild(sliderReading_minImgSize);
 
-            var tr2 = document.createElement('tr');
+            const tr2 = document.createElement('tr');
             tr2.appendChild(slider_dlLimit);
             tr2.appendChild(sliderReading_dlLimit);
 
-            var constraintsContainer = document.createElement('tb');
+            const constraintsContainer = document.createElement('tb');
             constraintsContainer.classList.add('sg');
             constraintsContainer.appendChild(tr1);
             constraintsContainer.appendChild(tr2);
@@ -2606,7 +2606,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             return constraintsContainer;
         })();
 
-        var satCondLabel = createElement(`<label id="satCondLabel">Images satisfying conditions: 0</label>`);
+        const satCondLabel = createElement(`<label id="satCondLabel">Images satisfying conditions: 0</label>`);
 
         // == creating buttons ==
 
@@ -2639,7 +2639,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         btn_download.style.border = '20px';
         btn_download.innerHTML = cbox_ZIP.checked ? 'ZIP&nbsp;images' : `Download&nbsp;⇓`;
 
-        var downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
+        const downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
 
         // Appending buttons to downloadPanel
         for (const el of [cbox_ZIP, cbox_closeAfterDownload, btn_download, btn_preload, btn_downloadJson, constraintsContainer]) {
@@ -2666,8 +2666,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         };
 
         /** contains the current download path, changing it will change the download path */
-        var defaultDownlodPath = 'SG_Downloads';
-        var pathBox = createElement(`<div class="sg" style="display: inline;"> <input id="download-path" value="${defaultDownlodPath}"><label>Download path</label> </div>`);
+        const defaultDownlodPath = 'SG_Downloads';
+        const pathBox = createElement(`<div class="sg" style="display: inline;"> <input id="download-path" value="${defaultDownlodPath}"><label>Download path</label> </div>`);
 
         const divider = document.createElement('div');
         controlsContainer.appendChild(divider);
@@ -2741,7 +2741,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
             let i = 0;
             const btns = [].map.call(qualifiedGImgs, img => img.parentElement.querySelector('.download-block'));
-            var interval = setInterval(function () {
+            const interval = setInterval(function () {
                 if (i < Math.min(btns.length, document.querySelector('#minImgSizeSlider').value))
                     btns[i++].click();
                 else
@@ -3036,7 +3036,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
      * @return {Meta}
      */
     function getMeta(img, minified = false) {
-        var div;
+        let div;
         if (img.tagName === 'DIV') {
             div = img;
             img = div.querySelector('img');
@@ -3054,7 +3054,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             });
         };
 
-        var metaObj = {};
+        let metaObj = {};
         if (!img)
             return metaObj;
 
@@ -3102,7 +3102,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
      * Google: Direct Links for Pages and Images
      */
     function googleDirectLinksInit() {
-        var o = {};
+        const o = {};
         o.count = 0;
         o.debug = false;
 
@@ -3318,7 +3318,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             const oldUrl = link.getAttribute('href') || '';
             const newUrl = (url || oldUrl || '').replace(/&reload=on/, '');
 
-            var matches = newUrl.match(re);
+            let matches = newUrl.match(re);
             if (!matches) {
                 matches = newUrl.match(/[?&]imgrefurl=([^&#]+)/);
                 if (matches) {
@@ -3408,7 +3408,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
 
         o.observe = () => {
-            var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+            const MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
             if (MutationObserver) {
                 if (o.debug) console.log('MutationObserver: true');
                 new MutationObserver(o.checkNewNodes).observe(document.documentElement, {
@@ -3428,15 +3428,15 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
     }
 
     function getPanelPage(meta) {
-        var img;
+        let img;
         if (meta instanceof HTMLImageElement) {
             img = meta;
             meta = getMeta(img);
         }
 
-        var currentParams = Object.fromEntries(new URL(location.href).searchParams.entries());
+        const currentParams = Object.fromEntries(new URL(location.href).searchParams.entries());
 
-        var data = {
+        const data = {
             'imgrefurl': meta.ru,
             'docid': meta.rid,
             'tbnid': meta.id,
@@ -3449,7 +3449,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             // 'biw':,
             // 'q':,
         };
-        var combined = $.extend(currentParams, data);
+        const combined = $.extend(currentParams, data);
 
 
         return normalizeUrl('/imgres?' + $.param(combined));
@@ -3613,8 +3613,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         let imgBoxes = getImgBoxes();
         let set = new Set();
         for (let box of imgBoxes) {
-            var img;
-            var meta = {};
+            let img;
+            let meta = {};
 
             try {
                 img = box.querySelector('img');
@@ -3697,7 +3697,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         })], {type: 'text/plain'}));
 
         zip.onGenZip = e => {
-            var closeAfterZip = document.querySelector('#closeAfterDownload');
+            const closeAfterZip = document.querySelector('#closeAfterDownload');
             if (closeAfterZip && closeAfterZip.checked) {
                 console.log('close on zip');
                 window.close();
@@ -3720,15 +3720,15 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
     function unionTitleAndDescr(str1, str2) {
         if (!str1) return str2;
         if (!str2) return str1;
-        var regex = new RegExp(str2.match(RegExp('[^$-/:-?{-~!"^_\`\\[\\]]+', 'g')).join('|'), 'gi');
-        var str1MinusStr2 = str1.replace(regex, ' ');
+        const regex = new RegExp(str2.match(RegExp('[^$-/:-?{-~!"^_\`\\[\\]]+', 'g')).join('|'), 'gi');
+        const str1MinusStr2 = str1.replace(regex, ' ');
         return removeDoubleSpaces(str1MinusStr2 + ' ' + str2);
     }
     function unionStrings(str1, str2) {
-        var words1 = str1.split(/\s+/g),
+        const words1 = str1.split(/\s+/g),
             words2 = str2.split(/\s+/g),
-            resultWords = [],
-            i,
+            resultWords = [];
+        let i,
             j;
 
         for (i = 0; i < words1.length; i++) {
@@ -3801,10 +3801,10 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             console.error('Element not defined.');
             return;
         }
-        var rx = new RegExp(subStr, 'i');
+        const rx = new RegExp(subStr, 'i');
         if (rx.test(el.innerHTML)) {
-            var oldInnerHTML = el.innerHTML;
-            var newHTML = el.innerHTML.replace(rx, `<span class="underlineChar" style="text-decoration: underline;">${subStr}</span>`);
+            const oldInnerHTML = el.innerHTML;
+            const newHTML = el.innerHTML.replace(rx, `<span class="underlineChar" style="text-decoration: underline;">${subStr}</span>`);
             el.innerHTML = newHTML;
             console.log(
                 'oldInnerHTML=', oldInnerHTML,
@@ -4530,7 +4530,7 @@ function urlToAnchor(href, target = '') {
     return a;
 }
 function anchorClick(href, downloadValue, target) {
-    var a = document.createElement('a');
+    const a = document.createElement('a');
     a.setAttribute('href', href);
     a.setAttribute('download', downloadValue);
     a.target = target;
@@ -4561,7 +4561,7 @@ function cleanGibberish(str, minWgr, debug = false) {
     if (str) {
 
         // removing the phrase "Showing ____ Images for_____" that begins in the sentence
-        var m = str.match(/^(Showing.*?Images for\s+)(.*)/i);
+        const m = str.match(/^(Showing.*?Images for\s+)(.*)/i);
         if (m && m.length >= 3) {
             str = m[2];
         }
@@ -4598,13 +4598,13 @@ function cleanGibberish(str, minWgr, debug = false) {
 //todo: make these functions in a utility class
 /** https://stackoverflow.com/a/3579651/7771202 */
 function sortByFrequency(array) {
-    var frequency = {};
+    const frequency = {};
 
     for (const value of array) {
         frequency[value] = 0;
     }
 
-    var uniques = array.filter(function (value) {
+    const uniques = array.filter(function (value) {
         return ++frequency[value] === 1;
     });
 
@@ -4644,8 +4644,8 @@ function observeDocument(callback, options = {}) {
         subtree: true,
     }, options);
 
-    var observer = {};
-    var MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
+    let observer = {};
+    const MutationObserver = window.MutationObserver || window.WebKitMutationObserver;
 
     const baseNode = options.baseNode instanceof Element ? () => options.baseNode : options.baseNode;
 
@@ -4703,9 +4703,9 @@ function elementReady(getter, opts = {}) {
             timeout: 0,
             target: document.documentElement
         }, opts);
-        var returnMultipleElements = getter instanceof Array && getter.length === 1;
-        var _timeout;
-        var _getter = typeof getter === 'function' ?
+        const returnMultipleElements = getter instanceof Array && getter.length === 1;
+        let _timeout;
+        const _getter = typeof getter === 'function' ?
             (mutationRecords) => {
                 try {
                     return getter(mutationRecords);
@@ -4715,7 +4715,7 @@ function elementReady(getter, opts = {}) {
             } :
             () => returnMultipleElements ? document.querySelectorAll(getter[0]) : document.querySelector(getter)
         ;
-        var computeResolveValue = function (mutationRecords) {
+        const computeResolveValue = function (mutationRecords) {
             // see if it already exists
             const ret = _getter(mutationRecords || {});
             if (ret && (!returnMultipleElements || ret.length)) {
@@ -4739,7 +4739,7 @@ function elementReady(getter, opts = {}) {
 
 
         new MutationObserver((mutationRecords, observer) => {
-            var completed = computeResolveValue(_getter(mutationRecords));
+            const completed = computeResolveValue(_getter(mutationRecords));
             if (completed) {
                 observer.disconnect();
             }
@@ -4785,7 +4785,7 @@ function unsafeEval(func, ...arguments) {
 function enhanceLink(a) {
     // at this point, href= the gimg search page url
     /** stop propagation onclick */
-    var purifyLink = function (a) {
+    const purifyLink = function (a) {
         if (/\brwt\(/.test(a.getAttribute('onmousedown'))) {
             a.removeAttribute('onmousedown');
         }
@@ -4808,6 +4808,35 @@ function getWheelDelta(wheelEvent) {
     return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
 }
 
+function clickImagesOneByOne() {
+    let i = 0;
+    const imgs = Array.from(document.querySelectorAll('.rg_i'));
+    const interval = setInterval(function () {
+        i++;
+        if (i >= imgs.length) {
+            clearInterval(interval);
+            return;
+        }
+        rightClick(imgs[i]);
+    }, 10);
+}
+
+function rightClick(element) {
+    // found here: https://intellipaat.com/community/11740/javascript-simulate-right-click-through-code
+    const evt = element.ownerDocument.createEvent('MouseEvents');
+    const RIGHT_CLICK_BUTTON_CODE = 2; // the same for FF and IE
+    evt.initMouseEvent('click', true, true,
+        element.ownerDocument.defaultView, 1, 0, 0, 0, 0, false,
+        false, false, false, RIGHT_CLICK_BUTTON_CODE, null);
+
+    if (document.createEventObject) {
+        // dispatch for IE
+        return element.fireEvent('onclick', evt)
+    } else {
+        // dispatch for firefox + others
+        return !element.dispatchEvent(evt);
+    }
+}
 
 /**
  * returns metas, format is a map, key: id, value: meta
