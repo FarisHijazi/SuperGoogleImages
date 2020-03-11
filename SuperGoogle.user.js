@@ -1888,8 +1888,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
             // onImageBatchLoaded observe new image boxes that load
             observeDocument((mutations, me) => {
-                // const addedImageBoxes = [].map.call(mutations, m => m.addedNodes[0])
-                //     .filter(div => div && div.matches && div.matches('div.rg_bx, #islrg > div.islrc > div:not(.rg_bx_listed)'));
+                updateMetaFromScript();
 
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
@@ -1977,10 +1976,6 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             // code here...
         });
 
-        // wait for the meta script to load
-        elementReady(() => !!Object.keys(getMetaFromPage()).length).then(() => {
-            updateMetaFromScript();
-        });
     }
 
     // ============
@@ -4698,7 +4693,7 @@ function observeDocument(callback, options = {}) {
  *          the function will be passed the `mutationRecords`
  * @param {Object} opts
  * @param {Number=0} opts.timeout - timeout in milliseconds, how long to wait before throwing an error (default is 0, meaning no timeout (infinite))
- * @param {Element} opts.target - element to be observed
+ * @param {Element=} opts.target - element to be observed
  *
  * @returns {Promise<Element|any>} the value passed will be a single element matching the selector, or whatever the function returned
  */
@@ -4739,7 +4734,6 @@ function elementReady(getter, opts = {}) {
             _timeout = setTimeout(() => {
                 const error = new Error(`elementReady(${getter}) timed out at ${opts.timeout}ms`);
                 reject(error);
-                console.warn(error);
             }, opts.timeout);
 
 
@@ -4848,53 +4842,59 @@ function rightClick(element) {
  * @returns {Meta[]}
  */
 function getMetaFromPage() {
-    const metaData = Array.from(document.querySelectorAll('script[nonce]'))
-        .map(s => s.innerText)
-        .filter(t => /^AF_initDataCallback/.test(t))
-        .map(t => {
-            try {
-                return eval(t.replace('AF_initDataCallback', ''));
-            } catch (e) {
-                console.error(e);
-                return {};
-            }
-        }).filter(o => o.data)
-        .map(o => eval(o.data.toString().replace(/(^function\s*\(\s*\)\s*{\s*return\s*|\s*}\s*$)/g, '')))
-        .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))[0]
-    ;
+    // URLs
+    var info;
+    try {
+        info = window['document']['gs']['__jscontroller']['o']['Dd']['ek']['byfTOb'][0]['g']['nl']['g']['g'][0]['lt']['Ap'][1]['o']['V']['nl']['g']['j'][0]['lt']['ma']['W']['nl']['g']['resize'][1]['lt']['uc']['xc'][0]['__jscontroller']['o']['Cj']['Nk']['g']['10']['__jscontroller']['o']['g']['j']['V']['__jscontroller']['o']['H'][0]['Uh']['__jsmodel']['jJJIob']['o']['Sa']['j'][0]['j']['3'];
+    } catch (e) {
+        return {};
+    }
+    const metas = info.map(meta => { // this is turning the array to an object
+        try {
+            const meta2 = meta['j']['2']['H'];
+            const meta3 = meta2[11][183836587][2][1];
 
-    // console.log('yayyyy metaData is here!!', metaData);
-    const metas = metaData && metaData[31][0][12][2].map(meta => meta[1]) // this part is the array
-        .map(meta => { // this is turning the array to an object
-            try {
-                const id = meta[1];
-                const [tu, th, tw] = meta[2];
-                const [ou, oh, ow] = meta[3];
+            const id = meta3[16][5];
+            const [tu, th, tw] = meta3[6];
+            const [ou, _, oh, ow] = meta3[18];
 
-                const siteAndNameInfo = meta[9] || meta[11];
-                const pt = siteAndNameInfo[2003][2];
-                const st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+            const siteInfo = meta2[11] || meta2[9];
 
-                return ({
-                    'id': id,
+            const [isu, rid] = meta3[9][1];
 
-                    // thumbnail
-                    'tu': tu,
-                    'th': th,
-                    'tw': tw,
+            const pt = meta3[2];
+            const st = siteInfo[2003][12];
+            const color = meta2[6];
 
-                    // original
-                    'ou': ou,
-                    'oh': oh,
-                    'ow': ow,
+            const descr = siteInfo[2006] && siteInfo[2006][8][1];
 
-                    // site and name
-                    'pt': pt,
-                    'st': st,// info link
-                })
-            } catch (e) {
-            }
-        }).filter(meta => !!meta); // remove null entries
+            return ({
+                'id': id,
+
+                // thumbnail
+                'tu': tu,
+                'th': th,
+                'tw': tw,
+
+                // original
+                'ou': ou,
+                'oh': oh,
+                'ow': ow,
+
+                // site and name
+                'pt': pt,
+                'st': st,// info link
+
+                'color': color,
+                'isu': isu,//
+                'rid': rid,
+                // 'rh': rh,
+                's': descr || '',
+            })
+        } catch (e) {
+            // console.warn('Error while collecting meta', e, meta);
+        }
+    }).filter(meta => !!meta);
 
     // same as metas, but is an object with the "id" as the key
     return Object.fromEntries(metas.map(meta => [meta.id, meta]));
@@ -4902,7 +4902,7 @@ function getMetaFromPage() {
 function updateMetaFromScript() {
     const metasMap = getMetaFromPage();
     // this will set the "_meta" attribute for each of the images
-    if (!Object.keys(getMetaFromPage(metasMap)).length) {
+    if (!Object.keys(metasMap).length) {
         console.warn('metaData is null');
         return;
     }
@@ -4914,7 +4914,7 @@ function updateMetaFromScript() {
         const meta = metasMap[id];
 
         if (!meta) {
-            console.warn(`no meta found for imgBox: selector: "[data-tbnid=\\"${id}\\"]"`, img.src.slice(0, 100));
+            console.warn(`no meta found for imgBox: selector: [data-tbnid="${id}"]`, img.src.slice(0, 100));
             continue;
         }
 
