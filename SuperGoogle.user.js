@@ -1974,6 +1974,11 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
 
         injectGoogleButtons().then(navbarContentDiv => {
+            // code here...
+        });
+
+        // wait for the meta script to load
+        elementReady(() => !!Object.keys(getMetaFromPage()).length).then(() => {
             updateMetaFromScript();
         });
     }
@@ -4858,11 +4863,6 @@ function getMetaFromPage() {
         .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))[0]
     ;
 
-    if (!metaData) {
-        // if() console.warn('metaData is null');
-        return {};
-    }
-
     // console.log('yayyyy metaData is here!!', metaData);
     const metas = metaData && metaData[31][0][12][2].map(meta => meta[1]) // this part is the array
         .map(meta => { // this is turning the array to an object
@@ -4871,7 +4871,7 @@ function getMetaFromPage() {
                 const [tu, th, tw] = meta[2];
                 const [ou, oh, ow] = meta[3];
 
-                const siteAndNameInfo = meta[9];
+                const siteAndNameInfo = meta[9] || meta[11];
                 const pt = siteAndNameInfo[2003][2];
                 const st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
 
@@ -4901,8 +4901,11 @@ function getMetaFromPage() {
 }
 function updateMetaFromScript() {
     const metasMap = getMetaFromPage();
-
     // this will set the "_meta" attribute for each of the images
+    if (!Object.keys(getMetaFromPage(metasMap)).length) {
+        console.warn('metaData is null');
+        return;
+    }
 
     const imgs = document.querySelectorAll(`div[data-tbnid] img.rg_i`);
     for (const img of imgs) {
@@ -4911,7 +4914,7 @@ function updateMetaFromScript() {
         const meta = metasMap[id];
 
         if (!meta) {
-            console.warn('no meta found for data-tbnid', id, img.src);
+            console.warn(`no meta found for imgBox: selector: "[data-tbnid=\\"${id}\\"]"`, img.src.slice(0, 100));
             continue;
         }
 
