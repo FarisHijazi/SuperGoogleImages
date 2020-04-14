@@ -4844,13 +4844,53 @@ function rightClick(element) {
     }
 }
 
-
 function getMetaContainers() {
     // const g = window['document']['gs']['__jscontroller']['o']['Hd']['ek']['byfTOb'][0]['g']['nl']['g']['g'][0]['mt']['Fp'][1]['o']['V']['nl']['g']['j'][0]['mt']['ma']['W']['nl']['g']['resize'][1]['mt']['Sb']['zc'][0]['__jscontroller']['o']['Cj']['Nk']['g'];
     try {
-        var j = document.querySelector("#NmTzue")['__jscontroller']['o']['g']['j'];
-        var val = j['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3'];
-        return val
+        // var j = document.querySelector("#NmTzue")['__jscontroller']['o']['g']['j'];
+        // var val = j['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3'];
+        
+        var V = document.querySelector("#yDmH0d > div.T1diZc.KWE8qe > c-wiz") 
+            || window['document']['gs']['__jscontroller']['og']
+            ['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']
+            ['Ck']['Ul']['g']['5']['__jscontroller']['og']
+            ['j']['va']['g']['g']['wm']['g']['l'][2]['sv']['g']['0']['target']['__component']['Aa']['og']['o']['lf']['Aa']['w']['__jscontroller']['og']
+            ['cu']['chrome']['V'];
+        // turns out
+        var Hg = document.querySelector("#islmp > div > div > div > div") 
+            || V['__jscontroller']['og']['H'][0]['Hg']
+
+        var __jsmodel = Hg['__jsmodel'];
+        var og  = __jsmodel['jJJIob']['og'];
+        // all the `Ea` and 
+
+        var metaInfos = Object.values(og).filter(v => v && v.hasOwnProperty('vf') && (v.o instanceof Array )).map(
+            ea => ea['o'][0].w[2]//
+            
+            /*  ea['o'][0] looks like this:
+
+                g: {3: Array(204), 12: _.Qu, 25: Array(0)}
+                Ga: undefined
+                H: -1
+                w: (25) ["GRID_STATE0", null, Array(204), "", "", "", 1, Array(0), null, null, null, Array(12), null, null, null, null, Array(3), "", null, null, null, null, 1, null, Array(0)]
+            */
+                //['g']['3']//[85]['g']['2']['g']['4']['w'][0] // => 'https://25.media.tumblr.com/8026bf09a8e515d070ff11525fa6086a/tumblr_mj3krePaWE1s7un91o1_250.gif'
+        ).flat(1);
+        
+
+        // window['document']['gs']['__jscontroller']['og']['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']['Ck']['Ul']['g']['11']['__jscontroller']['og']['g']['j']['V']['__jscontroller']['og']['V']['o']['l2bgrgmABs15hM']['g']['1']['g']['5'][0]['g']['13']['g']['3'][9]['g']['2']['g']['183836587']['g']['3']['g']['2']['g']['10']['w'][2] // => '8EFACzxVi8cG2M'
+
+        var metaInfos2 = [];
+        try {
+            var metaInfos2 = Object.values(Object.values(Object.values(V['__jscontroller']['og']['V']['o'])[0]['g']['1']['g'])[0][0]['g']).map(
+                e => e['g']['3'].w[1]
+                //[9]['g']['2']['g']['183836587']['g']['3']['g']['2']['g']['10']['w'][2] // => '8EFACzxVi8cG2M'
+            ).flat()
+        } catch (e) {
+        }
+
+
+        return metaInfos.concat(metaInfos2);
     } catch(e) {
         // console.warn('couldn\'t get meta container from page', e);
         return [];
@@ -4878,6 +4918,7 @@ function getMetaFromPage() {
                 'color': '',
             };
 
+            const H = info;
             const imgInfo = H[1];
             rg_meta.id = H[7] || imgInfo[1]; // => 'cRIoGkXQe6VmfM'
 
