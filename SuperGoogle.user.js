@@ -2619,7 +2619,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         const link_animated = createElement(`<a class="sg q qs" href="${location.pathname + location.search + '&tbs=itp:animated'}"><u>A</u>nimated</a>`);
 
         const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
-            const imgs = Array.from(document.querySelectorAll('a.rg_l[href] img'));
+            const imgs = Array.from(document.querySelectorAll('a[href] img.rg_i'));
             const progressSpan = btn_preload.querySelector('span.preload-progress');
             let counter = 0;
             progressSpan.innerText = `(${counter}/${imgs.length})`;
@@ -2804,8 +2804,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         const dlLimitSlider = document.querySelector('#dlLimitSlider');
         const dlLimit = dlLimitSlider ? dlLimitSlider.value : Number.MAX_SAFE_INTEGER;
 
-        return [].filter.call(document.querySelectorAll('img.rg_ic.rg_i:not([loaded="error"])'), (img, i) => {
-            const qualDim = img.satisfiesDimensions || exception4smallGifs && isGif(img.meta);
+        return [].filter.call(document.querySelectorAll('img.rg_i:not([loaded="error"])'), (img, i) => {
+            const qualDim = !img.hasOwnProperty('satisfiesDimensions') || img.satisfiesDimensions || exception4smallGifs && isGif(img.meta);
             return (qualDim && (ignoreDlLimit || i < dlLimit));
         });
     }
@@ -3766,7 +3766,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         const pm = [];
         const nm = [];
 
-        for (const imageBox of getImgBoxes(' > a.rg_l > img')) {
+        for (const imageBox of getImgBoxes(' img.rg_i')) {
             if (negateCondition ^ _filter(imageBox)) {// match
                 setVisible(imageBox, visibility);
                 pm.push(imageBox);
@@ -4222,7 +4222,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         div#navbar {
             position: fixed;
             z-index: 2;
-            min-height: 50px;
+            min-height: 10px;
             top: 0;
             right: 0;
             left: 0;
@@ -4277,6 +4277,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
          */
         nbarContent.setNavbarPos = function (e, pos = 0) {
             clearTimeout(nbarContent.timeout);
+            nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
+
             const googleControlsContainer = document.querySelector('#google-controls-container');
             nbarContent.style.top = `${(pos - 1) * googleControlsContainer.clientHeight}px`;
             nbarContent.pos = pos;
@@ -4495,8 +4497,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             Math.max(meta.ow, meta.oh) >= 120 // not too small;
         );
 
-        return Array.from(getImgBoxes(' a.rg_l img[loaded="true"], a.rg_l img[loaded="true"]'))
-            .map(getMeta)
+        return [].map.call(getImgBoxes(' img.rg_i[loaded="true"], img.rg_i[loaded="true"]'), getMeta)
             .filter(condition);
     }
 
@@ -4983,6 +4984,7 @@ function updateMetaFromScript() {
             console.warn(`meta not found imgBox: [data-tbnid="${id}"] src=`, img.src.slice(0, 100));
             continue;
         }
+        if (img._meta) continue;
 
         img._meta = meta;
         img.src = meta.ou;
