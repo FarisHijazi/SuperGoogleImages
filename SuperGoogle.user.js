@@ -94,7 +94,7 @@ const normalizeUrl = (function () {
 (function () {
     'use strict';
 
-    // todo: replace this with importing GM_dummy_functions, and importing a polyfill
+    // TODO: replace this with importing GM_dummy_functions, and importing a polyfill
     if (typeof unsafeWindow === 'undefined') unsafeWindow = window;
     unsafeWindow.unsafeWindow = unsafeWindow;
 
@@ -160,7 +160,6 @@ const normalizeUrl = (function () {
     URL.prototype.__defineGetter__('sp', function () {
         return Object.fromEntries(this.searchParams.entries());
     });
-
     URL.prototype.equals = function (other, hashSensitive = false) {
         function equalUrls(url1, url2, hashSensitive = false) {
             return (
@@ -250,6 +249,9 @@ const normalizeUrl = (function () {
             sideViewContainer: '#irc_bg',
             /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
             Panel: {
+                //ok, there's a top part, and this top part has 3 panels (only one is shown at a time)
+                // panelsContainer: '#Sva75c > div > div > div.pxAole'
+
                 sidepanelScrollEl: '#irc-ss, #islsp',
                 mainPanel: 'div#irc_cc, #islsp',
                 panelExitButton: ['a#irc_cb', 'a#irc_ccbc'].join(),
@@ -829,7 +831,7 @@ const normalizeUrl = (function () {
         get pTitle_Text() {
             if (!this.pTitle_Anchor) {
                 console.warn('Title anchor not found!');
-                return;
+                return '';
             }
             return cleanGibberish(this.pTitle_Anchor.innerText.replace(getHostname(this.pTitle_Anchor.href), ''));
         }
@@ -1166,7 +1168,7 @@ const normalizeUrl = (function () {
             panel.onPanelMutation();
             panel.el.classList.add('modified-panel');
 
-            panel.rightPart.classList.add('scroll-nav');
+            if (panel.rightPart) panel.rightPart.classList.add('scroll-nav');
 
             // add onerror listener to the mainimage
             // this.mainImage.addEventListener('error', function(e) { console.log('OOPSIE WOOPSIE!! Uwu We made a fucky wucky!! A wittle fucko boingo! The code monkeys at our headquarters are working VEWY HAWD to fix this!', e); });
@@ -1521,7 +1523,7 @@ const normalizeUrl = (function () {
         }
         update_sbi() {
             // updating ImageHost
-            const sbi = this.q('a.search-by-image');
+            const sbi = this.q('a.search-by-image'); //FIXME: this is null
             if (sbi) {
                 sbi.href = this.sbiUrl;
             } else {
@@ -1556,7 +1558,7 @@ const normalizeUrl = (function () {
             }
         }
         update_ViewImage() {
-            const viewImage = this.q('.view-image');
+            const viewImage = this.q('.view-image'); // FIXME: this is null
             if (viewImage) {
                 viewImage.href = this.imgUrl;
             } else {
@@ -1568,7 +1570,7 @@ const normalizeUrl = (function () {
             const panel = this;
             let sibling = panel.q('[data-navigation="server"], .irc_msc, .irc_ris, [jsname="neVct"]');
 
-            if (panel.sTitle_Anchor) {
+            if (panel.sTitle_Anchor && sibling) {
                 // const summaryTable = panel.element.querySelector('table[summary]._FKw.irc_but_r');
                 const className = 'image-host hover-click';
                 const element = createElement(`<a class="${className}" href="" target="${Preferences.page.defaultAnchorTarget}" rel="noreferrer" data-noload="" referrerpolicy="no-referrer" tabindex="0"  data-ved="" data-ctbtn="2" 
@@ -1813,17 +1815,17 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             disableDragging();
 
             const mainImage = this.mainImage;
-            if (mainImage.src) {
+            if (mainImage && mainImage.src) {
                 mainImage.closest('a').href = mainImage.src;
                 showImages.replaceImgSrc(mainImage).then(function (event) {
-                    console.log(
+                    console.warn(
                         'replaced main image:',
                         '\nthis=', this,
                         '\nevent=', event
-                    )
+                    );
                 });
             } else {
-                console.warn('Warning, mainImg.src undefined????!!', mainImage.src, mainImage);
+                console.warn('Warning, mainImg.src undefined????!!', mainImage && mainImage.src, mainImage);
             }
 
             for (const ris_img of this.ris_Divs) {
@@ -2544,7 +2546,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
 
         const constraintsContainer = (function () {
-            // todo: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
+            // TODO: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
 
             const default_slider_minImgSize_value = 250;
             Components.minImgSizeSlider = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
@@ -2554,7 +2556,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
                 sliderReading_minImgSize.innerHTML = /*'Min Dimensions<br>' +*/ (`${this.value}x${this.value}`);
 
                 // Highlighting images that will be downloaded
-                // clearAllEffects(); // todo: this is being called too much
+                // clearAllEffects(); // TODO: this is being called too much
                 for (const img of getThumbnails(true)) {
                     const meta = getMeta(img);
                     const width = meta.ow, height = meta.oh,
@@ -3078,7 +3080,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
         } catch (e) {
             metaObj = getImgMetaById(img.id);
-            console.warn(e, img);
+            // if (debug) console.warn(e, img);
         }
 
         if (minified) {
@@ -3668,7 +3670,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             'time': new Date().toJSON(),
             'data': metas
         };
-        return options.stringify ? JSON.stringify(o, null, 4) : o;
+        return options.stringifySafe ? JSON.stringifySafe(o, null, 4) : o;
     }
 
 
@@ -3760,7 +3762,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             (el) => el.matches(filter) :
             filter;
 
-        //debug: todo: should be removed later, these are just for debugging
+        //debug: TODO: should be removed later, these are just for debugging
         const pm = [];
         const nm = [];
 
@@ -3774,7 +3776,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             }
         }
 
-        //debug: todo: remove later
+        //debug: TODO: remove later
         console.debug(
             `Set visibility of ${pm.length} images to ${visibility}:`, pm,
             `\nAnd ${nm.length} negative matches to ${visibility}:`, nm
@@ -4269,6 +4271,10 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         const nbarContent = $navbarContent[0];
 
         // adding some handy functions
+        /**
+         * @param e
+         * @param pos - 0 is hide, 1 is show
+         */
         nbarContent.setNavbarPos = function (e, pos = 0) {
             clearTimeout(nbarContent.timeout);
             const googleControlsContainer = document.querySelector('#google-controls-container');
@@ -4478,6 +4484,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         console.log('Site links of unblocked images:', Array.from(ublSitesSet));
     }
     /**
+     const rg_meta = div.querySelector('.rg_meta') || document.querySelector(selector);
      * Returns a list of qualified image metas
      * @return {Meta[]}
      */
@@ -4595,7 +4602,7 @@ function cleanGibberish(str, minWgr, debug = false) {
     return '';
 }
 
-//todo: make these functions in a utility class
+//TODO: make these functions in a utility class
 /** https://stackoverflow.com/a/3579651/7771202 */
 function sortByFrequency(array) {
     const frequency = {};
@@ -4857,45 +4864,48 @@ function getMetaContainers() {
 function getMetaFromPage() {
     function convertXvToMeta(info) { // this is turning the array to an object
         try {
-            const H = info['H'];
+            const rg_meta = {
+                'id': '',  // thumbnail
+                'tu': '', 'th': '', 'tw': '',  // original
+                'ou': '', 'oh': '', 'ow': '',  // site and name
+                'pt': '', 'st': '',  // titles
+                'ity': '',
+                'rh': 'IMAGE_HOST',
+                'ru': 'IMAGE_SOURCE',
+                'rid': '',
+                'isu': '',
+                's': '',
+                'color': '',
+            };
+
             const imgInfo = H[1];
-            const id = H[7] || imgInfo[1]; // => 'cRIoGkXQe6VmfM'
+            rg_meta.id = H[7] || imgInfo[1]; // => 'cRIoGkXQe6VmfM'
 
             const imgInfoThumb = imgInfo[2];
             /*
             looks like this:
             ["https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTNqAgIdupLhB4RZURRBAnFpGi3XuQPQD8qKeiHlxPV8TBLRDVZ", 185, 272 ]
             */
-            const tu = imgInfoThumb[0]; // => 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTNqAgIdupLhB4RZURRBAnFpGi3XuQPQD8qKeiHlxPV8TBLRDVZ'
-            const th = imgInfoThumb[1]; // => 185
-            const tw = imgInfoThumb[2]; // => 272
+            rg_meta.tu = imgInfoThumb[0]; // => 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTNqAgIdupLhB4RZURRBAnFpGi3XuQPQD8qKeiHlxPV8TBLRDVZ'
+            rg_meta.th = imgInfoThumb[1]; // => 185
+            rg_meta.tw = imgInfoThumb[2]; // => 272
 
             const imgInfoOriginal = imgInfo[3];
-            const ou = imgInfoOriginal[0]; // => 'https://i.makeagif.com/media/7-03-2015/GgiQvE.gif'
-            const oh = imgInfoOriginal[1]; // => 400
-            const ow = imgInfoOriginal[2]; // => 273
+            rg_meta.ou = imgInfoOriginal[0]; // => 'https://i.makeagif.com/media/7-03-2015/GgiQvE.gif'
+            rg_meta.oh = imgInfoOriginal[1]; // => 400
+            rg_meta.ow = imgInfoOriginal[2]; // => 273
 
             const imgInfoLegacy = imgInfo.slice(-1)[0];
-            const rid = imgInfoLegacy['2003'][1]; // => ODcmttHdhuZIuM
-            const isu = imgInfoLegacy['2003'][2]; // => https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE
-            const pt = imgInfoLegacy['2003'][3] || imgInfoLegacy['2008'][1]; // => Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...
-            const st = imgInfoLegacy['2003'][12]; // => Make A Gif
-            const rh = imgInfoLegacy['183836587'][0]; // => makeagif.com
-            const s = imgInfoLegacy['2006'] && imgInfoLegacy['2006'][8] && imgInfoLegacy['2006'][8][1]; // => "some description text here"
-            const color = imgInfo[6]; // => 'rgb(152,50,56)'
+            rg_meta.rid = imgInfoLegacy['2003'][1]; // => ODcmttHdhuZIuM
+            rg_meta.isu = imgInfoLegacy['2003'][2]; // => https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE
+            rg_meta.pt = imgInfoLegacy['2003'][3] || imgInfoLegacy['2008'][1]; // => Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...
+            rg_meta.st = imgInfoLegacy['2003'][12]; // => Make A Gif
+            rg_meta.rh = imgInfoLegacy['183836587'][0]; // => makeagif.com
+            rg_meta.s = imgInfoLegacy['2006'] && imgInfoLegacy['2006'][8] && imgInfoLegacy['2006'][8][1]; // => "some description text here"
+            rg_meta.color = imgInfo[6]; // => 'rgb(152,50,56)'
 
 
-            return ({
-                'id': id,
-                'tu': tu, 'th': th, 'tw': tw, // thumbnail
-                'ou': ou, 'oh': oh, 'ow': ow, // original
-                'pt': pt, 'st': st, // site and name
-                'color': color,
-                'isu': isu,//
-                'rid': rid,
-                'rh': rh,
-                's': s || '',
-            });
+            return rg_meta;
         } catch (e) {
             console.warn('Error while collecting meta', e, info);
         }
@@ -4963,27 +4973,30 @@ function parse_AF_dataInitCallback() {
     var imgMetas = entry[31][0][12][2].map(meta => meta[1]); // confirmed
     var metas = imgMetas.map(meta => {
         try {
-            const id = meta[1];
-            const [tu, th, tw] = meta[2];
-            const [ou, oh, ow] = meta[3];
+            const rg_meta = ({
+                'id': '',  // thumbnail
+                'tu': '', 'th': '', 'tw': '',  // original
+                'ou': '', 'oh': '', 'ow': '',  // site and name
+                'pt': '', 'st': '',  // titles
+                'ity': '',
+                'rh': 'IMAGE_HOST',
+                'ru': 'IMAGE_SOURCE',
+            });
+
+            rg_meta.id = meta[1];
+            [rg_meta.tu, rg_meta.th, rg_meta.tw] = meta[2];
+            [rg_meta.ou, rg_meta.oh, rg_meta.ow] = meta[3];
 
             const siteAndNameInfo = meta[9] || meta[11];
 
-            var pt;
             if (siteAndNameInfo[2003]) {
-                pt = siteAndNameInfo[2003][3];
+                rg_meta.pt = siteAndNameInfo[2003][3];
             } else {
-                pt = siteAndNameInfo[2003][2];
+                rg_meta.pt = siteAndNameInfo[2003][2];
             }
-            const st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+            rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
 
-            return ({
-                'id': id,
-                'tu': tu, 'th': th, 'tw': tw,// thumbnail
-                'ou': ou, 'oh': oh, 'ow': ow,// original
-                // site and name
-                'pt': pt, 'st': st,// info link
-            });
+            return rg_meta;
         } catch (e) {
             console.warn(e);
         }
