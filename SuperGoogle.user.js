@@ -4947,21 +4947,15 @@ function parse_AF_dataInitCallback() {
         .filter(t => /^AF_initDataCallback/.test(t))
         .map(t => {
             try {
-                // // this will trim the code to choose only the part with the data arrays
-                // const start = "data:function(){return ";
-                // const end = "]\n}});";
-                // const data_str = t.substring(t.indexOf(start) + start.length, t.lastIndexOf(end) + 1);
-                // // console.log(data_str);
-                // const json_obj = JSON.parse(data_str);
-                // // console.log(json_obj);
-                // return json_obj;
-                return eval(t.replace('AF_initDataCallback', ''));
+                // this will trim the code to choose only the part with the data arrays
+                const [start, end] = ["data:function(){return ", "]\n}});"];
+                const data_str = t.substring(t.indexOf(start) + start.length, t.lastIndexOf(end) + 1);
+                return JSON.parse(data_str);
             } catch (e) {
                 console.error(e);
                 return {};
             }
-        }).filter(o => o.data)
-        .map(o => eval(o.data.toString().replace(/(^function\s*\(\s*\)\s*{\s*return\s*|\s*}\s*$)/g, '')))
+        })
         .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))
     ;
 
