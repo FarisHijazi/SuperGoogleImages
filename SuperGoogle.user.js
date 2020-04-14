@@ -4837,70 +4837,78 @@ function rightClick(element) {
     }
 }
 
+
+function getMetaContainers() {
+    // const g = window['document']['gs']['__jscontroller']['o']['Hd']['ek']['byfTOb'][0]['g']['nl']['g']['g'][0]['mt']['Fp'][1]['o']['V']['nl']['g']['j'][0]['mt']['ma']['W']['nl']['g']['resize'][1]['mt']['Sb']['zc'][0]['__jscontroller']['o']['Cj']['Nk']['g'];
+    try {
+        var j = document.querySelector("#NmTzue")['__jscontroller']['o']['g']['j'];
+        var val = j['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3'];
+        return val
+    } catch(e) {
+        // console.warn('couldn\'t get meta container from page', e);
+        return [];
+    }
+}
+
 /**
  * returns metas, format is a map, key: id, value: meta
  * @returns {Meta[]}
  */
 function getMetaFromPage() {
-    // URLs
-    var info;
-    try {
-        info = window['document']['gs']['__jscontroller']['o']['Dd']['ek']['byfTOb'][0]['g']['nl']['g']['g'][0]['lt']['Ap'][1]['o']['V']['nl']['g']['j'][0]['lt']['ma']['W']['nl']['g']['resize'][1]['lt']['uc']['xc'][0]['__jscontroller']['o']['Cj']['Nk']['g']['10']['__jscontroller']['o']['g']['j']['V']['__jscontroller']['o']['H'][0]['Uh']['__jsmodel']['jJJIob']['o']['Sa']['j'][0]['j']['3'];
-    } catch (e) {
-        return {};
-    }
-    const metas = info.map(meta => { // this is turning the array to an object
+    function convertXvToMeta(info) { // this is turning the array to an object
         try {
-            const meta2 = meta['j']['2']['H'];
-            const meta3 = meta2[11][183836587][2][1];
+            const H = info['H'];
+            const imgInfo = H[1];
+            const id = H[7] || imgInfo[1]; // => 'cRIoGkXQe6VmfM'
 
-            const id = meta3[16][5];
-            const [tu, th, tw] = meta3[6];
-            const [ou, _, oh, ow] = meta3[18];
+            const imgInfoThumb = imgInfo[2];
+            /*
+            looks like this:
+            ["https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTNqAgIdupLhB4RZURRBAnFpGi3XuQPQD8qKeiHlxPV8TBLRDVZ", 185, 272 ]
+            */
+            const tu = imgInfoThumb[0]; // => 'https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTNqAgIdupLhB4RZURRBAnFpGi3XuQPQD8qKeiHlxPV8TBLRDVZ'
+            const th = imgInfoThumb[1]; // => 185
+            const tw = imgInfoThumb[2]; // => 272
 
-            const siteInfo = meta2[11] || meta2[9];
+            const imgInfoOriginal = imgInfo[3];
+            const ou = imgInfoOriginal[0]; // => 'https://i.makeagif.com/media/7-03-2015/GgiQvE.gif'
+            const oh = imgInfoOriginal[1]; // => 400
+            const ow = imgInfoOriginal[2]; // => 273
 
-            const [isu, rid] = meta3[9][1];
+            const imgInfoLegacy = imgInfo.slice(-1)[0];
+            const rid = imgInfoLegacy['2003'][1]; // => ODcmttHdhuZIuM
+            const isu = imgInfoLegacy['2003'][2]; // => https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE
+            const pt = imgInfoLegacy['2003'][3] || imgInfoLegacy['2008'][1]; // => Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...
+            const st = imgInfoLegacy['2003'][12]; // => Make A Gif
+            const rh = imgInfoLegacy['183836587'][0]; // => makeagif.com
+            const s = imgInfoLegacy['2006'] && imgInfoLegacy['2006'][8] && imgInfoLegacy['2006'][8][1]; // => "some description text here"
+            const color = imgInfo[6]; // => 'rgb(152,50,56)'
 
-            const pt = meta3[2];
-            const st = siteInfo[2003][12];
-            const color = meta2[6];
-
-            const descr = siteInfo[2006] && siteInfo[2006][8][1];
 
             return ({
                 'id': id,
-
-                // thumbnail
-                'tu': tu,
-                'th': th,
-                'tw': tw,
-
-                // original
-                'ou': ou,
-                'oh': oh,
-                'ow': ow,
-
-                // site and name
-                'pt': pt,
-                'st': st,// info link
-
+                'tu': tu, 'th': th, 'tw': tw, // thumbnail
+                'ou': ou, 'oh': oh, 'ow': ow, // original
+                'pt': pt, 'st': st, // site and name
                 'color': color,
                 'isu': isu,//
                 'rid': rid,
-                // 'rh': rh,
-                's': descr || '',
-            })
+                'rh': rh,
+                's': s || '',
+            });
         } catch (e) {
-            // console.warn('Error while collecting meta', e, meta);
+            console.warn('Error while collecting meta', e, info);
         }
-    }).filter(meta => !!meta);
+    }
+
+    const metas = getMetaContainers().map(convertXvToMeta).filter(meta => !!meta);
 
     // same as metas, but is an object with the "id" as the key
     return Object.fromEntries(metas.map(meta => [meta.id, meta]));
 }
+
 function updateMetaFromScript() {
-    const metasMap = getMetaFromPage();
+    var metasMap = getMetaFromPage();
     // this will set the "_meta" attribute for each of the images
     if (!Object.keys(metasMap).length) {
         console.warn('metaData is null');
@@ -4914,7 +4922,7 @@ function updateMetaFromScript() {
         const meta = metasMap[id];
 
         if (!meta) {
-            console.warn(`no meta found for imgBox: selector: [data-tbnid="${id}"]`, img.src.slice(0, 100));
+            console.warn(`meta not found imgBox: [data-tbnid="${id}"] src=`, img.src.slice(0, 100));
             continue;
         }
 
@@ -4924,3 +4932,4 @@ function updateMetaFromScript() {
         console.log('added meta data:', meta);
     }
 }
+
