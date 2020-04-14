@@ -4912,6 +4912,13 @@ function updateMetaFromScript() {
     // this will set the "_meta" attribute for each of the images
     if (!Object.keys(metasMap).length) {
         console.warn('metaData is null');
+
+        try {
+            parse_AF_dataInitCallback();
+        } catch (e) {
+            console.warn(e);
+        }
+
         return;
     }
 
@@ -4931,5 +4938,75 @@ function updateMetaFromScript() {
         img.closest('a').href = meta.ou;
         console.log('added meta data:', meta);
     }
+}
+
+
+function parse_AF_dataInitCallback() {
+    var data = Array.from(document.querySelectorAll('script[nonce]'))
+        .map(s => s.innerText)
+        .filter(t => /^AF_initDataCallback/.test(t))
+        .map(t => {
+            try {
+                // // this will trim the code to choose only the part with the data arrays
+                // const start = "data:function(){return ";
+                // const end = "]\n}});";
+                // const data_str = t.substring(t.indexOf(start) + start.length, t.lastIndexOf(end) + 1);
+                // // console.log(data_str);
+                // const json_obj = JSON.parse(data_str);
+                // // console.log(json_obj);
+                // return json_obj;
+                return eval(t.replace('AF_initDataCallback', ''));
+            } catch (e) {
+                console.error(e);
+                return {};
+            }
+        }).filter(o => o.data)
+        .map(o => eval(o.data.toString().replace(/(^function\s*\(\s*\)\s*{\s*return\s*|\s*}\s*$)/g, '')))
+        .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))
+    ;
+
+    var entry = data.slice(-1)[0];
+    var imgMetas = entry[31][0][12][2].map(meta => meta[1]); // confirmed
+    var metas = imgMetas.map(meta => {
+        try {
+            const id = meta[1];
+            const [tu, th, tw] = meta[2];
+            const [ou, oh, ow] = meta[3];
+
+            const siteAndNameInfo = meta[9] || meta[11];
+
+            var pt;
+            if (siteAndNameInfo[2003]) {
+                pt = siteAndNameInfo[2003][3];
+            } else {
+                pt = siteAndNameInfo[2003][2];
+            }
+            const st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+
+            return ({
+                'id': id,
+                'tu': tu, 'th': th, 'tw': tw,// thumbnail
+                'ou': ou, 'oh': oh, 'ow': ow,// original
+                // site and name
+                'pt': pt, 'st': st,// info link
+            });
+        } catch (e) {
+            console.warn(e);
+        }
+    }).filter(meta => !!meta);
+
+    metasMap = Object.fromEntries(metas.map(meta => [meta.id, meta])); // same as metas, but is an object with the "id" as the key
+
+    // this will set the "_meta" attribute for each of the images
+    Object.entries(metasMap).forEach(([k, v]) => {
+        const img = document.querySelector(`[data-tbnid="${v['id']}"] img.rg_i`);
+        if (img) {
+            img._meta = v;
+            img.src = v.ou;
+            img.closest('a').href = v.ou;
+        } else {
+            console.warn('no data-tbnid found for', v['id'])
+        }
+    });
 }
 
