@@ -259,9 +259,9 @@ const normalizeUrl = (function () {
                 buttonDropdown: 'div.irc_mmc.i8152 > div.i30053 > div > div.irc_m.i8164',
                 focusedPanel: [
                     'div#irc_cc div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
-                    '#Sva75c > div' // for side panel mode
+                    '#Sva75c > div > div > div.pxAole > div:not([style*="display: none;"])' // for side panel mode
                 ].join(),
-                panels: '#Sva75c > div, #irc_cc div.irc_c',
+                panels: '#Sva75c > div > div > div.pxAole > div, #irc_cc div.irc_c',
             },
         },
         ClassNames: {
@@ -414,13 +414,13 @@ const normalizeUrl = (function () {
             }
         );
         o.__defineGetter__('isRightViewLayout', () => { // check if the Google images layout
-                return !!document.querySelector('#irc_bg.irc-unt');
+                return !!document.querySelector('#irc_bg.irc-unt, #Sva75c');
             }
         );
 
         return o;
     })();
-    unsafeWindow.GoogleUtils = GoogleUtils;
+    // unsafeWindow.GoogleUtils = GoogleUtils;
 
     // GM_setValue(Constants.GMValues.UBL_SITES, "");
     // GM_setValue(Constants.GMValues.UBL_URLS, "");
@@ -777,7 +777,7 @@ const normalizeUrl = (function () {
         }
         /** @return {ImagePanel} returns the panel that is currently in focus (there are 3 panels) */
         static get focP() {
-            return this.mainPanelEl.querySelector(Consts.Selectors.Panel.focusedPanel).panel;
+            return ImagePanel.mainPanelEl.querySelector(Consts.Selectors.Panel.focusedPanel).panel;
         }
         static get noPanelWasOpened() {
             return document.querySelector(Consts.Selectors.Panel.panelExitButton).getAttribute('data-ved') == null;
@@ -793,7 +793,7 @@ const normalizeUrl = (function () {
             return getMeta(this.mainImage);
         }
         get isFocused() {
-            return this.el.style.transform === 'translate3d(0px, 0px, 0px);';
+            return this.el.style.display !== 'none' || this.el.style.transform === 'translate3d(0px, 0px, 0px);';
         }
         get panel() {
             return this;
@@ -838,7 +838,7 @@ const normalizeUrl = (function () {
         /** Secondary title
          * @return {HTMLAnchorElement, Node} */
         get sTitle_Anchor() {
-            return this.q('a.irc_lth.irc_hol, a.ZsbmCf');
+            return this.q('a.irc_lth.irc_hol, div:nth-child(1) > div > a.ZsbmCf');
         }
         get sTitle_Text() {
             const secondaryTitle = this.sTitle_Anchor;
@@ -846,7 +846,7 @@ const normalizeUrl = (function () {
             return cleanGibberish(secondaryTitle.innerText.replace(siteHostName, ''));
         }
         get imgUrl() {
-            return GoogleUtils.isRightViewLayout ? this.mainImage.src : this.ris_fc_Url;
+            return this.mainImage.src;
         }
         get ris_fc_Url() {
             return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : normalizeUrl('#');
@@ -1582,12 +1582,12 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             }
         }
         update_ImageHost() {
-            const focusedImageDiv = this.ris_fc_Div;
-            if (focusedImageDiv) {
+            const self = this;
+            elementReady(() => self.ris_fc_Div(), {timeout: 2000}).then(focusedImageDiv => {
                 const url = focusedImageDiv.querySelector('a').href;
                 const hostname = getHostname(PProxy.DDG.test(url) ? PProxy.DDG.reverse(url) : url);
                 // updating ImageHost
-                const ih = this.q('a.image-host');
+                const ih = self.q('a.image-host');
                 if (ih) {
                     ih.innerText = hostname;
                     ih.style.display = '';
@@ -1595,10 +1595,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
                     if (ublSitesSet.has(hostname))
                         setStyleInHTML(ih, 'color', `${Preferences.loading.successColor} !important`);
-                } else {
-                    console.warn('ImageHost element not found:', ih);
                 }
-            }
+            }).catch((e) => console.warn('ImageHost element not found', e));
         }
 
         siteSearch() {
@@ -1629,17 +1627,17 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         }
 
         update_SiteSearch() {
-            const siteSearchAnchor = this.q('a.site-search');
-            const hostname = getHostname(this.sTitle_Anchor.href);
-            if (siteSearchAnchor) {
+            const self = this;
+            elementReady(() => self.q('a.site-search'), {timeout: 2000}).then(siteSearchAnchor => {
+                const hostname = getHostname(this.sTitle_Anchor.href);
                 siteSearchAnchor.innerText = 'site:' + hostname;
                 siteSearchAnchor.href = (GoogleUtils.url.siteSearchUrl(hostname));
-            } else {
-                console.warn('Site Search element not found:', siteSearchAnchor);
-            }
 
-            if (ublSitesSet.has(hostname))
-                setStyleInHTML(this.sTitle_Anchor, 'color', `${Preferences.loading.successColor} !important`);
+                if (ublSitesSet.has(hostname)) {
+                    setStyleInHTML(self.sTitle_Anchor, 'color', `${Preferences.loading.successColor} !important`);
+                }
+            })
+                .catch(() => console.warn('Site Search element not found'))
         }
         /** Removes the annoying image link when the panel is open */
         removeLink() {
@@ -1649,11 +1647,14 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             console.log('anchor.href', anchor.href);
         }
         addImageAttributes() {
-            this.mainImage.setAttribute('img-title', this.pTitle_Text);
-            this.mainImage.setAttribute('description', this.descriptionText);
-            this.mainImage.setAttribute('img-subtitle', this.sTitle_Text);
-            this.mainImage.setAttribute('download-name', this.sTitle_Text);
-            this.mainImage.setAttribute('alt', this.sTitle_Text);
+            const self = this;
+            return elementReady(() => this.mainImage, {timeout: 2000}).then(mainImage => {
+                mainImage.setAttribute('img-title', self.pTitle_Text);
+                mainImage.setAttribute('description', self.descriptionText);
+                mainImage.setAttribute('img-subtitle', self.sTitle_Text);
+                mainImage.setAttribute('download-name', self.sTitle_Text);
+                mainImage.setAttribute('alt', self.sTitle_Text);
+            }).catch(e => console.warn('mainImage timed out', e))
         }
         lookupTitle() {
             console.log('lookup title:', this.bestNameFromTitle);
@@ -3065,7 +3066,8 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         }
 
         try {
-            const selector = `div.rg_bx, #islrg > div.islrc > div[data-ved="${$.escapeSelector(div.getAttribute('data-ved'))}"] div.rg_meta`;
+            const dataved = div ? div.getAttribute('data-ved') : '';
+            const selector = `div.rg_bx, #islrg > div.islrc > div[data-ved="${$.escapeSelector(dataved)}"] div.rg_meta`;
             const rg_meta = div.querySelector('.rg_meta') || document.querySelector(selector);
             if (rg_meta && !Object.keys(metaObj).length) {
                 metaObj = JSON.parse(rg_meta.innerText);
@@ -3822,7 +3824,12 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
      */
     function getMenuItems() {
         //TODO: needs update for new selectors
-        const menuItems = document.querySelector('#hdtb-msb, .tAcEof').querySelectorAll('div > div > div > a');
+        const menuItems = document.querySelector([
+            '#hdtb-msb',
+            '.tAcEof',
+            'div.O850f > div > div'
+        ].join(', '))
+            .querySelectorAll('div > div > div > a');
         const menuItemNames = [
             'all',
             'images',
@@ -4043,10 +4050,6 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
                 cursor: pointer;
             }
 
-            /*takes care of the main image link, makes sure it's exactly the same size of the image */
-            div.irc_mic > a, a.irc_mutl, a.irc_mil {
-                display: contents !important;
-            }
 
             /* image panel title&description container (The right upper part)*/
             div.irc_hd * {
@@ -4222,7 +4225,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         div#navbar {
             position: fixed;
             z-index: 2;
-            min-height: 10px;
+            height: 10px;
             top: 0;
             right: 0;
             left: 0;
@@ -4968,7 +4971,6 @@ function updateMetaFromScript() {
         try {
             parse_AF_dataInitCallback();
         } catch (e) {
-            console.warn(e);
         }
 
         return;
