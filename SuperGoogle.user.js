@@ -1612,8 +1612,9 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
             // onImageBatchLoaded observe new image boxes that load
             observeDocument((mutations, me) => {
-                updateMetaFromScript();
-
+                if (!!document.querySelector("#islmp > div > div > div > div")) {
+                    updateImageMetas();
+                }
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
                 //Google direct links
@@ -4426,28 +4427,32 @@ function rightClick(element) {
 }
 
 function getMetaContainers() {
-    // const g = window['document']['gs']['__jscontroller']['o']['Hd']['ek']['byfTOb'][0]['g']['nl']['g']['g'][0]['mt']['Fp'][1]['o']['V']['nl']['g']['j'][0]['mt']['ma']['W']['nl']['g']['resize'][1]['mt']['Sb']['zc'][0]['__jscontroller']['o']['Cj']['Nk']['g'];
+    function getObjs(o) {
+        return Object.values(o).filter(v => !!v && typeof (v) === 'object' && !(v instanceof Array));
+    }
+// const g = window['document']['gs']['__jscontroller']['o']['Hd']['ek']['byfTOb'][0]['g']['nl']['g']['g'][0]['mt']['Fp'][1]['o']['V']['nl']['g']['j'][0]['mt']['ma']['W']['nl']['g']['resize'][1]['mt']['Sb']['zc'][0]['__jscontroller']['o']['Cj']['Nk']['g'];
     try {
         // var j = document.querySelector("#NmTzue")['__jscontroller']['o']['g']['j'];
         // var val = j['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3'];
-        
-        var V = document.querySelector("#yDmH0d > div.T1diZc.KWE8qe > c-wiz") 
+
+        var V = document.querySelector("#yDmH0d > div.T1diZc.KWE8qe > c-wiz")
             || window['document']['gs']['__jscontroller']['og']
             ['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']
             ['Ck']['Ul']['g']['5']['__jscontroller']['og']
             ['j']['va']['g']['g']['wm']['g']['l'][2]['sv']['g']['0']['target']['__component']['Aa']['og']['o']['lf']['Aa']['w']['__jscontroller']['og']
             ['cu']['chrome']['V'];
         // turns out
-        var Hg = document.querySelector("#islmp > div > div > div > div") 
+        var Hg = document.querySelector("#islmp > div > div > div > div")
             || V['__jscontroller']['og']['H'][0]['Hg']
 
         var __jsmodel = Hg['__jsmodel'];
-        var og  = __jsmodel['jJJIob']['og'];
+        var jJJIob = __jsmodel['jJJIob'];
+        var og  = getObjs(jJJIob).pop(); // return first object value
         // all the `Ea` and 
 
-        var metaInfos = Object.values(og).filter(v => v && v.hasOwnProperty('vf') && (v.o instanceof Array )).map(
+        var metaInfos = Object.values(og).filter(v => v && v.hasOwnProperty('o') && (v.o instanceof Array )).map(
             ea => ea['o'][0].w[2]//
-            
+
             /*  ea['o'][0] looks like this:
 
                 g: {3: Array(204), 12: _.Qu, 25: Array(0)}
@@ -4457,17 +4462,26 @@ function getMetaContainers() {
             */
                 //['g']['3']//[85]['g']['2']['g']['4']['w'][0] // => 'https://25.media.tumblr.com/8026bf09a8e515d070ff11525fa6086a/tumblr_mj3krePaWE1s7un91o1_250.gif'
         ).flat(1);
-        
 
         // window['document']['gs']['__jscontroller']['og']['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']['Ck']['Ul']['g']['11']['__jscontroller']['og']['g']['j']['V']['__jscontroller']['og']['V']['o']['l2bgrgmABs15hM']['g']['1']['g']['5'][0]['g']['13']['g']['3'][9]['g']['2']['g']['183836587']['g']['3']['g']['2']['g']['10']['w'][2] // => '8EFACzxVi8cG2M'
 
         var metaInfos2 = [];
         try {
-            var metaInfos2 = Object.values(Object.values(Object.values(V['__jscontroller']['og']['V']['o'])[0]['g']['1']['g'])[0][0]['g']).map(
-                e => e['g']['3'].w[1]
-                //[9]['g']['2']['g']['183836587']['g']['3']['g']['2']['g']['10']['w'][2] // => '8EFACzxVi8cG2M'
-            ).flat()
+            metaInfos2 = Object.values
+            (
+                Object.values
+                (
+                    Object.values(getObjs(V['__jscontroller']).pop()['V']['o'])
+                        .filter(v => v && v['g'] && v['g']['1'] && v['g']['1']['g'])
+                    // Object.values(getObjs(V['__jscontroller']).pop()['V']['o'])
+                    //     [0]['g']['1']['g']
+                )
+                    [0][0]['g']
+            ).map(e => e['g']['3'].w[1]) //[9]['g']['2']['g']['183836587']['g']['3']['g']['2']['g']['10']['w'][2] // => '8EFACzxVi8cG2M'
+                .flat();
+
         } catch (e) {
+            // console.warn(e);
         }
 
 
@@ -4477,12 +4491,11 @@ function getMetaContainers() {
         return [];
     }
 }
-
 /**
  * returns metas, format is a map, key: id, value: meta
  * @returns {Meta[]}
  */
-function getMetaFromPage() {
+function extractImageMetas() {
     function convertXvToMeta(info) { // this is turning the array to an object
         try {
             const rg_meta = {
@@ -4539,41 +4552,71 @@ function getMetaFromPage() {
     return Object.fromEntries(metas.map(meta => [meta.id, meta]));
 }
 
-function updateMetaFromScript() {
-    var metasMap = getMetaFromPage();
+function updateImageMetas() {
+    let metasMap = extractImageMetas();
     // this will set the "_meta" attribute for each of the images
     if (!Object.keys(metasMap).length) {
-        console.warn('metaData is null');
+        console.warn('failed to parse metaData');
 
         try {
-            parse_AF_dataInitCallback();
+            metasMap = parse_AF_dataInitCallback();
         } catch (e) {
+            console.error('even parse_AF_dataInitCallback failed:', e);
+            return;
         }
 
-        return;
     }
 
     const imgs = document.querySelectorAll(`div[data-tbnid] img.rg_i`);
-    for (const img of imgs) {
+    // for each image, add the meta, and return if success or failure
+    const failures = [].map.call(imgs, img => {
         const div = img.closest('div[data-tbnid]');
         const id = div.getAttribute('data-tbnid');
         const meta = metasMap[id];
 
         if (!meta) {
-            console.warn(`meta not found imgBox: [data-tbnid="${id}"] src=`, img.src.slice(0, 100));
-            continue;
+            return img;
         }
-        if (img._meta) continue;
+        // if (img._meta) return;
 
         img._meta = meta;
-        img.src = meta.ou;
+        img.setAttribute('fullres-src', meta.ou);
         img.closest('a').href = meta.ou;
-        console.log('added meta data:', meta);
-    }
+        // console.log('added meta data:', meta);
+    }).filter(x => !!x);
+
+    // if (failures.length) {
+    //     console.warn('meta not found imgBoxes', failures);
+    // }
+
+    // // this will set the "_meta" attribute for each of the images
+    // Object.entries(metasMap).forEach(([, meta]) => {
+    //     const img = document.querySelector(`[data-tbnid="${meta['id']}"] img.rg_i`);
+    //     if (!img) {
+    //         console.warn('no data-tbnid found for', meta['id'])
+    //         return;
+    //     }
+    //     // if (img._meta) return;
+    //
+    //     img._meta = meta;
+    //
+    //     img.src = meta.ou;
+    //     img.setAttribute('fullres-src', meta.ou);
+    //     img.closest('a').href = meta.ou;
+    //     console.log('added meta data:', meta);
+    // });
+
+
 }
+
+unsafeWindow.extractImageMetas = extractImageMetas;
+unsafeWindow.updateImageMetas = updateImageMetas;
 
 
 function parse_AF_dataInitCallback() {
+    if (parse_AF_dataInitCallback.metasMap) return parse_AF_dataInitCallback.metasMap;
+
+    var metasMap = {};
     var data = Array.from(document.querySelectorAll('script[nonce]'))
         .map(s => s.innerText)
         .filter(t => /^AF_initDataCallback/.test(t))
@@ -4592,6 +4635,7 @@ function parse_AF_dataInitCallback() {
     ;
 
     var entry = data.slice(-1)[0];
+    if (!entry) return metasMap;
     var imgMetas = entry[31][0][12][2].map(meta => meta[1]); // confirmed
     var metas = imgMetas.map(meta => {
         try {
@@ -4626,16 +4670,6 @@ function parse_AF_dataInitCallback() {
 
     metasMap = Object.fromEntries(metas.map(meta => [meta.id, meta])); // same as metas, but is an object with the "id" as the key
 
-    // this will set the "_meta" attribute for each of the images
-    Object.entries(metasMap).forEach(([k, v]) => {
-        const img = document.querySelector(`[data-tbnid="${v['id']}"] img.rg_i`);
-        if (img) {
-            img._meta = v;
-            img.src = v.ou;
-            img.closest('a').href = v.ou;
-        } else {
-            console.warn('no data-tbnid found for', v['id'])
-        }
-    });
+    parse_AF_dataInitCallback.metasMap = metasMap;
+    return metasMap;
 }
-
