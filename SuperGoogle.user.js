@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogle
 // @author       Faris Hijazi
-// @version      0.9
+// @version      1.1.0
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
