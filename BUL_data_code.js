@@ -184,3 +184,195 @@ if (ublSitesSet.has(hostname)) {
 if (ublSitesSet.has(hostname)) {
     setStyleInHTML(ih, 'color', `${Preferences.loading.successColor} !important`);
 }
+
+
+// =======
+
+//TODO: remove this completely
+class GSaves {
+    static get initialItem() {
+        return google.pmc.colmob.initial_item.map(item => JSON.parse(item));
+    }
+    /**
+     * @return {{ imageUrl:{string}, url:{string}, title:{string}, faviconUrl:{string}, redirectUrl:{string}, realUrl:{string} }}
+     */
+    static get initialItemObjectList() {
+        function item2Obj(item) {
+            const itemObj = {};
+            try {
+                itemObj.imageUrl = item[9] ? item[9][0] : null; // img url
+                itemObj.url = item[5];
+                itemObj.title = item[6];
+                itemObj.faviconUrl = item[17];
+                itemObj.redirectUrl = item[18];
+
+                const searchParams = new URL(itemObj.redirectUrl, 'https://www.google.com').searchParams;
+                console.log('searchParams for:', item, searchParams);
+
+                const q = searchParams.get('q');
+                const qUrl = new URL(q, 'https://google.com');
+
+                const imgrefurl = qUrl.searchParams.get('imgrefurl') ? qUrl.searchParams.get('imgrefurl') : q;
+
+                itemObj.realUrl = imgrefurl ? imgrefurl : q;
+            } catch (e) {
+                console.error(e);
+            }
+
+            return itemObj;
+        }
+        return this.initialItem.map(item2Obj);
+    }
+    static get containers() {
+        return document.querySelectorAll('div.str-clip-card-space:not(.modified)');
+    }
+    static get directUrls() {
+        return Array.from(document.querySelectorAll('a.Uc6dJc'))
+            .map(a => new URL(a.href, location.href).searchParams.get('imgrefurl'));
+    }
+    static get jsonSummary() {
+        return Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
+            ({
+                'title': a.getAttribute('aria-label'),
+                'href': a.getAttribute('href'),
+                'site': a.querySelector('.SQJAwb').innerText,
+                'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
+            })
+        );
+    }
+    static removeClickListeners(container) {
+        container.parentNode.appendChild(createElement(container.outerHTML));
+        container.remove();
+    }
+    static _slipAnchorUnderElement(element, href) {
+        const tempInnerHTML = element.innerHTML;
+        element.innerHTML = '';
+        element.appendChild(createElement(`<a class="mod-anchor" target="_blank" href="${href}">${tempInnerHTML}</a>`));
+    }
+    static wrapPanels() {
+        console.log('wrapGSavesPanels()');
+
+        const iio = this.initialItemObjectList;
+
+        let i = 0;
+        for (const container of this.containers) {
+
+            this.removeClickListeners(container);
+
+
+            if (container.querySelector(['.str-tag-card-images-holder', 'a.wrapper-anchor', 'a.mod-anchor'].join(', '))) {
+                console.warn('element will not be wrapped by anchor:', container);
+                continue;
+            }
+            // main card
+            this._slipAnchorUnderElement(container.querySelector('div.str-wide-card-text-holder'), iio[i].realUrl);
+
+            // title div
+            // this.slipAnchorUnderElement(container.querySelector('div.str-wide-card-title'), iio[i].url);
+
+            // img container
+            this._slipAnchorUnderElement(container.querySelector('div.str-wide-card-image-holder'), iio[i].imageUrl);
+
+            i++;
+        }
+
+        // language=CSS
+        addCss(
+            `.str-wide-card {
+                        cursor: default !important;
+                    }
+
+                    .str-wide-card-title, .str-wide-card-text-holder {
+                        display: -webkit-inline-box !important;
+                    }
+
+                    .str-wide-card.expandable:not(.expanded) {
+                        height: 100%;
+                    }`);
+    }
+    static addDirectUrlsButton(mutationTarget) {
+        if (document.querySelector('#add-direct-urls-button')) return;
+        const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
+
+        if (threeDots) {
+            const dlj = createElement(`<button id="add-direct-urls-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Direct urls</span></button>`);
+            threeDots.closest('div[role="button"]').after(dlj);
+            dlj.onclick = function () {
+                GSaves.addDirectUrls();
+            };
+        }
+    }
+    static addDirectUrls(mutationTarget = {}) {
+        GSaves.replaceWithDirectUrls();
+        return;
+
+        addCss('.RggFob .mL2B4d { text-align: center; }', 'gsaves-center-anchors');
+        if (!mutationTarget) return;
+        console.log('GSaves.addDirectUrls();');
+
+        for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
+            const usp = new URL(a.href, location.href).searchParams;
+            if (usp.get('imgrefurl')) {
+                const href = usp.get('imgrefurl');
+                if (!a.parentElement.querySelector('.page-link')) {
+                    a.after(createElement('<a class="page-link" target="_blank" href="' + href + '">page</a>'));
+                }
+            }
+        }
+    }
+    /**
+     * adds the option to `downloadJson()` to the dropdown
+     * safe to call multiple times, it checks if the button was already added
+     */
+    static addDLJsonButton() {
+        if (document.querySelector('#download-json-button')) // button already exists
+            return;
+
+        const threeDots = document.querySelector('img[src="https://www.gstatic.com/save/icons/more_horiz_blue.svg"]');
+
+        if (threeDots) {
+            const dlj = createElement(`<button id="download-json-button" class="VfPpkd-LgbsSe VfPpkd-LgbsSe-OWXEXe-INsAgc Rj2Mlf P62QJc Gdvizd"><span jsname="V67aGc" class="VfPpkd-vQzf8d">Download JSON {}</span></button>`);
+            threeDots.closest('div[role="button"]').after(dlj);
+            dlj.onclick = function () {
+                GSaves.downloadJson();
+            };
+        }
+    }
+    static replaceWithDirectUrls(mutationTarget = document) {
+        console.log('GSaves.toDirectUrls();');
+        for (const a of mutationTarget.querySelectorAll('a.Uc6dJc')) {
+            const usp = new URL(a.href).searchParams;
+            const imgurl = usp.get('imgrefurl') || usp.get('imgurl');
+            if (imgurl) {
+                a.href = imgurl;
+                console.log('imgurl', imgurl);
+            }
+        }
+    }
+    static downloadJson() {
+        const json = JSON.stringify(Array.from(document.querySelectorAll('a.Uc6dJc')).map(a =>
+            ({
+                'title': a.getAttribute('aria-label'),
+                'href': a.getAttribute('href'),
+                'site': a.querySelector('.SQJAwb').innerText,
+                'thumbnail': a.querySelector('.DgJKRc').style['background-image'].slice(5, -2)
+            })
+        ), null, 4);
+        anchorClick(makeTextFile(json), document.title + '.json');
+    }
+}
+
+// TODO: move GSaves code to another script
+// if on google.com/saves, add keyboard shortcuts
+if (/google\..+\/save/.test(location.href)) {
+    console.log('beginning of google.com/save site...');
+
+    mousetrap.bind('`', function () {
+        GSaves.wrapPanels();
+    });
+
+    observeDocument(function () {
+        GSaves.addDirectUrlsButton();
+        GSaves.addDLJsonButton();
+    });
+}
