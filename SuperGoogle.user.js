@@ -2939,11 +2939,20 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
              * </a>
              */
 
+            return;
 
             // footlink is the main link, it will be duplicated and the description text will be moved and used as the panelpage link
 
             // splitting the 2 lines of the footlink to 2 links, one with the phref
-            const footLink = link.parentElement.querySelector('a.irc-nic'); // the info link with the host-page
+            let footLink = link.parentElement.querySelector('a.irc-nic, span'); // the info link with the host-page
+            if (footLink.tagName === 'SPAN') {
+                const span = footLink;
+                footLink = createElement(span.outerHTML.replace('<span', '<a').replace('span>', 'a>'));
+                footLink.classList.add('irc-nic');
+                footLink.href = span.innerText;
+                span.after(footLink);
+                span.remove();
+            }
             if (!footLink) {
                 console.warn("footLink is null!", link.href);
                 return;
