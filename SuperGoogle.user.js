@@ -4630,15 +4630,20 @@ function parse_AF_dataInitCallback() {
         .map(s => s.innerText)
         .filter(t => /^AF_initDataCallback/.test(t))
         .map(t => {
-            try {
-                // this will trim the code to choose only the part with the data arrays
-                const [start, end] = ["data:function(){return ", "]\n}});"];
-                const data_str = t.substring(t.indexOf(start) + start.length, t.lastIndexOf(end) + 1);
-                return JSON.parse(data_str);
-            } catch (e) {
-                console.error(e);
-                return {};
+            // this will trim the code to choose only the part with the data arrays
+            const start_ends = [
+                ["data:function(){return ", "]\n}});"],
+                ["data:", "]\n});"],
+            ];
+            for (const [start, end] of start_ends) {
+                try {
+                    const data_str = t.substring(t.indexOf(start) + start.length, t.lastIndexOf(end) + 1);
+                    return JSON.parse(data_str);
+                } catch (e) {
+                    console.debug(e);
+                }
             }
+            return {};
         })
         .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))
     ;
