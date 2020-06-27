@@ -43,6 +43,9 @@ Table of contents:
     - [Enhance the image panels](#enhance-the-image-panels)
     - [Hotkeys](#hotkeys)
   - [Documentation](#documentation)
+  - [Logs](#logs)
+    - [Dec-2019 backend update](#dec-2019-backend-update)
+      - [Notes and observations:](#notes-and-observations)
   - [External Libraries](#external-libraries)
     - [Libraries](#libraries)
   - [Contributing](#contributing)
@@ -156,6 +159,44 @@ Panel-specific (hotkeys that work for an image panel when it is open)
 
 - The [docs](docs/doc.md) file contains info about the code and any complicated parts.
 - The [reverse engineering](docs\ReverseEngineering.md) contains info about how the website works and the main components it contains (based on observations), such as the CSS selectors for the panels and components, where the info is kept in the page, where thumbnails are loaded and where main images are.
+
+## Logs
+
+### Dec-2019 backend update
+
+Google changed their webpage HTML AGAIN! :(
+And now the images aren't in `.rg_meta`, they're hidden somewhere deep in an array, this is called [json transpose](https://codesandbox.io/s/vue-json-transpose-dt915?from-embed).
+And also the CSS selectors for the elements have been changed, they used to make sense but now they're just gibberish.
+
+#### Notes and observations:
+
+- so many anchor.href === "https://www.google.com/null"
+  Reason was that `3361: return normalizeUrl(this.getAttribute('href'));` href was null, and normalizeUrl was forcing it to be a string.
+- I noticed that when you right-click, you get the correct URL, but when running `showImages()`, the anchor.href is null.
+- pretty much all the google functions are inside an object called `_`
+- clicking the images all the time causes issues. Such as unresponsiveness, ruining the panels (all 3)
+
+Issues to fix:
+
+- [x] select image slider isn't selecting the images. none are qualified for some reason.
+    - the reason is that the width and height are not in the `meta` object
+- [x] related images don't have onhoverListeners
+- [ ] the download buttons don't get the right name when downloading
+- [ ] there is some null text on the top left corner
+- [ ] hovering over related images doesn't do anything anymore
+
+Actions that must be taken:
+- [x] image null URLs are turning into "null" strings, this must be stopped. the anchor is having a null href, that's one of the reasons
+- [ ] update selectors
+  - [ ] should put them all in `Consts.Selectors`
+  - [ ] navbar
+  - [x] image boxes
+  - [ ] images
+- [ ] get image meta info. (This is from the script json transpose)
+  - [ ] get info for image boxes
+  - [ ] git info for related images
+- panels
+  - [ ] fix download button (it)
 
 ## External Libraries
 
