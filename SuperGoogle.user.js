@@ -4568,9 +4568,9 @@ function updateImageMetas() {
         console.warn('failed to parse metaData');
 
         try {
-            metasMap = parse_AF_dataInitCallback();
+            metasMap = parse_AF_initDataCallback();
         } catch (e) {
-            console.error('even parse_AF_dataInitCallback failed:', e);
+            console.error('even parse_AF_initDataCallback failed:', e);
             return;
         }
 
@@ -4622,29 +4622,15 @@ unsafeWindow.extractImageMetas = extractImageMetas;
 unsafeWindow.updateImageMetas = updateImageMetas;
 
 
-function parse_AF_dataInitCallback() {
-    if (parse_AF_dataInitCallback.metasMap) return parse_AF_dataInitCallback.metasMap;
+function parse_AF_initDataCallback() {
+    if (parse_AF_initDataCallback.metasMap) return parse_AF_initDataCallback.metasMap;
+
 
     var metasMap = {};
     var data = Array.from(document.querySelectorAll('script[nonce]'))
         .map(s => s.innerText)
         .filter(t => /^AF_initDataCallback/.test(t))
-        .map(t => {
-            // this will trim the code to choose only the part with the data arrays
-            const start_ends = [
-                ["data:function(){return ", "]\n}});"],
-                ["data:", "]\n});"],
-            ];
-            for (const [start, end] of start_ends) {
-                try {
-                    const data_str = t.substring(t.indexOf(start) + start.length, t.lastIndexOf(end) + 1);
-                    return JSON.parse(data_str);
-                } catch (e) {
-                    console.debug(e);
-                }
-            }
-            return {};
-        })
+        .map(t => eval(t.replace(/^AF_initDataCallback/, '')).data)
         .filter(d => d && d.length && d.reduce((acc, el) => acc || el && el.length))
     ;
 
@@ -4684,6 +4670,6 @@ function parse_AF_dataInitCallback() {
 
     metasMap = Object.fromEntries(metas.map(meta => [meta.id, meta])); // same as metas, but is an object with the "id" as the key
 
-    parse_AF_dataInitCallback.metasMap = metasMap;
+    parse_AF_initDataCallback.metasMap = metasMap;
     return metasMap;
 }
