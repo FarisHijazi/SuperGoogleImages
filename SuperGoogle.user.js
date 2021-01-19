@@ -1645,6 +1645,10 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
         } else { // else if not google images
 
+            elementReady(() => getElementsByXPath("//a[text()='Change to English']")[0]).then(changeToEnglishAnchors => {
+                changeToEnglishAnchors.click();
+            });
+
             // bind each result to the corresponding number
             for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
                 mousetrap.bind(String(i + 1), function (e) {
