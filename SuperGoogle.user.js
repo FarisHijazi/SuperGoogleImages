@@ -293,7 +293,7 @@ const normalizeUrl = (function () {
                  * if this field is falsy, then there will be no changes to the url.
                  * disable by prepending with '!'
                  */
-                forcedHostname: 'ipv4.google.com',
+                forcedHostname: '!ipv4.google.com',
             },
             // these should be under "page"
             page: {
