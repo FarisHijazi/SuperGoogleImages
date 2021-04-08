@@ -256,7 +256,8 @@ const normalizeUrl = (function () {
                 buttonDropdown: 'div.irc_mmc.i8152 > div.i30053 > div > div.irc_m.i8164',
                 focusedPanel: [
                     'div#irc_cc div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
-                    '#Sva75c > div > div > div.pxAole > div:not([style*="display: none;"])' // for side panel mode
+                    '#Sva75c > div > div > div.pxAole > div:not([style*="display: none;"])', // for side panel mode
+                    "#Sva75c > div > div > div.pxAole > div:not([aria-hidden='true'])",
                 ].join(),
                 panels: '#Sva75c > div > div > div.pxAole > div, #irc_cc div.irc_c',
             },
