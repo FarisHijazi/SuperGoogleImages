@@ -575,37 +575,47 @@ const normalizeUrl = (function () {
         get imgUrl() {
             return this.mainImage.src;
         }
-        get ris_fc_Url() {
-            return this.ris_fc_Div ? this.ris_fc_Div.querySelector('a').href : normalizeUrl('#');
+
+        async ris_fc_Url() {
+            const ris_fc_Div = await this.ris_fc_Div();
+            return ris_fc_Div.querySelector('a').href;
         }
         /** Returns that small square at the bottom right (the focused one)
          * @return {HTMLDivElement} */
-        get ris_fc_Div() {
-            if (this.ris_Divs)
-                for (const div of this.ris_Divs)
-                    if (div.classList.contains('irc_rist'))
-                        return div;
+        async ris_fc_Div() {
+            const ris_Divs = await this.ris_Divs();
+            // return div; //FIXME: just testing
+            for (const div of ris_Divs)
+                if (div.classList.contains('irc_rist'))
+                    return div;
         }
         /** @return {HTMLDivElement} returns only the last related image div from `ris_Divs()`*/
-        get ris_DivLast() {
-            let c = this.ris_Divs;
-            c = c && Array.from(c);
-            return c && c.pop();
+        async ris_DivLast() {
+            let c = await this.ris_Divs();
+            return Array.from(c).pop();
         }
         /** @return {HTMLDivElement[]} returns all related image divs (including the "VIEW MORE" div)*/
-        get ris_DivsAll() {
-            const c = this.ris_Container;
-            if (c) return Array.from(c.querySelectorAll('div[jsaction] [jsname="neVct"] > div > div'));
+        async ris_DivsAll() {
+            const c = await this.ris_Container();
+            return Array.from(c.querySelectorAll('div[jsaction] [jsname="neVct"] > div > div'));
         }
         /** @return {HTMLDivElement[]} returns only related image divs (excluding the "VIEW MORE" div)*/
-        get ris_Divs() {
-            const d = this.ris_DivsAll;
-            if (d) return d.filter(div => !div.classList.contains('irc_rismo'));
-            return [];
+        async ris_Divs() {
+            const d = await this.ris_DivsAll();
+            return d.filter(div => !div.classList.contains('irc_rismo'));
         }
         /** @return {HTMLDivElement} returns related image container (div.irc-deck)*/
-        get ris_Container() {
-            return Array.from(this.qa('div.irc_ris > div > div.irc_rit.irc-deck.irc_rit, [jsname="neVct"]')).pop();
+        async ris_Container() {
+            return elementReady(() =>
+                Array.from(this.qa('[data-l], div.irc_ris > div > div.irc_rit.irc-deck.irc_rit, [jsname="neVct"]')).pop()
+            );
+            // const els = this.qa('[data-l], div.irc_ris > div > div.irc_rit.irc-deck.irc_rit, [jsname="neVct"]');
+            // if (els.length) {
+            //     return Array.from(this.qa('[data-l], div.irc_ris > div > div.irc_rit.irc-deck.irc_rit, [jsname="neVct"]')).pop();
+            // }
+            // this.isFocused? Array.from(document.querySelectorAll('[data-l]')).pop(); 
+            // // if mainEl, return correctElement, else, nothing
+
         }
         /**
          * @type {NodeListOf<HTMLAnchorElement>}
@@ -792,9 +802,9 @@ const normalizeUrl = (function () {
                 }
             });
         }
-        static download_ris() {
+        static async download_ris() {
             const dir = 'Google_related ' + document.title.replace(/google|com/gi, '');
-            const relatedImageDivs = ImagePanel.focP.ris_DivsAll;
+            const relatedImageDivs = await ImagePanel.focP.ris_DivsAll();
             console.log('download related images:', relatedImageDivs);
 
             //         var metaDataStr = `Google images data for related images
@@ -862,15 +872,16 @@ const normalizeUrl = (function () {
             const recursivelyClickLastRelImg = function () {
                 console.log('recursivelyClickLastRelImg()');
                 timeout = setTimeout(function tryToClick() {
-                    const risLast = ImagePanel.focP.ris_DivLast;
-                    if (risLast && risLast.click) {
-                        risLast.click();
-                        isTryingToClickLastRelImg = false;
-                        clearTimeout(timeout);
-                        console.log('finally clicked the last related img:', risLast);
-                    } else {
-                        recursivelyClickLastRelImg();
-                    }
+                    ImagePanel.focP.ris_DivLast().then(risLast => {
+                        if (risLast && risLast.click) {
+                            risLast.click();
+                            isTryingToClickLastRelImg = false;
+                            clearTimeout(timeout);
+                            console.log('finally clicked the last related img:', risLast);
+                        } else {
+                            recursivelyClickLastRelImg();
+                        }
+                    });
                 }, interval);
             };
             recursivelyClickLastRelImg();
@@ -891,7 +902,9 @@ const normalizeUrl = (function () {
 
             if (debug) console.debug('Modifying panelEl:', panel.el);
 
-            panel.el.addEventListener('panelMutation', () => panel.onPanelMutation());
+            panel.el.addEventListener('panelMutation', function () {
+                panel.onPanelMutation();
+            });
             panel.onPanelMutation();
             panel.el.classList.add('modified-panel');
 
@@ -1082,15 +1095,17 @@ const normalizeUrl = (function () {
 
             //TODO: maybe this is what's preventing the main image from changing even when the ris loads
 
-            // make sure that main image link points to the main image (and not to the website)
-            const imgAnchor = panel.q('a[role="link"]');
-            imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
-            imgAnchor.addEventListener('click', function (e) {
-                window.open(this.querySelector('img').getAttribute('src'), '_blank');
-                e.stopImmediatePropagation();
-                e.stopPropagation();
-                e.preventDefault();
-            });
+            // make sure that main image link points to the main image URL (and not to the website)
+            elementReady(() => panel.q('a[role="link"]'), {timeout: 2000}).then(imgAnchor => {
+                imgAnchor.href = imgAnchor.querySelector('img').getAttribute('src') || '#';
+                // imgAnchor.addEventListener('click', function (e) {
+                //     window.open(this.querySelector('img').getAttribute('src'), '_blank');
+                //     e.stopImmediatePropagation();
+                //     e.stopPropagation();
+                //     e.preventDefault();
+                // });
+                directLinkReplacer.enhanceLink(imgAnchor);
+            }).catch(e => console.warn('imgAnchor didn\'t appear (waited for 2 seconds)', e));
 
 
             panel.linkifyDescription();
@@ -1130,27 +1145,29 @@ const normalizeUrl = (function () {
         }
         // TODO: maybe return the promises
         showRis() {
-            for (const div of this.ris_Divs) {
-                // if (debug) console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
-                const img = div.querySelector('img');
-                const forceUpdateOnload = false;
-                showImages.replaceImgSrc(img).then(e => { // DEBUG: this is still in testing (it causes issues with the rightView layout)
-                    if (forceUpdateOnload && isLoaded(img) && div.matches('.irc_rist')) { // if is the focused ris
-                        const mainImage = this.mainImage;
-                        if (mainImage.src !== img.src)
-                            console.log(
-                                'haha!! got the mainImage to update when the ris loaded',
-                                mainImage, img,
-                                '\n', mainImage.src + '->\n    ' + img.src
-                            );
+            this.ris_Divs().then(ris_Divs => {
+                for (const div of ris_Divs) {
+                    // if (debug) console.debug('showRis -> showImages.replaceImgSrc', div.querySelector('img'));
+                    const img = div.querySelector('img');
+                    const forceUpdateOnload = false;
+                    showImages.replaceImgSrc(img).then(e => { // DEBUG: this is still in testing (it causes issues with the rightView layout)
+                        if (forceUpdateOnload && isLoaded(img) && div.matches('.irc_rist')) { // if is the focused ris
+                            const mainImage = this.mainImage;
+                            if (mainImage.src !== img.src)
+                                console.log(
+                                    'haha!! got the mainImage to update when the ris loaded',
+                                    mainImage, img,
+                                    '\n', mainImage.src + '->\n    ' + img.src
+                                );
 
-                        mainImage.src = img.src;
-                        mainImage.setAttribute('loaded', 'true');
-                    }
-                }).catch(err => {
-                    console.warn('showRis failed', this.mainImage, img, err);
-                });
-            }
+                            mainImage.src = img.src;
+                            mainImage.setAttribute('loaded', 'true');
+                        }
+                    }).catch(err => {
+                        console.warn('showRis failed', this.mainImage, img, err);
+                    });
+                }
+            });
         }
         linkifyDescription() {
             const self = this;
@@ -1308,19 +1325,19 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
                 return element;
             }
         }
-        update_ImageHost() {
+        async update_ImageHost() {
             const self = this;
-            elementReady(() => self.ris_fc_Div(), {timeout: 2000}).then(focusedImageDiv => {
-                const url = focusedImageDiv.querySelector('a').href;
-                const hostname = getHostname(PProxy.DDG.test(url) ? PProxy.DDG.reverse(url) : url);
-                // updating ImageHost
-                const ih = self.q('a.image-host');
-                if (ih) {
-                    ih.innerText = hostname;
-                    ih.style.display = '';
-                    ih.href = GoogleUtils.url.siteSearchUrl(hostname);
-                }
-            }).catch((e) => console.warn('ImageHost element not found', e));
+            const focusedImageDiv = await self.ris_fc_Div();
+            if (!focusedImageDiv) return;
+            const url = focusedImageDiv.querySelector('a').href;
+            const hostname = getHostname(PProxy.DDG.test(url) ? PProxy.DDG.reverse(url) : url);
+            // updating ImageHost
+            const ih = self.q('a.image-host');
+            if (ih) {
+                ih.innerText = hostname;
+                ih.style.display = '';
+                ih.href = GoogleUtils.url.siteSearchUrl(hostname);
+            }
         }
 
         siteSearch() {
@@ -2275,19 +2292,19 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
         const constraintsContainer = (function () {
             // TODO: see this nice link, maybe use it one day https://css-tricks.com/value-bubbles-for-range-inputs/
 
-            const default_slider_minImgSize_value = 250;
-            Components.minImgSizeSlider = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${default_slider_minImgSize_value}" step="50">`);
+            Components.minImgSizeSlider = createElement(`<input id="minImgSizeSlider" type="range" min="0" max="3000" value="${Preferences.toolbar.smallImageSliderDefaultValue}" step="50">`);
 
             const sliderReading_minImgSize = createElement(`<label for="minImgSizeSlider" id="minImgSizeSliderValue">${Components.minImgSizeSlider.value}x${Components.minImgSizeSlider.value}</label>`);
             Components.minImgSizeSlider.oninput = function () {
-                sliderReading_minImgSize.innerHTML = /*'Min Dimensions<br>' +*/ (`${this.value}x${this.value}`);
+                const self = Components.minImgSizeSlider;
+                sliderReading_minImgSize.innerHTML = /*'Min Dimensions<br>' +*/ (`${self.value}x${self.value}`);
 
                 // Highlighting images that will be downloaded
                 // clearAllEffects(); // TODO: this is being called too much
                 for (const img of getThumbnails(true)) {
                     const meta = getMeta(img);
                     const width = meta.ow, height = meta.oh,
-                        isBigger = width >= this.value || height >= this.value;
+                        isBigger = width >= self.value || height >= self.value;
 
                     if (isBigger) {
                         img.classList.add('qualified-dimensions', 'out');
@@ -2311,28 +2328,30 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
                 updateQualifiedImagesLabel();
             };
 
-            const slider_dlLimit = createElement(`<input id="dlLimitSlider" type="range" min="1" max="${1000}" value="20">`);
-            const sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</strong>`);
+            const slider_dlLimit = $('<input id="dlLimitSlider" type="range">').attr({
+                'attr': 1,
+                'max': 1000,
+                'value': 20,
+            })[0];
+            const sliderReading_dlLimit = createElement(`<label id="dlLimitSliderValue">${slider_dlLimit.value}</label>`);
             slider_dlLimit.oninput = highlightSelection;
             slider_dlLimit.onchange = clearEffectsDelayed;
 
+            const tr1 = $('<tr>')
+                .append($(Components.minImgSizeSlider))
+                .append(sliderReading_minImgSize)[0];
 
-            const tr1 = document.createElement('tr');
-            tr1.appendChild(Components.minImgSizeSlider);
-            tr1.appendChild(sliderReading_minImgSize);
+            const tr2 = $('<tr>')
+                .append($(slider_dlLimit))
+                .append(sliderReading_dlLimit)[0];
 
-            const tr2 = document.createElement('tr');
-            tr2.appendChild(slider_dlLimit);
-            tr2.appendChild(sliderReading_dlLimit);
+            //TODO: make size slider increment discretely, depending on the available dimensions of the images sliders
 
-            const constraintsContainer = document.createElement('tb');
-            constraintsContainer.classList.add('sg');
-            constraintsContainer.appendChild(tr1);
-            constraintsContainer.appendChild(tr2);
-            //todo: make the image size slider increment discretely, depending on the available dimensions of the images
-            // Sliders
-
-            return constraintsContainer;
+            // return constraintsContainer
+            return $('<tb>')
+                .attr('class', 'sg')
+                .append(tr1)
+                .append(tr2)[0];
         })();
 
         const satCondLabel = createElement(`<label id="satCondLabel">Images satisfying conditions: 0</label>`);
@@ -2343,7 +2362,7 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             showOriginals();
         });
 
-        const link_animated = createElement(`<a class="sg q qs" href="${location.pathname + location.search + '&tbs=itp:animated'}"><u>A</u>nimated</a>`);
+        const link_animated = createElement(`<a class="sg q qs" id="TypeAnimated" href="${location.pathname + location.search + '&tbs=itp:animated'}"><u>A</u>nimated</a>`);
 
         const btn_preload = createGButton('preloadBtn', 'Preload images ↻', function () {
             const imgs = Array.from(document.querySelectorAll('a[href] img.rg_i'));
@@ -2360,13 +2379,11 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
         const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
         const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
-
         const btn_showKeymap = createGButton('showKeymap', '(?) keymap', toggleShowKeymap);
-
-        const btn_download = createGButton('downloadBtn', 'Download EVERYTHING ⇓', downloadImages);
-        btn_download.style.margin = '20px';
-        btn_download.style.border = '20px';
-        btn_download.innerHTML = cbox_ZIP.checked ? 'ZIP&nbsp;images' : `Download&nbsp;⇓`;
+        const btn_download = $(createGButton('downloadBtn', 'Download EVERYTHING ⬇️', downloadImages)).css({
+            "margin": '20px',
+            "border": '20px',
+        }).text(cbox_ZIP.checked ? 'ZIP&nbsp;images' : `⬇️&nbsp;Download`)[0];
 
         const downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
 
