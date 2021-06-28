@@ -294,7 +294,10 @@ const normalizeUrl = (function () {
                  * if this field is falsy, then there will be no changes to the url.
                  * disable by prepending with '!'
                  */
-                forcedHostname: '!ipv4.google.com',
+            },
+            toolbar: {
+                smallImageSliderDefaultValue: 250,
+                navbarHideDelay: 700,
             },
             // these should be under "page"
             page: {
@@ -1744,31 +1747,6 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
             109: 'numpad-',
         });
 
-        // toggle forcedHostname
-        mousetrap.bind('f h', function toggle_forcedHostname(e) {
-            const wasForced = Preferences.location.forcedHostname.charAt(0) !== '!';
-            const toForced = !wasForced && pageUrl.hostname !== Preferences.location.forcedHostname;
-
-            console.log('"f h" [toggle forcedHostname]\nto:', toForced ? 'forced' : 'www.');
-
-            if (toForced) {
-                Preferences.location.forcedHostname = Preferences.location.forcedHostname.replace(/^!/, '');
-            } else {
-                Preferences.location.forcedHostname = '!' + Preferences.location.forcedHostname;
-                pageUrl.hostname = 'www.google.com';
-            }
-
-            Preferences.store();
-            const reload = !processLocation();
-
-            if (reload) {
-                console.log('location didn\'t change');
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-            }
-        });
-
         // S S: SafeSearch toggle
         mousetrap.bind('s s', toggle_safesearch);
 
@@ -2060,11 +2038,6 @@ style="display: none; margin: 5px; padding: 5px; text-decoration:none;"
 
     // return true when there will be a change
     function processLocation() {
-        // switch to specific google domain/hostname (like ipv4.google.com)
-        if (typeof (Preferences.location.forcedHostname) === 'string' && Preferences.location.forcedHostname.charAt(0) !== '!') {
-            pageUrl.hostname = Preferences.location.forcedHostname;
-        }
-
         // URL args: Modifying the URL and adding arguments, such as specifying the size
         if (Preferences.location.customUrlArgs && Object.keys(Preferences.location.customUrlArgs).length) {
 
