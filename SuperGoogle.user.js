@@ -632,8 +632,15 @@ const normalizeUrl = (function () {
             location.assign(x);
         });
 
-        mousetrap.bind(['alt+a'], function switchToAnimatedResults() {
-            (!document.querySelector('#itp_animated').firstElementChild ? document.querySelector('#itp_').firstElementChild : document.querySelector('#itp_animated').firstElementChild).click();
+        mousetrap.bind(['alt+a', 'a a'], function switchToAnimatedResults() {
+            console.log('Go to animated');
+            location.assign(document.querySelector('#TypeAnimated').href);
+            (
+                document.querySelector('#TypeAnimated') ||
+                (document.querySelector('#itp_animated') && document.querySelector('#itp_animated').firstElementChild) ||
+                document.querySelector('#itp_').firstElementChild ||
+                document.querySelector('#itp_animated').firstElementChild
+            ).click();
         });
         mousetrap.bind(['D'], function downloadAll() {
             document.querySelector('#downloadBtn').click();
