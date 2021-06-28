@@ -29,7 +29,7 @@
 // ==/UserScript==
 
 // check this:
-// https://gist.githubusercontent.com/bijij/58cc8cfc859331e4cf80210528a7b255/raw/viewimage.user.js
+// https://gist.github.com/bijij/58cc8cfc859331e4cf80210528a7b255/
 
 // https://github.com/FarisHijazi/SuperGoogle/projects/1
 
@@ -274,7 +274,6 @@ const normalizeUrl = (function () {
 
     const Components = {
         minImgSizeSlider: {},
-
     };
 
 
@@ -304,26 +303,16 @@ const normalizeUrl = (function () {
             },
             // these should be under "page"
             page: {
-                defaultAnchorTarget: '_blank',
                 staticNavbar: false,
                 autoLoadMoreImages: false, // somewhat problematic and can be annoying
                 showImgHoverPeriod: 350, // if negative, then hovering functionality is disabled
-                disableDragging: true, //disable dragging images to reverse image search
             },
             shortcuts: {
                 hotkey: 'ctrlKey', // 'altKey', 'shiftKey'
             },
             loading: {
-                successColor: 'rgb(167, 99, 255)',
                 hideFailedImagesOnLoad: false,
                 useDdgProxy: true,
-            },
-            panels: {
-                autoShowFullresRelatedImages: true,
-                loopbackWhenCyclingRelatedImages: false,
-                favoriteOnDownloads: true, // favorite any image that you download
-                enableWheelNavigation: true,
-                invertWheelRelativeImageNavigation: false,
             },
         };
 
@@ -510,7 +499,7 @@ const normalizeUrl = (function () {
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
                 //Google direct links
-                directLinkReplacer.checkNewNodes(mutations);
+                // directLinkReplacer.checkNewNodes(mutations);
 
                 if (!addedImageBoxes.length) {
                     return;
@@ -524,7 +513,6 @@ const normalizeUrl = (function () {
                 }
                 onImageBatchLoaded(addedImageBoxes);
                 updateDownloadBtnText();
-                disableDragging();
 
             }, {
                 callbackMode: 0,
@@ -687,12 +675,6 @@ const normalizeUrl = (function () {
             Components.minImgSizeSlider.stepUp();
         });
 
-
-        mousetrap.bind([`'`], function toggle_enableLoopRelatedImages(e) {
-            Preferences.panels.loopbackWhenCyclingRelatedImages = !Preferences.panels.loopbackWhenCyclingRelatedImages;
-            GM_setValue('LOOP_RELATED_IMAGES', Preferences.panels.loopbackWhenCyclingRelatedImages);
-            console.log('LOOP_RELATED_IMAGES toggled to:', Preferences.panels.loopbackWhenCyclingRelatedImages);
-        });
         mousetrap.bind(['c'], function goToCollections(e) {
             const btn_ViewSaves = document.querySelector('#ab_ctls > li > a.ab_button');
             console.debug('btn_ViewSaves', btn_ViewSaves);
@@ -1507,7 +1489,7 @@ const normalizeUrl = (function () {
                 e.stopImmediatePropagation();
                 e.stopPropagation();
             };
-            // FIXME: download buttons not working for some reason
+
             const $dlBtn = $('<div class="text-block download-block""></div>').css({
                 'background-color': 'dodgerblue',
                 'margin-left': '35px',
@@ -1520,7 +1502,6 @@ const normalizeUrl = (function () {
             });
 
             img.after($dlBtn[0]);
-            console.log('$dlBtn[0]', $dlBtn[0]);
             $dlBtn[0].addEventListener('click', function (e) {
                 downloadImage(e);
             });
@@ -1622,14 +1603,6 @@ const normalizeUrl = (function () {
         }
 
         return metaObj;
-    }
-
-    //TODO: it's still not disabling dragging, need to call it in more places
-    function disableDragging() {
-        if (Preferences.page.disableDragging)
-            document.querySelectorAll('*').forEach(el => {
-                el.draggable = false;
-            });
     }
 
     /**
@@ -2754,48 +2727,48 @@ const normalizeUrl = (function () {
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`
-        div#navbar {
-            position: fixed;
-            z-index: 3;
-            height: 10px;
-            top: 0;
-            right: 0;
-            left: 0;
-            
-            width: 100%;
-            transition: top 0.1s;
-        }
-        
-        /*#footcnt {
-            bottom: -354px;
-            position: absolute;
-        }*/
-        
-        /*keep the background white for the navbar*/
-        .rshdr {
-            background: rgb(255, 255, 255);
-        }
-        
-        .fixed-position ${Preferences.page.staticNavbar ? ', #rshdr, header > div:nth-child(1), #top_nav' : ''} {
-            position: fixed;
-            top: 0;
-            z-index: 1000;
-        }
-        
-        #google-controls-container {
-            padding: 10px;
-            background: #727272;
-        }
+            div#navbar {
+                position: fixed;
+                z-index: 3;
+                height: 10px;
+                top: 0;
+                right: 0;
+                left: 0;
 
-        div#navbar-content {
-            z-index: -1;
-            margin: 5px;
-            font-family: inherit;
-            /*font-stretch: extra-condensed;
-            font-size: 20px;*/
-            transition: top 0.3s;
-            position: relative;
-        }`, 'navbar-css');
+                width: 100%;
+                transition: top 0.1s;
+            }
+
+            /*#footcnt {
+                bottom: -354px;
+                position: absolute;
+            }*/
+
+            /*keep the background white for the navbar*/
+            .rshdr {
+                background: rgb(255, 255, 255);
+            }
+
+            .fixed-position ${Preferences.page.staticNavbar ? ', #rshdr, header > div:nth-child(1), #top_nav' : ''} {
+                position: fixed;
+                top: 0;
+                z-index: 1000;
+            }
+
+            #google-controls-container {
+                padding: 10px;
+                background: #727272;
+            }
+
+            div#navbar-content {
+                z-index: -1;
+                margin: 5px;
+                font-family: inherit;
+                /*font-stretch: extra-condensed;
+                font-size: 20px;*/
+                transition: top 0.3s;
+                position: relative;
+            }`, 'navbar-css');
 
         addCss(`#irc_bg { transition: top 0.5s; }`);
 
