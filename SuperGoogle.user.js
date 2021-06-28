@@ -1482,12 +1482,16 @@ const normalizeUrl = (function () {
             if (imgBox.querySelector('.download-block'))
                 return;
 
-            const img = imgBox.querySelector('img.rg_i, img.irc_rii');
+            const img = imgBox.querySelector('img.rg_i, img.irc_rii, img');
             const link = img.closest('a');
 
             const downloadImage = function (e = {}) {
+                var img = this.previousElementSibling;
+                console.log('downloadImage', e, img);
+                const meta = getMeta(img);
                 const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou || 'META.OU IS UNDEFINED!';
-                const fileName = unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity;
+                const fileName = (unionTitleAndDescr(meta.s, unionTitleAndDescr(meta.pt, meta.st)) + meta.ity);
+
                 download(src, fileName, {fileExtension: meta.ity});
                 e.preventDefault();
                 e.stopImmediatePropagation();
@@ -2799,8 +2803,9 @@ const normalizeUrl = (function () {
          */
         nbarContent.setNavbarPos = function (e, pos = 0, hidelater = false) {
             clearTimeout(nbarContent.timeout);
-            nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
-
+            if (hidelater && pos !== 0) {
+                nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), Preferences.toolbar.navbarHideDelay);
+            }
             const googleControlsContainer = document.querySelector('#google-controls-container');
             nbarContent.style.top = `${(pos - 1) * googleControlsContainer.clientHeight}px`;
             nbarContent.pos = pos;
@@ -2869,14 +2874,51 @@ const normalizeUrl = (function () {
 
 
             // when hovering over the google toolbars, move the navbar down
-            $([navbarContent, navbarHoverSensor]).on('mouseover mousemove', function (e) {
-                // moveNavbarDown
-                if (navbarContent.pos <= 1) {
+            $([navbarHoverSensor]).on('mouseover mousemove', function (e) {
+                var directionX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+                var directionY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+                // console.log('directionX, directionY', directionX, directionY)
+
+                // // if mouse moving up: show
+                // if (directionY < 0) {
+                //     navbarContent.setNavbarPos(e, 1);
+                // }
+                // if mouse moving down: hide
+                if (directionY > 0) {
+                    console.debug('mouse moving down on navbar sensor:', 'hiding navbar')
+                    navbarContent.setNavbarPos(e, 0);
+                } else if (navbarContent.pos <= 1) { // moveNavbarDown
                     navbarContent.setNavbarPos(e, 1);
                 }
             }).on('mouseout', function (e) {
                 // when not hovering, set a timer to go back
-                // nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
+                // nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), Preferences.toolbar.navbarHideDelay);
+            });
+
+            // when hovering over the google toolbars, move the navbar down
+            $([navbarContent, navbarHoverSensor]).on('mouseover mousemove', function (e) {
+                var directionX = event.movementX || event.mozMovementX || event.webkitMovementX || 0;
+                var directionY = event.movementY || event.mozMovementY || event.webkitMovementY || 0;
+                // console.log('directionX, directionY', directionX, directionY)
+
+                // // if mouse moving up: show
+                // if (directionY < 0) {
+                //     navbarContent.setNavbarPos(e, 1);
+                // }
+                // if mouse moving down: hide
+                if (directionY > 0) {
+                    // console.debug('mouse moving down on navbar sensor:', 'hiding navbar')
+                    // navbarContent.setNavbarPos(e, 0);
+                } else if (navbarContent.pos <= 1) { // moveNavbarDown
+                    navbarContent.setNavbarPos(e, 1);
+                }
+            }).on('mouseout', function (e) {
+                // when not hovering, set a timer to go back
+                // console.info('when not hovering, set a timer to go back')
+                // nbarContent.timeout = setTimeout(() => {
+                //     nbarContent.setNavbarPos(e, 0);
+                //     console.info('going back cuz: "when not hovering, set a timer to go back"')
+                // }, Preferences.toolbar.navbarHideDelay);
             });
 
             $('#navbar').on('wheel scroll scrollwheel', (e) => {
