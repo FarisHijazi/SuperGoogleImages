@@ -536,6 +536,16 @@ const normalizeUrl = (function () {
             });
 
         } else { // else if not google images
+            if (location.pathname === '/save') {
+                var imgs = document.querySelectorAll('c-wiz div > div > div > div > div > a > div > div > img');
+                imgs.forEach(img => {
+                    a = img.closest('a');
+                    var imgurl = new URL(a.href, 'https://' + location.hostname).searchParams.get('imgurl');
+                    if (imgurl) {
+                        img.src = imgurl;
+                    }
+                });
+            }
 
             elementReady(() => getElementsByXPath('//a[text()=\'Change to English\']')[0]).then(changeToEnglishAnchors => {
                 changeToEnglishAnchors.click();
