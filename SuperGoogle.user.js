@@ -6,7 +6,7 @@
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
-// @include     /^https?://(?:www|encrypted|ipv[46])\.google\.[^/]+/(?:$|[#?]|search|webhp|imgres)/
+// @include      /^https?://(?:www|encrypted|ipv[46])\.google\.[^/]+/(?:$|[#?]|search|webhp|imgres)/
 // @grant        GM_xmlhttpRequest
 // @grant        GM_download
 // @grant        GM.getValue
@@ -27,6 +27,9 @@
 // @run-at       document-start
 // @connect      *
 // ==/UserScript==
+
+// check this:
+// https://gist.githubusercontent.com/bijij/58cc8cfc859331e4cf80210528a7b255/raw/viewimage.user.js
 
 // https://github.com/FarisHijazi/SuperGoogle/projects/1
 
@@ -257,7 +260,7 @@ const normalizeUrl = (function () {
                 focusedPanel: [
                     'div#irc_cc div.irc_c[style*="translate3d(0px, 0px, 0px)"]', // normal panel mode (old Google)
                     '#Sva75c > div > div > div.pxAole > div:not([style*="display: none;"])', // for side panel mode
-                    "#Sva75c > div > div > div.pxAole > div:not([aria-hidden='true'])",
+                    '#Sva75c > div > div > div.pxAole > div:not([aria-hidden=\'true\'])',
                 ].join(),
                 panels: '#Sva75c > div > div > div.pxAole > div, #irc_cc div.irc_c',
             },
@@ -335,6 +338,8 @@ const normalizeUrl = (function () {
 
         return o;
     })();
+    unsafeWindow.Preferences = Preferences;
+    Preferences.toolbar.navbarHideDelay = 700;
 
     /** TODO: write jsdoc
      * @type {{
@@ -478,9 +483,9 @@ const normalizeUrl = (function () {
     elementReady('body').then(onload);
 
     // click showAllSizes link when it appears
-    if (localStorage.getItem('clickShowAllSizes') === "true") {
+    if (localStorage.getItem('clickShowAllSizes') === 'true') {
         elementReady(Consts.Selectors.showAllSizes).then(function (el) {
-            localStorage.setItem('clickShowAllSizes', "");
+            localStorage.setItem('clickShowAllSizes', '');
             return el.click();
         });
     }
@@ -499,7 +504,7 @@ const normalizeUrl = (function () {
 
             // onImageBatchLoaded observe new image boxes that load
             observeDocument((mutations, me) => {
-                if (!!document.querySelector("#islmp > div > div > div > div")) {
+                if (!!document.querySelector('#islmp > div > div > div > div')) {
                     updateImageMetas();
                 }
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
@@ -532,7 +537,7 @@ const normalizeUrl = (function () {
 
         } else { // else if not google images
 
-            elementReady(() => getElementsByXPath("//a[text()='Change to English']")[0]).then(changeToEnglishAnchors => {
+            elementReady(() => getElementsByXPath('//a[text()=\'Change to English\']')[0]).then(changeToEnglishAnchors => {
                 changeToEnglishAnchors.click();
             });
 
@@ -548,6 +553,9 @@ const normalizeUrl = (function () {
 
     // called when the searchbar is loaded (used for functionality that needs elements to be loaded)
     function onSearchbarLoaded() {
+        // // just deleting the Google home button (cuz it overlaps with the navbar)
+        // document.querySelector('.qlS7ne').remove();
+
         // binding first letter of each menuItem ([A]ll, [I]mages, [V]ideos, ...)
         const menuItems = getMenuItems();
         for (const item of Object.keys(menuItems)) {
@@ -574,10 +582,10 @@ const normalizeUrl = (function () {
         if (ssLink) ssLink.addEventListener('click', safeSearchListener, true);
         if (ussLink) ussLink.addEventListener('click', safeSearchListener, true);
         // force safe search if already attempted and shouldBeUnsafesearch
-        if (ussLink && localStorage.getItem('shouldBeUnsafesearch') === "true") {
+        if (ussLink && localStorage.getItem('shouldBeUnsafesearch') === 'true') {
             console.info('"shouldBeUnsafesearch"=true, but this is not unsafe search, forcing unsafe search using "ipv4"...');
             location.assign(unsafeSearchUrl()); // force unsafesearch
-            localStorage.setItem('shouldBeUnsafesearch', "");
+            localStorage.setItem('shouldBeUnsafesearch', '');
             return;
         }
         const targetHostname = localStorage.getItem('targetHostname');
@@ -712,11 +720,11 @@ const normalizeUrl = (function () {
                     return [e[0].slice(0, e[0].lastIndexOf(':')), funcNames ? (e[1]._name || e[1].name) : e[1]]
                 }).filter(entry => !!entry[1] &&
                     (String(entry[1]._name || entry[1].name || entry[1]) !== '_callbackAndReset') &&
-                    String(entry[1]._name || entry[1].name || entry[1]).replace(/\s/g, '') !== "function(){_nextExpectedAction=nextAction;++_sequenceLevels[combo];_resetSequenceTimer();}")
+                    String(entry[1]._name || entry[1].name || entry[1]).replace(/\s/g, '') !== 'function(){_nextExpectedAction=nextAction;++_sequenceLevels[combo];_resetSequenceTimer();}')
             }
 
             const entries = getKeymap();
-            const $table = $($.parseHTML("<table>"));
+            const $table = $($.parseHTML('<table>'));
 
             // Loop through array and add table cells
             for (const row of entries) {
@@ -1126,7 +1134,7 @@ const normalizeUrl = (function () {
             Promise.all(Array.from(imgs).map(img => ShowImages.loadPromise(img, [img.src || img.getAttribute('data-src')]).then(res => {
                 progressSpan.innerText = `(${++counter}/${imgs.length})`;
             }))).then(res => {
-                console.log("YAAA!!! preloaded all these images:", imgs)
+                console.log('YAAA!!! preloaded all these images:', imgs)
             });
         });
         btn_preload.appendChild(createElement('<span class="preload-progress" style="margin: 5px;">'));
@@ -1135,8 +1143,8 @@ const normalizeUrl = (function () {
         const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
         const btn_showKeymap = createGButton('showKeymap', '(?) keymap', toggleShowKeymap);
         const btn_download = $(createGButton('downloadBtn', 'Download EVERYTHING ⬇️', downloadImages)).css({
-            "margin": '20px',
-            "border": '20px',
+            'margin': '20px',
+            'border': '20px',
         }).text(cbox_ZIP.checked ? 'ZIP&nbsp;images' : `⬇️&nbsp;Download`)[0];
 
         const downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
@@ -1418,7 +1426,7 @@ const normalizeUrl = (function () {
 
                 imgBx.addEventListener('mousemove', onMouseUpdate, false);
                 imgBx.addEventListener('mouseenter', onMouseUpdate, false);
-                imgBx.addEventListener('mouseout', () => clearTimeout(timeout));
+                // imgBx.addEventListener('mouseout', () => clearTimeout(timeout)); // this has performance issues
             };
         })();
 
@@ -1469,7 +1477,6 @@ const normalizeUrl = (function () {
 
             const img = imgBox.querySelector('img.rg_i, img.irc_rii');
             const link = img.closest('a');
-            const meta = getMeta(img);
 
             const downloadImage = function (e = {}) {
                 const src = img.getAttribute('loaded') === 'true' ? img.src : img.getAttribute('fullres-src') || meta.ou || 'META.OU IS UNDEFINED!';
@@ -1479,10 +1486,11 @@ const normalizeUrl = (function () {
                 e.stopImmediatePropagation();
                 e.stopPropagation();
             };
+            // FIXME: download buttons not working for some reason
             const $dlBtn = $('<div class="text-block download-block""></div>').css({
                 'background-color': 'dodgerblue',
                 'margin-left': '35px',
-            }).text('[⇓]').click(downloadImage);
+            }).text('⬇️').click(downloadImage);
 
             link.addEventListener('click', function (e) {
                 if (e[Preferences.shortcuts.hotkey]) {
@@ -1491,6 +1499,10 @@ const normalizeUrl = (function () {
             });
 
             img.after($dlBtn[0]);
+            console.log('$dlBtn[0]', $dlBtn[0]);
+            $dlBtn[0].addEventListener('click', function (e) {
+                downloadImage(e);
+            });
         }
 
         addHoverListener(imageBox);
@@ -1505,9 +1517,7 @@ const normalizeUrl = (function () {
         // if (imageSet.contains(addedImageBoxes)) return;
         // else imageSet.add(addedImageBoxes);
 
-        for (const imageBox of addedImageBoxes) {
-            enhanceImageBox(imageBox);
-        }
+        addedImageBoxes.forEach(enhanceImageBox);
 
         (function updateDlLimitSliderMax() {
             const numImages = getImgBoxes().length;
@@ -1535,6 +1545,7 @@ const normalizeUrl = (function () {
      * @return {Meta}
      */
     function getMeta(img, minified = false) {
+        // if the div was passed, get the img
         let div;
         if (img.tagName === 'DIV') {
             div = img;
@@ -1543,7 +1554,6 @@ const normalizeUrl = (function () {
             div = img.closest(`div.irc_rimask, div.rg_bx, #islrg > div.islrc > div`);
             // nearest parent div container, `div.rg_bx, #islrg > div.islrc > div` for thumbnails and `div.irc_rimask` for related images
         }
-
 
         const getFakeRisMeta = ris_img => {
             const titleDiv = ris_img.querySelector('a.iKjWAf.irc-nic.isr-rtc .nJGrxf');
@@ -1554,9 +1564,12 @@ const normalizeUrl = (function () {
         };
 
         let metaObj = {};
-        if (!img)
-            return metaObj;
 
+        if (!img) {
+            return metaObj;
+        }
+
+        // if img._meta already exists (and isn't empty)
         if (img._meta && Object.entries(img._meta).filter(([, v]) => !!v).length !== 0) {
             return img._meta;
         }
@@ -1570,6 +1583,8 @@ const normalizeUrl = (function () {
             } else {
                 metaObj = getFakeRisMeta(img);
             }
+            // metaObj.pt = metaObj.pt || img.closest('a').nextElementSibling.querySelector('div > div').innerText;
+            // metaObj.st = metaObj.st || img.closest('a').nextElementSibling.querySelector('div > div span').innerText;
 
             metaObj.src = img.src;
             metaObj.dim = [metaObj.ow, metaObj.oh];
@@ -1728,7 +1743,7 @@ const normalizeUrl = (function () {
                 span.remove();
             }
             if (!footLink) {
-                console.warn("footLink is null!", link.href);
+                console.warn('footLink is null!', link.href);
                 return;
             }
             let footLinkTop = footLink.parentElement;
@@ -2099,8 +2114,8 @@ const normalizeUrl = (function () {
         const zipCbox = document.querySelector('#zipInsteadOfDownload');
         if (zipCbox && downloadBtn) {
             downloadBtn.innerHTML = zipCbox.checked ?
-                (!downloadBtn.classList.contains('genzip-possible') ? 'ZIP' : 'Download&nbsp;ZIP&nbsp;⇓') : // "zip" or "download zip"
-                'Download&nbsp;⇓';
+                (!downloadBtn.classList.contains('genzip-possible') ? 'ZIP' : '⬇️&nbsp;Download&nbsp;ZIP') : // "zip" or "download zip"
+                '⬇️&nbsp;Download';
         }
     }
 
@@ -2686,16 +2701,16 @@ const normalizeUrl = (function () {
 
     function reAdjustAfterScrollEdge(el = null) {
         if (el === null) {
-            el = document.querySelector("#irc-ss");
+            el = document.querySelector('#irc-ss');
         }
         if (!el) return;
 
         const newTopPos = 1.0 - (e.progress);
 
         // limit for user scrolling to top? (limit for panel coming down)
-        const topLimit = document.querySelector("#navbar-content").clientHeight * 1.8;
+        const topLimit = document.querySelector('#navbar-content').clientHeight * 1.8;
         // limit for user scrolling to bottom? (limit for panel going up)
-        const bottomLimit = -(document.querySelector("#navbar").scrollHeight - 50);
+        const bottomLimit = -(document.querySelector('#navbar').scrollHeight - 50);
 
         // maps from a range to another range linearly (just like the Arduino map function)
         function mapValue(x, in_min, in_max, out_min, out_max) {
@@ -2703,7 +2718,7 @@ const normalizeUrl = (function () {
         }
 
         const mapped = mapValue(newTopPos, 0.0, 1.0, bottomLimit, topLimit);
-        document.querySelector("#irc_bg").style.top = String(mapped) + 'px';
+        document.querySelector('#irc_bg').style.top = String(mapped) + 'px';
     }
 
     /**
@@ -2714,14 +2729,13 @@ const normalizeUrl = (function () {
      */
     function createAndGetNavbar() {
         // Settings up the navbar
-        const DELAY_UNTIL_HIDE = 2000;
 
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`
         div#navbar {
             position: fixed;
-            z-index: 2;
+            z-index: 3;
             height: 10px;
             top: 0;
             right: 0;
@@ -2774,27 +2788,29 @@ const normalizeUrl = (function () {
         /**
          * @param e
          * @param pos - 0 is hide, 1 is show
+         * @param hidelater - hide now or later, default: false
          */
-        nbarContent.setNavbarPos = function (e, pos = 0) {
+        nbarContent.setNavbarPos = function (e, pos = 0, hidelater = false) {
             clearTimeout(nbarContent.timeout);
             nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
 
             const googleControlsContainer = document.querySelector('#google-controls-container');
             nbarContent.style.top = `${(pos - 1) * googleControlsContainer.clientHeight}px`;
             nbarContent.pos = pos;
+
         };
 
         // make physical div to push elements down
         const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
         $navbar.after($physicalDiv);
 
-        const rshdr = document.querySelector("#rshdr, header > div:nth-child(1)");
+        const rshdr = document.querySelector('#rshdr, header > div:nth-child(1)');
         const searchform = document.querySelector('#searchform');
         rshdr.append($navbar[0], searchform);
 
         function reAdjustTopMargin(e) { // moves the rest of the page down a bit so it won't be covered by the navbar
-            nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
-            return;
+            nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0, true), Preferences.toolbar.navbarHideDelay);
+            // return;
 
             // document.body.style.position = 'relative';
             const clientHeight = document.querySelector('#navbar-content').offsetTop + 200;
@@ -2826,18 +2842,22 @@ const normalizeUrl = (function () {
                 if (delta < 0 || navbarContent.pos > 1) { // if scrolled down, hide
                     navbarContent.setNavbarPos(e, 0);
                 } else { // show
-                    navbarContent.setNavbarPos(e, 1);
+                    navbarContent.setNavbarPos(e, 1, true);
                 }
             };
 
             // bind to main images container
-            elementReady("#isr_mc").then(function (mainImagesContainer) {
+            elementReady('#isr_mc').then(function (mainImagesContainer) {
                 mainImagesContainer.addEventListener('wheel', onscrollAutoHideNavbar);
             });
 
             // sidepanel scroll handler
+            // hide navbar when using sidebar
             elementReady(Consts.Selectors.sidepanelScrollEl).then(function (sidepanelScrollEl) {
-                sidepanelScrollEl.addEventListener('wheel', (e) => navbarContent.setNavbarPos(e, 0));
+                sidepanelScrollEl.addEventListener('wheel', function (e) {
+                    console.debug('sidepanelScrollEl wheel event. Hiding navbar')
+                    navbarContent.setNavbarPos(e, 0);
+                });
             });
 
 
@@ -2859,12 +2879,13 @@ const normalizeUrl = (function () {
 
             // bind listeners to these elements, for showing and hiding the navbar when scrolled to top
             // when hovering over the google toolbars, move the navbar down
+            // FIXME: ('#top_nav, #sfcnt, #searchform') these elements don't exist or selectors have changed
             $('#top_nav, #sfcnt, #searchform').on('mouseover mousemove', function (e) {
-                // show navbar x2
+                console.debug('show navbar x2');
                 navbarContent.setNavbarPos(e, 2);
             }).on('mouseout', function (e) {
                 // when not hovering, set a timer to go back
-                // nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), DELAY_UNTIL_HIDE);
+                nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), Preferences.toolbar.navbarHideDelay);
             });
 
 
@@ -2885,10 +2906,10 @@ const normalizeUrl = (function () {
             localStorage.setItem('targetHostname', 'www.google.com'); // force normal hostname to avoid ipv4 issues
             location.assign(ssLink.href); // to safe search
         } else {// to unsafe search
-            if (document.querySelector('#ss-bimodal-default') && localStorage.getItem('shouldBeUnsafesearch') === "true") { // if already attempted and shouldBeUnsafesearch
+            if (document.querySelector('#ss-bimodal-default') && localStorage.getItem('shouldBeUnsafesearch') === 'true') { // if already attempted and shouldBeUnsafesearch
                 location.assign(unsafeSearchUrl()); // force unsafesearch
             } else {
-                localStorage.setItem('shouldBeUnsafesearch', "true");
+                localStorage.setItem('shouldBeUnsafesearch', 'true');
                 location.assign(ussLink.href);
             }
         }
@@ -2935,9 +2956,14 @@ function removeDoubleSpaces(str) {
 }
 
 function getHostname(href) {
-    const a = document.createElement('a');
-    a.href = href;
-    return a.hostname;
+    try {
+        return new URL(href).hostname;
+    } catch (e) {
+        const a = document.createElement('a');
+        a.href = href;
+        return a.hostname;
+    }
+
 }
 
 function elementUnderMouse(wheelEvent) {
@@ -3085,7 +3111,7 @@ function observeDocument(callback, options = {}) {
  * @param {Number=0} opts.timeout - timeout in milliseconds, how long to wait before throwing an error (default is 0, meaning no timeout (infinite))
  * @param {Element=} opts.target - element to be observed
  *
- * @returns {Promise<Element|any>} the value passed will be a single element matching the selector, or whatever the function returned
+ * @returns {Promise<Element>} the value passed will be a single element matching the selector, or whatever the function returned
  */
 function elementReady(getter, opts = {}) {
     return new Promise((resolve, reject) => {
@@ -3200,7 +3226,7 @@ function rightClick(element) {
 
     if (document.createEventObject) {
         // dispatch for IE
-        return element.fireEvent('onclick', evt)
+        return element.fireEvent('onclick', evt);
     } else {
         // dispatch for firefox + others
         return !element.dispatchEvent(evt);
@@ -3216,22 +3242,24 @@ function getMetaContainers() {
         // var j = document.querySelector("#NmTzue")['__jscontroller']['o']['g']['j'];
         // var val = j['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3'];
 
-        var V = document.querySelector("#yDmH0d > div.T1diZc.KWE8qe > c-wiz")
+        var V = document.querySelector('#yDmH0d > div.T1diZc.KWE8qe > c-wiz')
             || window['document']['gs']['__jscontroller']['og']
-            ['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']
-            ['Ck']['Ul']['g']['5']['__jscontroller']['og']
-            ['j']['va']['g']['g']['wm']['g']['l'][2]['sv']['g']['0']['target']['__component']['Aa']['og']['o']['lf']['Aa']['w']['__jscontroller']['og']
-            ['cu']['chrome']['V'];
+                ['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']
+                ['Ck']['Ul']['g']['5']['__jscontroller']['og']
+                ['j']['va']['g']['g']['wm']['g']['l'][2]['sv']['g']['0']['target']['__component']['Aa']['og']['o']['lf']['Aa']['w']['__jscontroller']['og']
+                ['cu']['chrome']['V'];
         // turns out
-        var Hg = document.querySelector("#islmp > div > div > div > div")
+        var Hg = document.querySelector('#islmp > div > div > div > div')
             || V['__jscontroller']['og']['H'][0]['Hg']
 
         var __jsmodel = Hg['__jsmodel'];
         var jJJIob = __jsmodel['jJJIob'];
-        var og  = getObjs(jJJIob).pop(); // return first object value
+        // Object.values(V.__jscontroller).filter(v=>(v instanceof Object && !(v instanceof Array))).pop()
+
+        var og = getObjs(jJJIob).pop(); // return first object value
         // all the `Ea` and 
 
-        var metaInfos = Object.values(og).filter(v => v && v.hasOwnProperty('o') && (v.o instanceof Array )).map(
+        var metaInfos = Object.values(og).filter(v => v && v.hasOwnProperty('o') && (v.o instanceof Array)).map(
             ea => ea['o'][0].w[2]//
 
             /*  ea['o'][0] looks like this:
@@ -3241,7 +3269,7 @@ function getMetaContainers() {
                 H: -1
                 w: (25) ["GRID_STATE0", null, Array(204), "", "", "", 1, Array(0), null, null, null, Array(12), null, null, null, null, Array(3), "", null, null, null, null, 1, null, Array(0)]
             */
-                //['g']['3']//[85]['g']['2']['g']['4']['w'][0] // => 'https://25.media.tumblr.com/8026bf09a8e515d070ff11525fa6086a/tumblr_mj3krePaWE1s7un91o1_250.gif'
+            //['g']['3']//[85]['g']['2']['g']['4']['w'][0] // => 'https://25.media.tumblr.com/8026bf09a8e515d070ff11525fa6086a/tumblr_mj3krePaWE1s7un91o1_250.gif'
         ).flat(1);
 
         // window['document']['gs']['__jscontroller']['og']['Vd']['dl']['byfTOb'][0]['g']['wm']['g']['g'][0]['sv']['mr'][1]['o']['V']['wm']['g']['j'][0]['sv']['CZ']['V']['wm']['g']['resize'][1]['sv']['ac']['Jc'][0]['__jscontroller']['og']['Ck']['Ul']['g']['11']['__jscontroller']['og']['g']['j']['V']['__jscontroller']['og']['V']['o']['l2bgrgmABs15hM']['g']['1']['g']['5'][0]['g']['13']['g']['3'][9]['g']['2']['g']['183836587']['g']['3']['g']['2']['g']['10']['w'][2] // => '8EFACzxVi8cG2M'
@@ -3267,7 +3295,7 @@ function getMetaContainers() {
 
 
         return metaInfos.concat(metaInfos2);
-    } catch(e) {
+    } catch (e) {
         // console.warn('couldn\'t get meta container from page', e);
         return [];
     }
@@ -3337,7 +3365,7 @@ function updateImageMetas() {
     let metasMap = extractImageMetas();
     // this will set the "_meta" attribute for each of the images
     if (!Object.keys(metasMap).length) {
-        console.warn('failed to parse metaData');
+        // console.warn('failed to parse metaData');
 
         try {
             metasMap = parse_AF_initDataCallback();
