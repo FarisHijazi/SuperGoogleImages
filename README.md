@@ -11,6 +11,10 @@
 
 A browser-plugin/[script](https://openuserjs.org/about/Userscript-Beginners-HOWTO) to add features to [Google images](https://www.google.com/search?q=example&tbm=isch&safe=strict).
 
+**Status:** very clunky and will be re-written soon
+
+Another similar and promising project is [ViewImage](https://github.com/bijij/ViewImage)
+
 <div align='center'>
      <a href = 'https://youtu.be/ceFuBh8r8GQ?t=24'>
      Watch demo video<br>
