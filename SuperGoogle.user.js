@@ -1945,35 +1945,6 @@ const normalizeUrl = (function () {
         return o;
     }
 
-    function getPanelPage(meta) {
-        let img;
-        if (meta instanceof HTMLImageElement) {
-            img = meta;
-            meta = getMeta(img);
-        }
-
-        const currentParams = Object.fromEntries(new URL(location.href).searchParams.entries());
-
-        const data = {
-            'imgrefurl': meta.ru,
-            'docid': meta.rid,
-            'tbnid': meta.id,
-            'ved': !img ? '' : img.closest('[data-ved]').getAttribute('data-ved'), // somehow get this from the div
-            'w': meta.ow,
-            'h': meta.oh,
-            // 'itg':,
-            // 'hl':,
-            // 'bih':,
-            // 'biw':,
-            // 'q':,
-        };
-        const combined = $.extend(currentParams, data);
-
-
-        return normalizeUrl('/imgres?' + $.param(combined));
-    }
-
-
     /**
      * used for trimming right and trimming left a search query
      * @param str
@@ -2081,18 +2052,8 @@ const normalizeUrl = (function () {
         searchBox.form.submit();
     }
 
-    function openInTab(url, target = '_blank') {
-        window.open(url, target);
-    }
     function cleanDates(str) {
         return !str ? str : removeDoubleSpaces(str.replace(/\d+([.\-])(\d+)([.\-])\d*/g, ' '));
-    }
-    function cleanSymbols(str) {
-        return !str ? str : removeDoubleSpaces(
-            cleanDates(str)
-                .replace(/[-!$%^&*()_+|~=`{}\[\]";'<>?,.\/]/gim, ' ')
-                .replace(/\.com|#|x264|DVDRip|720p|1080p|2160p|MP4|IMAGESET|FuGLi|SD|KLEENEX|BRRip|XviD|MP3|XVID|BluRay|HAAC|WEBRip|DHD|rartv|KTR|YAPG/gi, ' ')
-        ).trim();
     }
     /**
      * @param selectorExtension {string}: optional: extend the selector (useful for selecting things inside the img box)
@@ -2312,23 +2273,6 @@ const normalizeUrl = (function () {
         } else {
             imageElement.classList.add('hide-img');
         }
-    }
-
-    function underlineText(el, subStr) {
-        if (!el) {
-            console.error('Element not defined.');
-            return;
-        }
-        const rx = new RegExp(subStr, 'i');
-        if (rx.test(el.innerHTML)) {
-            const oldInnerHTML = el.innerHTML;
-            const newHTML = el.innerHTML.replace(rx, `<span class="underlineChar" style="text-decoration: underline;">${subStr}</span>`);
-            el.innerHTML = newHTML;
-            console.log(
-                'oldInnerHTML=', oldInnerHTML,
-                '\nnewHTML=', newHTML
-            );
-        } else console.error('Element doesn\'t contain text: ', subStr, el);
     }
 
     /**
@@ -2670,50 +2614,6 @@ const normalizeUrl = (function () {
 
     }
 
-
-    function setStyleInHTML(el, styleProperty, styleValue) {
-        styleProperty = styleProperty.trim().replace(/^.*{|}.*$/g, '');
-
-        const split = styleProperty.split(':');
-        if (!styleValue && split.length > 1) {
-            styleValue = split.pop();
-            styleProperty = split.pop();
-        }
-        if (el.hasAttribute('style')) {
-
-            const styleText = el.getAttribute('style');
-            const styleArgument = `${styleProperty}: ${styleValue};`;
-
-            let newStyle = new RegExp(styleProperty, 'i').test(styleText) ?
-                styleText.replace(new RegExp(`${styleProperty}:.+?;`, 'im'), styleArgument) :
-                `${styleText} ${styleArgument}`;
-
-            el.setAttribute('style', newStyle);
-        }
-        return el;
-    }
-
-    function reAdjustAfterScrollEdge(el = null) {
-        if (el === null) {
-            el = document.querySelector('#irc-ss');
-        }
-        if (!el) return;
-
-        const newTopPos = 1.0 - (e.progress);
-
-        // limit for user scrolling to top? (limit for panel coming down)
-        const topLimit = document.querySelector('#navbar-content').clientHeight * 1.8;
-        // limit for user scrolling to bottom? (limit for panel going up)
-        const bottomLimit = -(document.querySelector('#navbar').scrollHeight - 50);
-
-        // maps from a range to another range linearly (just like the Arduino map function)
-        function mapValue(x, in_min, in_max, out_min, out_max) {
-            return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-        }
-
-        const mapped = mapValue(newTopPos, 0.0, 1.0, bottomLimit, topLimit);
-        document.querySelector('#irc_bg').style.top = String(mapped) + 'px';
-    }
 
     /**
      * Creates a static navbar at the top of the page.
@@ -3235,17 +3135,24 @@ function getWheelDelta(wheelEvent) {
     return Math.max(-1, Math.min(1, (wheelEvent.wheelDelta || -wheelEvent.detail)));
 }
 
-function clickImagesOneByOne() {
+unsafeWindow.clickImagesOneByOne = clickImagesOneByOne;
+
+// concludsion: this works, but has the issue of links being not direct (has /imgres?imgurl=IMGURL)
+function clickImagesOneByOne(intervalMs=50) {
     let i = 0;
-    const imgs = Array.from(document.querySelectorAll('.rg_i'));
+    const imgs = [].filter.call(document.querySelectorAll('.rg_i'), img=>img.closest('a:not([href])'));
+    console.log('imgs', imgs.length, 'should take:', imgs.length * intervalMs / 1000, 'seconds');
     const interval = setInterval(function () {
         i++;
         if (i >= imgs.length) {
             clearInterval(interval);
             return;
         }
+        directLinkReplacer.checkNewNodes(imgs[i]);
         rightClick(imgs[i]);
-    }, 10);
+        showOriginals([imgs[i]]);
+        
+    }, intervalMs);
 }
 
 function rightClick(element) {
