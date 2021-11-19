@@ -15,6 +15,7 @@
 // @grant        GM_getValue
 // @grant        unsafeWindow
 // @grant        window.close
+// @require      https://greasyfork.org/scripts/433051-trusted-types-helper/code/Trusted-Types%20Helper.user.js
 // @require      https://code.jquery.com/jquery-3.4.0.min.js
 // @require      https://raw.githubusercontent.com/kimmobrunfeldt/progressbar.js/master/dist/progressbar.min.js
 // @require      https://raw.githubusercontent.com/Stuk/jszip/master/dist/jszip.min.js
