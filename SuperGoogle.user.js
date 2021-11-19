@@ -3173,16 +3173,103 @@ function rightClick(element) {
     }
 }
 
+var metaInfosObj = null;
 function getMetaContainers() {
     function getObjs(o) {
         return Object.values(o).filter(v => !!v && typeof (v) === 'object' && !(v instanceof Array));
     }
     try {
-        var infos = window.document.gs.__jscontroller.we.Xo.N.g[49].__jscontroller.we.Lb.j[3];
-        metaInfos = infos.map(info => {
-            return info.W;
+        //https://codereview.stackexchange.com/questions/173978/javascript-of-property-path-in-object
+        function findObject(root, predicate) {
+            const discoveredObjects = []; // For checking for cyclic object
+            const results = []; // The array of paths that satify the predicate === true
+            if (typeof predicate !== "function") {
+                throw new TypeError("Predicate is not a function");
+            }
+            (function find(obj) {
+                for (const key of Object.keys(obj)) {  // use only enumerable own properties.
+                    if (predicate(key, obj) === true) {     // Found a path
+                        results.push(obj[key]);  // Add the found path to results
+                    }
+                    const o = obj[key];                 // The next object to be searched
+                    if (o && typeof o === "object" && !Array.isArray(o)) {   // check for null then type object
+                        if (!discoveredObjects.find(obj => obj === o)) {  // check for cyclic link
+                            discoveredObjects.push(o);
+                            find(o);
+                        }
+                    }
+                }
+            }(root));
+            return results;
+        }
+
+        // // TODO: automate this .Ak.
+        // // usage:
+        // metaInfosObj = findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
+        //     try {
+        //         return !!(obj[key].j[3][0].Ak.length===22);
+        //     } catch(e) {
+        //     }
+        // });
+
+        var keyList = [];
+        function getArrays(o) {
+            return Object.entries(o).filter(([k,v]) => {
+                var ret = (v instanceof Array) && v.length===22;
+                if (ret) { keyList.push(k); }
+                return ret;
         })
-        return metaInfos;
+        }
+        metaInfosObj = findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
+            try {
+                return !!getArrays(obj[key].j[3][0])[0];
+                // return !!(obj[key].j[3][0].Ak.length===22);
+            } catch(e) {
+            }
+        });
+        function getMode(array)
+        {
+            if(array.length == 0)
+                return null;
+            var modeMap = {};
+            var maxEl = array[0], maxCount = 1;
+            for(var i = 0; i < array.length; i++)
+            {
+                var el = array[i];
+                if(modeMap[el] == null)
+                    modeMap[el] = 1;
+                else
+                    modeMap[el]++;  
+                if(modeMap[el] > maxCount)
+                {
+                    maxEl = el;
+                    maxCount = modeMap[el];
+                }
+            }
+            return maxEl;
+        }
+        // findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
+        //     try {
+        //         return !!(obj[key][6].includes('rgb'));
+        //     } catch(e) {
+        //     }
+        // });
+        var infoKey = getMode(keyList); // this is "Ak" or "w" or whatever
+
+        var metaInfos = metaInfosObj[0].j[3].map(info => {
+            return info[infoKey];
+        });
+
+        var metaInfos2 = [];
+        try {
+            // we must include relative images here too
+            var metaInfos2 = window.document.gs.__jscontroller.we.Xo.N.g[1325].__component.g.B3.j[1].j[5][0].W[12][2];
+        } catch (e) {
+        
+        }
+
+
+        return metaInfos.concat(metaInfos2);
     } catch (e) {
         // console.warn('couldn\'t get meta container from page', e);
         return [];
@@ -3213,6 +3300,9 @@ function extractImageMetas() {
             const imgInfo = H[1];
             rg_meta.id = H[7] || imgInfo[1]; // => 'cRIoGkXQe6VmfM'
 
+            if (!imgInfo) {
+                return undefined;
+            }
             const imgInfoThumb = imgInfo[2];
             /*
             looks like this:
@@ -3232,7 +3322,16 @@ function extractImageMetas() {
             rg_meta.isu = imgInfoLegacy['2003'][2]; // => https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE
             rg_meta.pt = imgInfoLegacy['2003'][3] || imgInfoLegacy['2008'][1]; // => Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...
             rg_meta.st = imgInfoLegacy['2003'][12]; // => Make A Gif
-            rg_meta.rh = imgInfoLegacy['183836587'][0]; // => makeagif.com
+            
+            try {
+                rg_meta.rh = imgInfoLegacy[183836587][0];
+            } catch (error) {
+                try {
+                    rg_meta.rh = imgInfoLegacy[2003][2];
+                } catch (error) {
+                }
+            }
+
             rg_meta.s = imgInfoLegacy['2006'] && imgInfoLegacy['2006'][8] && imgInfoLegacy['2006'][8][1]; // => "some description text here"
             rg_meta.color = imgInfo[6]; // => 'rgb(152,50,56)'
 
@@ -3272,6 +3371,7 @@ function updateImageMetas() {
         const meta = metasMap[id];
 
         if (!meta) {
+            // console.warn('image failed, has no meta', img);
             return img;
         }
         // if (img._meta) return;
@@ -3348,7 +3448,15 @@ function parse_AF_initDataCallback() {
             } else {
                 rg_meta.pt = siteAndNameInfo[2003][2];
             }
+
+            try {
             rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+            } catch (error) {
+                try {
+                    rg_meta.st = siteAndNameInfo[2003][2]; // infolink TODO: doublecheck
+                } catch (error) {
+                }
+            }
 
             return rg_meta;
         } catch (e) {
