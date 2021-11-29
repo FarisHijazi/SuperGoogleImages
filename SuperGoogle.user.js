@@ -482,6 +482,7 @@ const normalizeUrl = (function () {
 
     // === start of function definitions ===
 
+    var isFirstMetaUpdate = true; // flag for meta update (first time should be free, next times should have added images)
     // called as soon as the "body" is loaded
     function onload() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
@@ -494,16 +495,20 @@ const normalizeUrl = (function () {
 
             // onImageBatchLoaded observe new image boxes that load
             observeDocument((mutations, me) => {
-                if (!!document.querySelector('#islmp > div > div > div > div')) {
-                    updateImageMetas();
-                }
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
-                //Google direct links
-                // directLinkReplacer.checkNewNodes(mutations);
-
+                if (!!document.querySelector('#islmp > div > div > div > div') && isFirstMetaUpdate) {
+                    var updateImageMetasRet = updateImageMetas()
+                    if (updateImageMetasRet && updateImageMetasRet.filter(x=>!!x).length) {
+                        isFirstMetaUpdate = false;
+                    }
+                }
                 if (!addedImageBoxes.length) {
                     return;
+                }
+
+                if (!!document.querySelector('#islmp > div > div > div > div')) {
+                    updateImageMetas();
                 }
 
                 if (shouldShowOriginals) {
@@ -3173,6 +3178,7 @@ function rightClick(element) {
     }
 }
 
+var infoKey = null;
 var metaInfosObj = null;
 function getMetaContainers() {
     function getObjs(o) {
@@ -3218,14 +3224,11 @@ function getMetaContainers() {
                 var ret = (v instanceof Array) && v.length===22;
                 if (ret) { keyList.push(k); }
                 return ret;
-        })
+            })
         }
         metaInfosObj = findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
-            try {
-                return !!getArrays(obj[key].j[3][0])[0];
-                // return !!(obj[key].j[3][0].Ak.length===22);
-            } catch(e) {
-            }
+            try { return !!getArrays(obj[key].j[3][0])[0]; } catch(e) { }
+            // return !!(obj[key].j[3][0].Ak.length===22);
         });
         function getMode(array)
         {
@@ -3254,7 +3257,11 @@ function getMetaContainers() {
         //     } catch(e) {
         //     }
         // });
-        var infoKey = getMode(keyList); // this is "Ak" or "w" or whatever
+
+        // cache infoKey for the next calls
+        if (!infoKey) {
+            infoKey = getMode(keyList); // this is "Ak" or "w" or whatever
+        }
 
         var metaInfos = metaInfosObj[0].j[3].map(info => {
             return info[infoKey];
@@ -3277,6 +3284,7 @@ function getMetaContainers() {
 }
 /**
  * returns metas, format is a map, key: id, value: meta
+ * WARNING: VERY expensive function to call
  * @returns {Meta[]}
  */
 function extractImageMetas() {
@@ -3348,8 +3356,14 @@ function extractImageMetas() {
     return Object.fromEntries(metas.map(meta => [meta.id, meta]));
 }
 
-function updateImageMetas() {
-    let metasMap = extractImageMetas();
+/**
+ * @param {} metasMap (optional): pass it to avoid extractImageMetas()
+ * @returns 
+ */
+function updateImageMetas(metasMap) {
+    if (!metasMap) {
+        metasMap = extractImageMetas();
+    }
     // this will set the "_meta" attribute for each of the images
     if (!Object.keys(metasMap).length) {
         // console.warn('failed to parse metaData');
@@ -3365,14 +3379,14 @@ function updateImageMetas() {
 
     const imgs = document.querySelectorAll(`div[data-tbnid] img.rg_i`);
     // for each image, add the meta, and return if success or failure
-    const failures = [].map.call(imgs, img => {
+    const successes = [].map.call(imgs, img => {
         const div = img.closest('div[data-tbnid]');
         const id = div.getAttribute('data-tbnid');
         const meta = metasMap[id];
 
         if (!meta) {
             // console.warn('image failed, has no meta', img);
-            return img;
+            return;
         }
         // if (img._meta) return;
 
@@ -3380,11 +3394,8 @@ function updateImageMetas() {
         img.setAttribute('fullres-src', meta.ou);
         img.closest('a').href = meta.ou;
         // console.log('added meta data:', meta);
-    }).filter(x => !!x);
-
-    // if (failures.length) {
-    //     console.warn('meta not found imgBoxes', failures);
-    // }
+        return img;
+    });
 
     // // this will set the "_meta" attribute for each of the images
     // Object.entries(metasMap).forEach(([, meta]) => {
@@ -3403,7 +3414,7 @@ function updateImageMetas() {
     //     console.log('added meta data:', meta);
     // });
 
-
+    return successes;
 }
 
 unsafeWindow.extractImageMetas = extractImageMetas;
