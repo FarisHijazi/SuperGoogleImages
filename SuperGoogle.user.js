@@ -1155,7 +1155,7 @@ const normalizeUrl = (function () {
         const downloadPanel = createElement('<div id="download-panel" style="display: block;"></div>');
 
         // Appending buttons to downloadPanel
-        for (const el of [cbox_ZIP, cbox_closeAfterDownload, btn_download, btn_preload, btn_downloadJson, constraintsContainer]) {
+        for (const el of [cbox_ZIP, cbox_closeAfterDownload, btn_download, btn_downloadJson, constraintsContainer]) {
             downloadPanel.appendChild(el);
         }
 
@@ -1187,9 +1187,14 @@ const normalizeUrl = (function () {
 
         // appending buttons and controls
         divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, btn_showKeymap, downloadPanel);
-        constraintsContainer.after(satCondLabel);
+
+        constraintsContainer.append(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
 
+        // disable buttons
+        [cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, constraintsContainer].forEach(el=>{
+            el.style.display = 'none';
+        });
 
         return createAndGetNavbar().then(function (navbarContentDiv) {
             // const gNavbar = document.querySelector('#rshdr, header > div:nth-child(1)');
