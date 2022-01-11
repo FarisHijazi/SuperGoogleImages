@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogle
 // @author       Faris Hijazi
-// @version      1.2.0
+// @version      1.2.1
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -2705,8 +2705,10 @@ const normalizeUrl = (function () {
         const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
         $navbar.after($physicalDiv);
 
-        const rshdr = document.querySelector('#rshdr, header > div:nth-child(1)');
-        const searchform = document.querySelector('#searchform');
+        const searchform = document.querySelector('#searchform, [role="search"]');
+        const rshdr = document.querySelector('#rshdr, header > div:nth-child(1), c-wiz > div') || searchform.previousElementSibling;
+
+
         rshdr.append($navbar[0], searchform);
 
         function reAdjustTopMargin(e) { // moves the rest of the page down a bit so it won't be covered by the navbar
@@ -2818,7 +2820,7 @@ const normalizeUrl = (function () {
             // bind listeners to these elements, for showing and hiding the navbar when scrolled to top
             // when hovering over the google toolbars, move the navbar down
             // FIXME: ('#top_nav, #sfcnt, #searchform') these elements don't exist or selectors have changed
-            $('#top_nav, #sfcnt, #searchform').on('mouseover mousemove', function (e) {
+            $('#top_nav, #sfcnt, #searchform, [role="search"]').on('mouseover mousemove', function (e) {
                 console.debug('show navbar x2');
                 navbarContent.setNavbarPos(e, 2);
             }).on('mouseout', function (e) {
