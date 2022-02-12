@@ -1,4 +1,4 @@
-# SuperGoogle: a browser addon for Google Images
+# SuperGoogleImages: a browser addon for Google Images
 
 <!-- <a href="" target="_blank"><img alt="chrome-icon" src="https://imgur.com/3C4iKO0.png" width="64" height="64"></a> -->
 <!-- <a href="" target="_blank"><img alt="firefox-icon" src="https://imgur.com/Dy442GK.png" width="64" height="64"></a>
@@ -13,7 +13,18 @@ A browser-plugin/[script](https://openuserjs.org/about/Userscript-Beginners-HOWT
 
 **Status:** very clunky and will be re-written soon
 
-Another similar and promising project is [ViewImage](https://github.com/bijij/ViewImage)
+----
+
+WARNING: everything is very experimental up till now, there is a major reboot coming soon of the script.
+Thanks to Google for changing their HTML every few months and making life difficult.
+
+Also most of the features listed bellow are actually not working anymore
+
+Other similar and promising projects:
+- https://github.com/bijij/ViewImage
+- https://gist.github.com/bijij/58cc8cfc859331e4cf80210528a7b255/
+
+I am also working on reverse engineering extracting the links for the full resolution images
 
 <div align='center'>
      <a href = 'https://youtu.be/ceFuBh8r8GQ?t=24'>
@@ -33,27 +44,6 @@ Another similar and promising project is [ViewImage](https://github.com/bijij/Vi
 [All features](#Features)
 
 -----
-
-Table of contents:
-
-- [SuperGoogle: a browser addon for Google Images](#supergoogle-a-browser-addon-for-google-images)
-  - [Key features:](#key-features)
-  - [Installation](#installation)
-    - [UserScript (Tampermonkey)](#userscript-tampermonkey)
-    - [Browser extension](#browser-extension)
-  - [Usage](#usage)
-    - [Download all the images](#download-all-the-images)
-    - [Display original images](#display-original-images)
-    - [Enhance the image panels](#enhance-the-image-panels)
-    - [Hotkeys](#hotkeys)
-  - [Documentation](#documentation)
-  - [Logs](#logs)
-    - [Dec-2019 backend update](#dec-2019-backend-update)
-      - [Notes and observations:](#notes-and-observations)
-  - [External Libraries](#external-libraries)
-    - [Libraries](#libraries)
-  - [Contributing](#contributing)
-  - [License](#license)
 
 ## Installation
 
@@ -81,7 +71,7 @@ Table of contents:
     <li>When prompted, allow the script to load images, click <code>Always allow all domains</code> (only needed once).<br> <img src="./Screenshots/Screenshot_tampermonkey_allow_connect.png" alt="allow connect permissions" width="250"></li>
     </ul>
     </details>
-4. Open any [google image search page](https://www.google.com/search?q=example&tbm=isch&safe=strict) and enjoy the enhanced experience
+4. Open any [google image search page](https://www.google.com/search?q=metal+sslug+pixel+art&tbm=isch&tbs=itp:animated&safe=strict) and press on the button "Display originals" at the top (or hold Ctrl and hover over the images with your mouse)
 
 ### Browser extension
 
@@ -172,7 +162,7 @@ Google changed their webpage HTML AGAIN! :(
 And now the images aren't in `.rg_meta`, they're hidden somewhere deep in an array, this is called [json transpose](https://codesandbox.io/s/vue-json-transpose-dt915?from-embed).
 And also the CSS selectors for the elements have been changed, they used to make sense but now they're just gibberish.
 
-#### Notes and observations:
+### Notes and observations:
 
 - so many anchor.href === "https://www.google.com/null"
   Reason was that `3361: return normalizeUrl(this.getAttribute('href'));` href was null, and normalizeUrl was forcing it to be a string.
@@ -180,14 +170,17 @@ And also the CSS selectors for the elements have been changed, they used to make
 - pretty much all the google functions are inside an object called `_`
 - clicking the images all the time causes issues. Such as unresponsiveness, ruining the panels (all 3)
 
-Issues to fix:
-
+### Development TODO list
+- [ ] bug: sometimes image anchors are not replaced, they stay `https://www.google.com/imgres?imgurl=`, and then it fails to load and then it uses DDG proxy
+- [x] SO SLOW!!!! Must optimize
+- [ ] panels
+  - [ ] related images don't actually get observed and don't get direct links replaced
+  - [ ] fix download button (it)
+- [ ] there is some null text on the top left corner
+- [ ] remove unneeded buttons and hotkeys
 - [x] select image slider isn't selecting the images. none are qualified for some reason.
     - the reason is that the width and height are not in the `meta` object
 - [x] related images don't have onhoverListeners
-- [ ] the download buttons don't get the right name when downloading
-- [ ] there is some null text on the top left corner
-- [ ] hovering over related images doesn't do anything anymore
 
 Actions that must be taken:
 - [x] image null URLs are turning into "null" strings, this must be stopped. the anchor is having a null href, that's one of the reasons
@@ -196,11 +189,7 @@ Actions that must be taken:
   - [ ] navbar
   - [x] image boxes
   - [ ] images
-- [ ] get image meta info. (This is from the script json transpose)
-  - [ ] get info for image boxes
-  - [ ] git info for related images
-- panels
-  - [ ] fix download button (it)
+- [x] get image meta info. (This is from the script json transpose)
 
 ## External Libraries
 
@@ -212,18 +201,12 @@ Scripts
 
 ### Libraries
 
+these are used via UserScript `@requires` tags
+
 - [jQuery](https://jquery.com/)
 - [Mousetrap.js](https://github.com/ccampbell/mousetrap) keybindings
 - [progressbar.js](https://github.com/kimmobrunfeldt/progressbar.js/) progress bar when downloading
 - [JSZip](https://github.com/Stuk/jszip) zip and compress functionality
-
-## Contributing
-
-- Fork it!
-- Create your feature branch: `git checkout -b my-new-feature`
-- Commit your changes: `git commit -am 'Add some feature'`
-- Push to the branch: `git push origin my-new-feature`
-- Submit a pull request!
 
 ## License
 
@@ -234,7 +217,7 @@ Version 2.0, January 2004
 [guide:userscript]: https://simply-how.com/enhance-and-fine-tune-any-web-page-the-complete-user-scripts-guide#section-2
 [guide:browser-API-beta]: https://www.tampermonkey.net/faq.php#Q302
 [guide:browser-API-beta-gif]: https://www.tampermonkey.net/images/animated/gm_download.gif
-[download-link]: https://github.com/FarisHijazi/SuperGoogle/raw/master/SuperGoogle.user.js
+[download-link]: https://github.com/FarisHijazi/SuperGoogleImages/raw/master/SuperGoogleImages.user.js
 [install:tampermonkey-chrome]: https://www.tampermonkey.net/index.php?ext=dhdg&browser=chrome
 
 [chrome-icon]: https://imgur.com/3C4iKO0.png

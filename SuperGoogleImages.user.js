@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Super Google Images
-// @namespace    https://github.com/FarisHijazi/SuperGoogle
+// @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.1
+// @version      1.2.2
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -24,15 +24,16 @@
 // @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/PProxy.js
 // @require      https://github.com/FarisHijazi/GM_downloader/raw/master/GM_Downloader.user.js
 // @require      https://github.com/FarisHijazi/ShowImages.js/raw/master/ShowImages.js
-// @updateUrl    https://raw.githubusercontent.com/FarisHijazi/SuperGoogle/master/SuperGoogle.user.js
+// @updateUrl    https://raw.githubusercontent.com/FarisHijazi/SuperGoogleImages/master/SuperGoogleImages.user.js
 // @run-at       document-start
 // @connect      *
 // ==/UserScript==
+console.log('SuperGoogleImages hi');
 
 // check this:
 // https://gist.github.com/bijij/58cc8cfc859331e4cf80210528a7b255/
 
-// https://github.com/FarisHijazi/SuperGoogle/projects/1
+// https://github.com/FarisHijazi/SuperGoogleImages/projects/1
 
 /**
  * Copyright 2019-2030 Faris Hijazi
@@ -93,7 +94,6 @@ const normalizeUrl = (function () {
     };
 })();
 
-
 // main
 (function () {
     'use strict';
@@ -103,12 +103,12 @@ const normalizeUrl = (function () {
     unsafeWindow.unsafeWindow = unsafeWindow;
 
     // prevents duplicate instances
-    if (typeof unsafeWindow.superGoogle !== 'undefined')
+    if (typeof unsafeWindow.SuperGoogleImages !== 'undefined')
         return;
 
-    const superGoogle = this || {};
-    unsafeWindow.superGoogle = superGoogle;
-    superGoogle.$ = $;
+    const SuperGoogleImages = this || {};
+    unsafeWindow.SuperGoogleImages = SuperGoogleImages;
+    SuperGoogleImages.$ = $;
 
     // REFACTOR: TODO: group this into an import-able that will do this simply by importing
     Set.prototype.addAll = function (range) {
@@ -197,16 +197,16 @@ const normalizeUrl = (function () {
     });
     showImages.imageManager.loadTimeout = -1;
 
-    console.log('SuperGoogle showImages:', showImages);
-    superGoogle.showImages = showImages;
+    console.log('SuperGoogleImages showImages:', showImages);
+    SuperGoogleImages.showImages = showImages;
 
     const pageUrl = new URL(location.href);
 
     const mousetrap = Mousetrap();
-    superGoogle.mousetrap = mousetrap;
+    SuperGoogleImages.mousetrap = mousetrap;
 
-    checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogle.user.js', true);
-    console.debug('SuperGoogle running');
+    checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogleImages.user.js', true);
+    console.debug('SuperGoogleImages running');
 
     /**
      * @type {{
@@ -481,11 +481,11 @@ const normalizeUrl = (function () {
     }
 
     // === start of function definitions ===
-
     var isFirstMetaUpdate = true; // flag for meta update (first time should be free, next times should have added images)
     // called as soon as the "body" is loaded
     function onload() {
         if (GoogleUtils.isOnGoogleImages || GoogleUtils.isOnGoogleImagesPanel) {
+
             createStyles();
             bindKeys();
 
@@ -495,6 +495,11 @@ const normalizeUrl = (function () {
 
             // onImageBatchLoaded observe new image boxes that load
             observeDocument((mutations, me) => {
+                // location.href = 'google.com'
+                // console.log('close()')
+                // close()
+
+                
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
                 if (!!document.querySelector('#islmp > div > div > div > div') && isFirstMetaUpdate) {
@@ -519,6 +524,10 @@ const normalizeUrl = (function () {
                 }
                 onImageBatchLoaded(addedImageBoxes);
                 updateDownloadBtnText();
+
+                // //Google direct links
+                // // FIXME: this is what prevents you from opening image tabs
+                // directLinkReplacer.checkNewNodes(mutations);
 
             }, {
                 callbackMode: 0,
@@ -629,19 +638,19 @@ const normalizeUrl = (function () {
         mousetrap.bind('s s', toggle_safesearch);
 
         mousetrap.bind(['c c'], cleanupSearch);
-        // to https://yandex.com/images/search?text=
-        mousetrap.bind('y d x', function switchEngineToYandex() {
-            const x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
-            console.log('Yandex url = ', x);
-            location.assign(x);
-        });
+        // // to https://yandex.com/images/search?text=
+        // mousetrap.bind('y d x', function switchEngineToYandex() {
+        //     const x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
+        //     console.log('Yandex url = ', x);
+        //     location.assign(x);
+        // });
 
         mousetrap.bind(['alt+a', 'a a'], function switchToAnimatedResults() {
             console.log('Go to animated');
             location.assign(document.querySelector('#TypeAnimated').href);
             (
                 document.querySelector('#TypeAnimated') ||
-                (document.querySelector('#itp_animated') && document.querySelector('#itp_animated').firstElementChild) ||
+                (document.querySelector('#itp_animated') && document.querySelectoooor('#itp_animated').firstElementChild) ||
                 document.querySelector('#itp_').firstElementChild ||
                 document.querySelector('#itp_animated').firstElementChild
             ).click();
@@ -649,13 +658,14 @@ const normalizeUrl = (function () {
         mousetrap.bind(['D'], function downloadAll() {
             document.querySelector('#downloadBtn').click();
         });
-        mousetrap.bind(['h'], function toggle_hideFailedImages() {
-            document.querySelector('#hideFailedImagesBox').click();
-        });
-        mousetrap.bind(['g'], function toggle_gifsOnlyCheckbox() {
-            document.querySelector('#GIFsOnlyBox').click();
-        });
-        mousetrap.bind(['esc', 'escape'], removeHash);
+        // mousetrap.bind(['h'], function toggle_hideFailedImages() {
+        //     document.querySelector('#hideFailedImagesBox').click();
+        // });
+        // mousetrap.bind(['g'], function toggle_gifsOnlyCheckbox() {
+        //     document.querySelector('#GIFsOnlyBox').click();
+        // });
+        mousetrap.bind(['esc'], removeHash);
+        mousetrap.bind(['o'], function displayOriginals() { document.querySelector('#dispOgsBtn').click() });
 
         mousetrap.bind(['/'], function focusSearchbar(e) { // focus search box
             const searchBar = document.querySelector(Consts.Selectors.searchBox);
@@ -671,22 +681,21 @@ const normalizeUrl = (function () {
 
         // @info mainImage drop-down panel:    #irc_bg
 
-        mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
-        mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
+        // mousetrap.bind(['ctrl+['], siteSearch_TrimLeft);
+        // mousetrap.bind(['ctrl+]'], siteSearch_TrimRight);
 
-        mousetrap.bind(['['], function stepDown_minImgSizeSlider(e) {
-            Components.minImgSizeSlider.stepDown();
-        });
-        mousetrap.bind([']'], function stepUp_minImgSizeSlider(e) {
-            Components.minImgSizeSlider.stepUp();
-        });
+        // mousetrap.bind(['['], function stepDown_minImgSizeSlider(e) {
+        //     Components.minImgSizeSlider.stepDown();
+        // });
+        // mousetrap.bind([']'], function stepUp_minImgSizeSlider(e) {
+        //     Components.minImgSizeSlider.stepUp();
+        // });
 
-        mousetrap.bind(['c'], function goToCollections(e) {
-            const btn_ViewSaves = document.querySelector('#ab_ctls > li > a.ab_button');
-            console.debug('btn_ViewSaves', btn_ViewSaves);
-            if (!!btn_ViewSaves) btn_ViewSaves.click();
-        });
-        //
+        // mousetrap.bind(['c'], function goToCollections(e) {
+        //     const btn_ViewSaves = document.querySelector('#ab_ctls > li > a.ab_button');
+        //     console.debug('btn_ViewSaves', btn_ViewSaves);
+        //     if (!!btn_ViewSaves) btn_ViewSaves.click();
+        // });
 
         document.addEventListener('keydown', e => {
             if (e[Preferences.shortcuts.hotkey]) {
@@ -1126,6 +1135,7 @@ const normalizeUrl = (function () {
         // == creating buttons ==
 
         const btn_dispOgs = createGButton('dispOgsBtn', 'Display <u>o</u>riginals', function () {
+            updateImageMetas()
             showOriginals();
         });
 
@@ -1192,14 +1202,16 @@ const normalizeUrl = (function () {
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
 
         // disable buttons
-        [cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, constraintsContainer].forEach(el=>{
+        [cbox_ShowFailedImages, cbox_GIFsOnly, pathBox, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, constraintsContainer].forEach(el=>{
             el.style.display = 'none';
         });
 
         return createAndGetNavbar().then(function (navbarContentDiv) {
             // const gNavbar = document.querySelector('#rshdr, header > div:nth-child(1)');
             // navbarContentDiv.before(gNavbar, document.querySelector('#searchform'));
-            navbarContentDiv.appendChild(controlsContainer).after(document.querySelector('#navbar-hover-sensor'));
+            navbarContentDiv.appendChild(controlsContainer)
+            // .after(createElement('<div><img src="'+UPARROW_GIF+'" style="height: 20px"></div>'));
+            navbarContentDiv.after(document.querySelector('#navbar-hover-sensor'));
             return navbarContentDiv;
         });
     }
@@ -1212,6 +1224,12 @@ const normalizeUrl = (function () {
         shouldShowOriginals = true;
         thumbnails = thumbnails || getThumbnails();
 
+        // replace any thumbnails
+        document.querySelectorAll('[fullres-src]').forEach(a=>{
+            if (a.getAttribute('loaded') === 'true' && a.src.startsWith('https://encrypted-tbn0.gstatic.com/images'))
+                a.src = a.getAttribute('fullres-src')
+        });
+
         return [].map.call(
             thumbnails,
             // some may not have been replaced with direct links yet, so wait until that happens then showImages
@@ -1221,6 +1239,7 @@ const normalizeUrl = (function () {
             // :elementReady(img => img && img.matches('img[fullres-src]'))
             //     .then(() => showImages.replaceImgSrc(img))
         );
+        
     }
 
     /**
@@ -1914,7 +1933,16 @@ const normalizeUrl = (function () {
         };
 
         const checkAttribute = function (mutation) {
+            const SELECTOR_BLACKLIST = [
+                "#islsp",
+            ];
             const target = mutation.target;
+            for (const selector of SELECTOR_BLACKLIST) {
+                if (target.matches(selector)) {
+                    console.debug('element matched blacklist selector:', selector, target);
+                    return;
+                }
+            }
 
             if (target && target.tagName === 'A') {
                 if ((mutation.attributeName || mutation.attrName) === 'href') {
@@ -2214,23 +2242,6 @@ const normalizeUrl = (function () {
         const str1MinusStr2 = str1.replace(regex, ' ');
         return removeDoubleSpaces(str1MinusStr2 + ' ' + str2);
     }
-    function unionStrings(str1, str2) {
-        const words1 = str1.split(/\s+/g),
-            words2 = str2.split(/\s+/g),
-            resultWords = [];
-        let i,
-            j;
-
-        for (i = 0; i < words1.length; i++) {
-            for (j = 0; j < words2.length; j++) {
-                if (words1[i].toLowerCase() === words2[j].toLowerCase()) {
-                    console.debug('word ' + words1[i] + ' was found in both strings');
-                    resultWords.push(words1[i]);
-                }
-            }
-        }
-        return resultWords.join(' ');
-    }
 
 
     /**
@@ -2460,7 +2471,7 @@ const normalizeUrl = (function () {
 
         // toolbar
         // language=CSS
-        addCss(`/*sg=SuperGoogle, this is padding for the buttons and controls*/
+        addCss(`/*sg=SuperGoogleImages, this is padding for the buttons and controls*/
         .sg {
             margin: 8px;
         }
@@ -2605,14 +2616,6 @@ const normalizeUrl = (function () {
                 inset 1px 1px 0 rgba(255, 255, 255, .05);
             }
 
-            /*
-            .scroll-nav:hover,
-            .scroll-nav *:hover:not(.hover-click),
-            .scroll-nav *:focus:not(.hover-click) {
-                cursor: crosshair;
-            }
-            */
-
             /*coloring links, make them easier to see*/
             .mblink:visited, a:visited {
                 color: #d684ff;
@@ -2634,13 +2637,13 @@ const normalizeUrl = (function () {
      */
     function createAndGetNavbar() {
         // Settings up the navbar
-
+        document.querySelector("#yDmH0d > c-wiz > div > div.s8GCU").style.minHeight = '175px';
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`
             div#navbar {
                 position: fixed;
-                z-index: 3;
+                z-index: 5;
                 height: 10px;
                 top: 0;
                 right: 0;
@@ -2684,7 +2687,7 @@ const normalizeUrl = (function () {
         addCss(`#irc_bg { transition: top 0.5s; }`);
 
 
-        const $navbarContent = $('<div id="navbar-content"></div>');
+        const $navbarContent = $('<div id="navbar-content" style="width: 60%"></div>');
         // this will be added later
         const $navbar = $('<div id="navbar"></div>').append($navbarContent).append($('<div id="navbar-hover-sensor" style="height: 30px;"></div>'));
         const nbarContent = $navbarContent[0];
@@ -2696,6 +2699,7 @@ const normalizeUrl = (function () {
          * @param hidelater - hide now or later, default: false
          */
         nbarContent.setNavbarPos = function (e, pos = 0, hidelater = false) {
+            return;
             clearTimeout(nbarContent.timeout);
             if (hidelater && pos !== 0) {
                 nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0), Preferences.toolbar.navbarHideDelay);
@@ -2975,6 +2979,7 @@ function sortByFrequency(array) {
     });
 }
 
+// we have too many observer callbacks
 /**
  * @param {function} callback
  * @param {MutationObserverInit=} options
@@ -3216,74 +3221,14 @@ function getMetaContainers() {
             return results;
         }
 
-        // // TODO: automate this .Ak.
-        // // usage:
-        // metaInfosObj = findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
-        //     try {
-        //         return !!(obj[key].j[3][0].Ak.length===22);
-        //     } catch(e) {
-        //     }
-        // });
-
-        var keyList = [];
-        function getArrays(o) {
-            return Object.entries(o).filter(([k,v]) => {
-                var ret = (v instanceof Array) && v.length===22;
-                if (ret) { keyList.push(k); }
-                return ret;
-            })
-        }
-        metaInfosObj = findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
-            try { return !!getArrays(obj[key].j[3][0])[0]; } catch(e) { }
-            // return !!(obj[key].j[3][0].Ak.length===22);
-        });
-        function getMode(array)
-        {
-            if(array.length == 0)
-                return null;
-            var modeMap = {};
-            var maxEl = array[0], maxCount = 1;
-            for(var i = 0; i < array.length; i++)
-            {
-                var el = array[i];
-                if(modeMap[el] == null)
-                    modeMap[el] = 1;
-                else
-                    modeMap[el]++;  
-                if(modeMap[el] > maxCount)
-                {
-                    maxEl = el;
-                    maxCount = modeMap[el];
-                }
+        metaInfosObj = findObject(document.querySelector("#islmp > div > div > div").__jsmodel, (key, obj)=>{
+            try {
+                return !!(obj[key][2][0].length===22);
+            } catch(e) {
             }
-            return maxEl;
-        }
-        // findObject(document.querySelector("#islmp > div > div > div"), (key, obj)=>{
-        //     try {
-        //         return !!(obj[key][6].includes('rgb'));
-        //     } catch(e) {
-        //     }
-        // });
-
-        // cache infoKey for the next calls
-        if (!infoKey) {
-            infoKey = getMode(keyList); // this is "Ak" or "w" or whatever
-        }
-
-        var metaInfos = metaInfosObj[0].j[3].map(info => {
-            return info[infoKey];
         });
-
-        var metaInfos2 = [];
-        try {
-            // we must include relative images here too
-            var metaInfos2 = window.document.gs.__jscontroller.we.Xo.N.g[1325].__component.g.B3.j[1].j[5][0].W[12][2];
-        } catch (e) {
-        
-        }
-
-
-        return metaInfos.concat(metaInfos2);
+        metaInfosObj = [].concat.apply([], metaInfosObj.map(o=>o[2]));
+        return metaInfosObj;
     } catch (e) {
         // console.warn('couldn\'t get meta container from page', e);
         return [];
@@ -3468,7 +3413,7 @@ function parse_AF_initDataCallback() {
             }
 
             try {
-            rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+                rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
             } catch (error) {
                 try {
                     rg_meta.st = siteAndNameInfo[2003][2]; // infolink TODO: doublecheck
@@ -3486,4 +3431,15 @@ function parse_AF_initDataCallback() {
 
     parse_AF_initDataCallback.metasMap = metasMap;
     return metasMap;
+}
+
+function hideNonGIFs() {
+    document.querySelectorAll('img.rg_i').forEach(img=>{
+        var div = img.closest('div[data-ved]');
+        if (div.querySelector('[aria-label="Click to view animated GIF"]')) {
+            console.log(div)
+        } else {
+            div.style.display='none'
+        }
+    });
 }
