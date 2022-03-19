@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.2
+// @version      1.2.3
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -205,8 +205,12 @@ const normalizeUrl = (function () {
     const mousetrap = Mousetrap();
     SuperGoogleImages.mousetrap = mousetrap;
 
-    checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogleImages.user.js', true);
-    console.debug('SuperGoogleImages running');
+    try {
+        checkImports(['ProgressBar', '$', 'JSZip'], 'SuperGoogleImages.user.js', true);
+        console.debug('SuperGoogleImages running');
+    } catch (error) {
+        console.error(error);
+    }
 
     /**
      * @type {{
