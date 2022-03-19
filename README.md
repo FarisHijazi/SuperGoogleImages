@@ -1,30 +1,6 @@
 # SuperGoogleImages: a browser addon for Google Images
 
-<!-- <a href="" target="_blank"><img alt="chrome-icon" src="https://imgur.com/3C4iKO0.png" width="64" height="64"></a> -->
-<!-- <a href="" target="_blank"><img alt="firefox-icon" src="https://imgur.com/Dy442GK.png" width="64" height="64"></a>
-<a href="" target="_blank"><img alt="edge-icon" src="https://imgur.com/RlmwPGO.png" width="64" height="64"></a>
-<a href="" target="_blank"><img alt="opera-icon" src="https://imgur.com/nSJ9htU.png" width="64" height="64"></a>
-<a href="" target="_blank"><img alt="safari-icon" src="https://imgur.com/ENbaWUu.png" width="64" height="64"></a>
-<a href="" target="_blank"><img alt="webbrowser-icon" src="https://imgur.com/EuDp4vP.png" width="64" height="64"></a>
-<a href="" target="_blank"><img alt="brave-icon" src="https://imgur.com/z8yjLZ2.png" width="64" height="64"></a>
-<a href="" target="_blank"><img alt="torr-icon" src="https://imgur.com/uhb8M86.png" width="64" height="64"></a> -->
-
 A browser-plugin/[script](https://openuserjs.org/about/Userscript-Beginners-HOWTO) to add features to [Google images](https://www.google.com/search?q=example&tbm=isch&safe=strict).
-
-**Status:** very clunky and will be re-written soon
-
-----
-
-WARNING: everything is very experimental up till now, there is a major reboot coming soon of the script.
-Thanks to Google for changing their HTML every few months and making life difficult.
-
-Also most of the features listed bellow are actually not working anymore
-
-Other similar and promising projects:
-- https://github.com/bijij/ViewImage
-- https://gist.github.com/bijij/58cc8cfc859331e4cf80210528a7b255/
-
-I am also working on reverse engineering extracting the links for the full resolution images
 
 <div align='center'>
      <a href = 'https://youtu.be/ceFuBh8r8GQ?t=24'>
@@ -42,6 +18,19 @@ I am also working on reverse engineering extracting the links for the full resol
 - replace google **redirect links**
 
 [All features](#Features)
+
+----
+
+WARNING: everything is very experimental up till now, there is a major reboot coming soon of the script.
+Thanks to Google for changing their HTML every few months and making life difficult.
+
+Also most of the features listed bellow are actually not working anymore
+
+Other similar and promising projects:
+- https://github.com/bijij/ViewImage
+- https://gist.github.com/bijij/58cc8cfc859331e4cf80210528a7b255/
+
+I am also working on reverse engineering extracting the links for the full resolution images
 
 -----
 
