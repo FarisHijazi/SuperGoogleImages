@@ -1263,9 +1263,7 @@ const normalizeUrl = (function () {
 
     function downloadImages() {
         const zipBox = document.querySelector('#zipInsteadOfDownload');
-        const qualifiedGImgs = getQualifiedGImgs({
-            exception4smallGifs: document.querySelector('#GIFsExceptionBox').checked
-        });
+        const qualifiedGImgs = document.querySelectorAll('img.rg_i:not([loaded="error"])');
         if (zipBox && zipBox.checked) {
             if (!zip || Object.keys(zip.files).length < 1) {
                 gZipImages();
@@ -1273,19 +1271,10 @@ const normalizeUrl = (function () {
                 if (zip) zip.genZip();
             }
         } else {
-            if (currentDownloadCount >= document.querySelector('#dlLimitSlider').value) {
-                currentDownloadCount = 0;
-            } else {
-                console.log('currentDownloadCount < dlNumSlider.value');
-            }
-
             let i = 0;
             const btns = [].map.call(qualifiedGImgs, img => img.parentElement.querySelector('.download-block'));
             const interval = setInterval(function () {
-                if (i < Math.min(btns.length, document.querySelector('#minImgSizeSlider').value))
-                    btns[i++].click();
-                else
-                    clearInterval(interval);
+                btns[i++].click();
             }, 100);
         }
     }
@@ -2641,7 +2630,8 @@ const normalizeUrl = (function () {
      */
     function createAndGetNavbar() {
         // Settings up the navbar
-        document.querySelector("#yDmH0d > c-wiz > div > div.s8GCU").style.minHeight = '175px';
+        var yDmH0ddiv = document.querySelector("#yDmH0d > c-wiz > div > div");
+        if (yDmH0ddiv) yDmH0ddiv.style.minHeight = '175px';
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`
