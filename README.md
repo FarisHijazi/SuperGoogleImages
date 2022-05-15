@@ -62,6 +62,10 @@ I am also working on reverse engineering extracting the links for the full resol
     </details>
 4. Open any [google image search page](https://www.google.com/search?q=metal+sslug+pixel+art&tbm=isch&tbs=itp:animated&safe=strict) and press on the button "Display originals" at the top (or hold Ctrl and hover over the images with your mouse)
 
+### On mobile
+
+for mobile, download a browser that supports the tampermonkey addon like [kiwibrowser](https://kiwibrowser.com/) and follow the same steps above
+
 ### Browser extension
 
 Not yet supported, but coming soon!
