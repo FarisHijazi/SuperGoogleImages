@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.3
+// @version      1.2.4
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -1159,7 +1159,21 @@ const normalizeUrl = (function () {
         btn_preload.appendChild(createElement('<span class="preload-progress" style="margin: 5px;">'));
 
         const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
-        const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
+        const btn_hideNavbar = createGButton('hideNavbarBtn', 'Hide', function () {
+            elementReady('#navbar-content').then((navbarContent) => {
+                navbarContent.style.display = 'none';
+                document.querySelector('#showNavbarBtn').style.display = '';
+            });
+        });
+        const btn_showNavbar = createGButton('showNavbarBtn', 'Show navbar', function () {
+            elementReady('#navbar-content').then((navbarContent) => {
+                navbarContent.style.display = '';
+                document.querySelector('#showNavbarBtn').style.display = 'none';
+            });
+        });
+        btn_showNavbar.style.display = 'none';
+        document.querySelector('[aria-label="Settings"]').parentElement.parentElement.before(btn_showNavbar);
+        // const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
         const btn_showKeymap = createGButton('showKeymap', '(?) keymap', toggleShowKeymap);
         const btn_download = $(createGButton('downloadBtn', 'Download EVERYTHING ⬇️', downloadImages)).css({
             'margin': '20px',
@@ -1200,7 +1214,7 @@ const normalizeUrl = (function () {
         controlsContainer.appendChild(divider);
 
         // appending buttons and controls
-        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, btn_showKeymap, downloadPanel);
+        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, btn_showKeymap, downloadPanel, btn_hideNavbar);
 
         constraintsContainer.append(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
