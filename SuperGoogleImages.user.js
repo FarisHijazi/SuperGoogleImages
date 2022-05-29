@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.4
+// @version      1.2.5
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -2697,7 +2697,7 @@ const normalizeUrl = (function () {
 
         const $navbarContent = $('<div id="navbar-content" style="width: 60%"></div>');
         // this will be added later
-        const $navbar = $('<div id="navbar"></div>').append($navbarContent).append($('<div id="navbar-hover-sensor" style="height: 30px;"></div>'));
+        const $navbar = $('<div id="navbar"></div>').append($navbarContent).append($('<div id="navbar-hover-sensor" style="height: 30px; display: none;"></div>'));
         const nbarContent = $navbarContent[0];
 
         // adding some handy functions
