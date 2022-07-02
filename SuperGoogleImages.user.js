@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.6
+// @version      1.2.7
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -614,9 +614,7 @@ const normalizeUrl = (function () {
         }
 
 
-        injectGoogleButtons().then(navbarContentDiv => {
-            // code here...
-        });
+        injectGoogleButtons()
 
     }
 
@@ -1173,7 +1171,6 @@ const normalizeUrl = (function () {
             });
         });
         btn_showNavbar.style.display = 'none';
-        document.querySelector('[aria-label="Settings"]').parentElement.parentElement.before(btn_showNavbar);
         // const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
         const btn_showKeymap = createGButton('showKeymap', '(?) keymap', toggleShowKeymap);
         const btn_download = $(createGButton('downloadBtn', 'Download EVERYTHING ⬇️', downloadImages)).css({
@@ -1215,7 +1212,7 @@ const normalizeUrl = (function () {
         controlsContainer.appendChild(divider);
 
         // appending buttons and controls
-        divider.after(btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, btn_showKeymap, downloadPanel, btn_hideNavbar);
+        divider.after(btn_hideNavbar, btn_dispOgs, cbox_ShowFailedImages, cbox_GIFsOnly, cbox_UseDdgProxy, cbox_GIFsException, cbox_OnlyShowQualifiedImages, link_animated, searchEngineSelect, pathBox, btn_showKeymap, downloadPanel,);
 
         constraintsContainer.append(satCondLabel);
         downloadPanel.appendChild(createElement(`<div id="progressbar-container"></div>`));
@@ -1228,7 +1225,8 @@ const normalizeUrl = (function () {
         return createAndGetNavbar().then(function (navbarContentDiv) {
             // const gNavbar = document.querySelector('#rshdr, header > div:nth-child(1)');
             // navbarContentDiv.before(gNavbar, document.querySelector('#searchform'));
-            navbarContentDiv.appendChild(controlsContainer)
+            navbarContentDiv.before(btn_showNavbar);
+            navbarContentDiv.appendChild(controlsContainer);
             // .after(createElement('<div><img src="'+UPARROW_GIF+'" style="height: 20px"></div>'));
             navbarContentDiv.after(document.querySelector('#navbar-hover-sensor'));
             return navbarContentDiv;
@@ -2645,8 +2643,6 @@ const normalizeUrl = (function () {
      */
     function createAndGetNavbar() {
         // Settings up the navbar
-        var yDmH0ddiv = document.querySelector("#yDmH0d > c-wiz > div > div");
-        if (yDmH0ddiv) yDmH0ddiv.style.minHeight = '175px';
         /*for moving the footcnt bar at the bottom more to the bottom*/
         // language=CSS
         addCss(`

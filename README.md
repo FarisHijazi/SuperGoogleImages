@@ -164,10 +164,17 @@ And also the CSS selectors for the elements have been changed, they used to make
 - clicking the images all the time causes issues. Such as unresponsiveness, ruining the panels (all 3)
 
 ### Development TODO list
-- [ ] bug: sometimes image anchors are not replaced, they stay `https://www.google.com/imgres?imgurl=`, and then it fails to load and then it uses DDG proxy
+
+- [ ] add button to download ris images
+- [x] fix navbar, add buttons to hide and show
+- [x] navbar move hide/show buttons to be next to eachother
+- [x] navbar fix that invisible thing that blocks everything
+- [ ] add hotkey to go to (s)earch or (i)mages
+- [ ] add a listener when a panel appears, to get the same image that the imgbox is using, cuz usually it's blocked or sth so we should just use the one on the imgbox
+- [x] bug: sometimes image anchors are not replaced, they stay `https://www.google.com/imgres?imgurl=`, and then it fails to load and then it uses DDG proxy
 - [x] SO SLOW!!!! Must optimize
 - [ ] panels
-  - [ ] related images don't actually get observed and don't get direct links replaced
+  - [x] related images don't actually get observed and don't get direct links replaced
   - [ ] fix download button (it)
 - [ ] there is some null text on the top left corner
 - [ ] remove unneeded buttons and hotkeys
