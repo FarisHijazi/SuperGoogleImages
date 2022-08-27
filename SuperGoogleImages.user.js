@@ -559,18 +559,6 @@ const normalizeUrl = (function () {
                 changeToEnglishAnchors.click();
             });
 
-            // bind each result to the corresponding number
-            
-            elementReady("#rso div:nth-child(9) > div > div > div.Z26q7c.UK95Uc.uUuwM.jGGQ5e").then(() => {
-                const searchResults = document.querySelectorAll("#rso div > div >  div > div > div.yuRUbf > a");
-                // assert not empty
-                console.assert(searchResults.length > 0, 'searchResults is empty');
-                searchResults.forEach((result, index) => {
-                    mousetrap.bind(String(index + 1), () => result.click());
-                    mousetrap.bind('shift+' + String(index + 1), () => window.open(result.href, '_blank'));
-                    result.querySelector('cite').before(createElement(`<strong style="float: left;">[${index + 1}]</strong>`));
-                });
-            });
         }
     }
 
@@ -2067,36 +2055,16 @@ const normalizeUrl = (function () {
      * menuItemNames = [ "all", "images", "videos", "news", "maps", "more" ]
      */
     function getMenuItems() {
-        //TODO: needs update for new selectors
-        const menuItems = document.querySelector([
-            '#hdtb-msb',
-            '.tAcEof',
-            'div.O850f > div > div'
-        ].join(', '))
-            .querySelectorAll('div > div > div > a');
-        const menuItemNames = [
-            'all',
-            'images',
-            'videos',
-            'news',
-            'maps',
-            'more'
-        ];
+        const menuItems = document.querySelectorAll("#top_nav .hdtb-mitem a");
         let menuItemsObj = {};
 
         for (const menuItem of menuItems) {
-            for (const menuItemName of menuItemNames) {
-                if (new RegExp(menuItemName, 'i').test(menuItem.innerText)) {
-                    menuItemsObj[menuItemName] = menuItem;
-                    break;
-                }
-            }
+            menuItemsObj[menuItem.innerText] = menuItem;
         }
-        menuItemsObj.selected = document.querySelector('.hdtb-mitem.hdtb-imb');
 
-        console.log('menuItemsObj=', menuItemsObj);
         return menuItemsObj;
     }
+
 
     /** @return {Array} returns an array of words with the most common word in the first index */
     function getSortedWords() {
@@ -3133,7 +3101,13 @@ function parse_AF_initDataCallback() {
 
     var entry = data.slice(-1)[0];
     if (!entry) return metasMap;
-    var imgMetas = entry[31][0][12][2].map(meta => meta[1]); // confirmed
+    try {
+        var imgMetas = entry[31][0][12][2].map(meta => meta[1]); // confirmed
+    } catch (error) {
+        // var imgMetas = entry[56][1][0][0][1][0].map(x => x[0][0]['444383007'][1]);
+        var imgMetas = entry[56][1][0][0][1][0].map(x => Object.values(x[0][0])[0][1]);
+    }
+
     var metas = imgMetas.map(meta => {
         try {
             const rg_meta = ({
