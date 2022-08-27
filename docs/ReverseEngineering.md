@@ -1,16 +1,4 @@
-# SuperGoogle.user.js Reverse engineering Google images
-
-- [SuperGoogle.user.js Reverse engineering Google images](#supergoogleuserjs-reverse-engineering-google-images)
-  - [Components](#components)
-    - [the HTML: classnames, selectors, attributes](#the-html-classnames-selectors-attributes)
-      - [Attributes](#attributes)
-    - [The Image Panel](#the-image-panel)
-    - [Meta Data](#meta-data)
-    - [Translation table](#translation-table)
-    - [Image Boxes](#image-boxes)
-  - [loading of the page and elements and some source code](#loading-of-the-page-and-elements-and-some-source-code)
-  - [Redirect URL (`imgres`) components, creating a url from meta info](#redirect-url-imgres-components-creating-a-url-from-meta-info)
-  - [**Load more images** HAR requests - Reverse engineering](#load-more-images-har-requests---reverse-engineering)
+# SuperGoogleImages.user.js Reverse engineering Google images
 
 Here are my notes and what I understood of how the google images webpage works
 
@@ -44,6 +32,148 @@ var meta = getMeta(rg_bxDiv);
 ```
 
 `div.rg_meta`
+
+### Meta info used by Google
+
+Now the goal is to get the image fullres URL, this fullres image URLs could be anywhere (depending on the website designer). Mainly there are 2 cases, it could be offline (in your page), or online, meaning that everytime we click the image to enlarge it, our client side code asks for the fullres image.
+
+#### we can test this by going to the `networks` panel 
+
+Ok, the way I extract the info is by using:
+
+```js
+
+JSON.stringifySafe = function(o, ...args) {
+    var getCircularReplacer = () => {
+        const seen = new WeakSet();
+        return (key, value) => {
+            if (typeof value === "object" && value !== null) {
+                if (seen.has(value)) { return; }
+                seen.add(value);
+            }
+            return value;
+        };
+    };
+    return JSON.stringify(o, getCircularReplacer(), ...args);
+}
+function anchorClick(url, name = '', target = 'self') {
+    name = name || nameFile(url) || 'filename';
+
+    var a = document.createElement('a');
+    a.setAttribute('href', url);
+    a.setAttribute('download', name);
+    a.setAttribute('target', target);
+    document.documentElement.appendChild(a);
+    // call download
+    // a.click() or CLICK the download link can't modify filename in Firefox (why?)
+    // Solution from FileSaver.js, https://github.com/eligrey/FileSaver.js/
+    a.dispatchEvent(new MouseEvent('click'));
+    document.documentElement.removeChild(a);
+}
+function makeFile(text, options = {name: false, type: 'text/plain', replace: false}) {
+    if (typeof file === 'undefined') {
+        var file = null;
+    }
+    if (typeof (options) === 'string') options = {name: String(options)};
+    options = Object.assign({name: false, type: 'text/plain', replace: false}, options);
+
+    const data = new Blob([text], {type: options.type});
+    // If we are replacing a previously generated file we need to manually revoke the object URL to avoid memory leaks.
+    if (file !== null && options.replace === false) window.URL.revokeObjectURL(file);
+    file = window.URL.createObjectURL(data);
+    if (options.name) {
+        anchorClick(file, options.name);
+    }
+    return file;
+}
+document.querySelectorAll('iframe').forEach(frame=>frame.remove());
+
+objectOfInterest = window;
+
+var jsonStr = JSON.stringifySafe(objectOfInterest, 4)
+makeFile(jsonStr, document.title.slice(0, 20) + (window.superGoogle?'_scriptOn_':'_scriptOff_')+'.json')
+
+```
+
+I noticed that some elements in the page actually contain hidden info about the images.
+
+The following container is an object that has many elements, we could just use this instead of using `querySelector`
+```js
+        window['document']['gs']['__jscontroller']['ng']['Vd']['bl']['byfTOb'][0]['g']['rm']['g']['g'][0]['ov']['ir'][1]['o']['V']['rm']['g']['j'][0]['ov']['wZ']['V']['rm']['g']['resize'][1]['ov']['ac']['Ic'][0]['__jscontroller']['ng']['Ck']['Rl']['g']
+//         // ['6']['__jscontroller']['ng']['j']['va']['g']['g']['rm']['g']['l'][2]['ov']['g']['0']['target']['__component']['ua']['ng']['o']['lf']['Aa']['w']['__jscontroller']['ng']['Yt']['chrome']['V']['__jscontroller']['ng']['H'][0]['Hg']['__jsmodel']['jJJIob']['ng']['Ea']['o'][0]['g']['3'][119]['g']['2']['g']['183836587']
+// var g = window['document']['gs']['__jscontroller']['o']['Hd']['ek'] ['byfTOb'][0]['g']['nl']['g']['g'][0]['mt']['Fp'][1]['o']['V']['nl']['g']['j'][0]['mt']['ma']['W']['nl']['g']['resize'][1]['mt']['Sb']['zc'][0]['__jscontroller']['o']['Cj']['Nk']['g'];
+var gs = document.querySelector('[name="gs"]'); //g[5] || g[9]
+var infoMetas;
+try {
+    infoMetas = gs['__jscontroller']['o']['j']['va']['g']['g']['nl']['g']['l'][2]['mt']['g']['0']['target']['__component']['va']['W']['W']['g']['ma']['w']['__jscontroller']['o']['ds']['chrome']['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['H']['j']['j']['3'];
+} catch (e) {
+    infoMetas = gs['__jscontroller']['o']['g']['j']['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3'];
+}
+
+infoMetas = Object.entries(g).map(function ([k, v]) {
+    try {
+        return [
+            k,
+ v['__jscontroller']['o']['j']['va']['g']['g']['nl']['g']['l'][2]['mt']['g']['0']['target']['__component']['va']['W']['W']['g']['ma']['w']['__jscontroller']['o']['ds']['chrome']['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['H']['j']['j']['3']
+        ]
+    } catch (e) {
+    }
+    try {
+        return [
+            k,
+            v['__jscontroller']['o']['g']['j']['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3']
+        ]
+    } catch (e) {
+    }
+}).filter(e => !!e)[0][1];
+
+// I think you could also do:
+
+infoMetas = document.querySelector("#NmTzue")['__jscontroller']['o']['g']['j']['V']['__jscontroller']['o']['H'][0]['Th']['__jsmodel']['jJJIob']['o']['Da']['j'][0]['j']['3']
+```
+
+Once you have `info`, this is a list of `_.Xv` objects, each one belongs to an image. Then we need to extract the needed meta info for each `Xv`.
+
+
+This is how a single `imgInfoLegacy` looks like
+```json
+{
+    "2001": [ null, null, null, 3, 9, 6, 12, null, null, null, [] ],
+    "2003": [ null, "ODcmttHdhuZIuM", "https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE", "Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...", null, false, null, null, null, false, null, null, "Make A Gif", null, null, null, null, null, null, null, null, null, false, false, false, { "26": [ null, 2 ] } ],
+    "2008": [ null, "Metroid Prime 2: Echoes 100 ..." ],
+    "183836587": [ "makeagif.com", null, [ [ [ 2, "1.0.0" ], [ null, 2, [ 2 ], 1 ], null, null, false ], [ null, null, "Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...", null, null, null, [ "https://encrypted-tbn0.gstatic.com/images?q=tbn%3AANd9GcTNqAgIdupLhB4RZURRBAnFpGi3XuQPQD8qKeiHlxPV8TBLRDVZ", 272, 185, [] ], null, null, [ null, [ "https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE", null, "ODcmttHdhuZIuM" ], "cRIoGkXQe6VmfM" ], null, null, null, null, null, null, [ 2, null, null, null, null, "cRIoGkXQe6VmfM" ], null, [ "https://i.makeagif.com/media/7-03-2015/GgiQvE.gif", null, 400, 273 ] ], false, null, "cRIoGkXQe6VmfM", [] ] ]
+}
+```
+
+for ris images, you may access `g['203']['__jsmodel']['tTXmib']['o']['j']['j']['3']`
+
+#### Using `g` to get elements
+
+Instead of using querySelector to get elements and depending on the selectors, it might be better to just access them directly form g.
+
+To find the keys of those elements (if they exist in `g`), use the following snippet:
+It will return an array of keys that point to this element (there will either be 1 or no keys).
+
+```js
+Object.keys(g).filter(k => g[k] === myElement)
+```
+
+ris_container = g[203] || g[237] || g[263]
+
+#### Fetching the next page/an just use the response, instead of looking for it in the object
+
+Another approach is to now if we know how to fetch the next scroll pages, and know how to parse the response, there would be no need to go through the object attributes.
+
+#### Reverse engineering the client side code
+
+Another method, is to debug the clinet side code and see where the changes are being made.
+We can for example, put a breakpoint and see what's modifying the images and giving them the fullres URLs.
+
+We notice that the image links don't have any URL, but when you click on them, they do get a URL.
+
+Now the intuitive approach is to replace the click listener, but I'm not sure if that's possible <TODO: add resource here> in javascript
+
+
 
 ### The Image Panel
 
