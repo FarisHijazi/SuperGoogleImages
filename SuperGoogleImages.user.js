@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.7
+// @version      1.2.8
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -247,8 +247,8 @@ const normalizeUrl = (function () {
             imageLinks: 'a[jsname="sTFXNd"]', // includes related images
             /** The "All sizes" link from the SearchByImage page*/
             showAllSizes: '#jHnbRc > div.O1id0e > span:nth-child(2) > a',
-            searchModeDiv: 'div#hdtb-msb-vis',
-            selectedSearchMode: 'div#hdtb-msb-vis div.hdtb-msel',
+            searchModeDiv: 'div.hdtb-mitem',
+            selectedSearchMode: 'div.hdtb-mitem.hdtb-msel',
             searchBox: 'input[type="text"][title="Search"]',
             googleButtonsContainer: '#hdtb-msb',
             menuItemsAndButtonsContainer: '#hdtb-msb, .tAcEof',
@@ -644,13 +644,6 @@ const normalizeUrl = (function () {
         // S S: SafeSearch toggle
         mousetrap.bind('s s', toggle_safesearch);
 
-        mousetrap.bind(['c c'], cleanupSearch);
-        // // to https://yandex.com/images/search?text=
-        // mousetrap.bind('y d x', function switchEngineToYandex() {
-        //     const x = 'https://yandex.com/images/search?text=' + encodeURIComponent(new URL(location.href).searchParams.get('q'));
-        //     console.log('Yandex url = ', x);
-        //     location.assign(x);
-        // });
 
         mousetrap.bind(['alt+a', 'a a'], function switchToAnimatedResults() {
             console.log('Go to animated');
@@ -672,7 +665,7 @@ const normalizeUrl = (function () {
         //     document.querySelector('#GIFsOnlyBox').click();
         // });
         mousetrap.bind(['esc'], removeHash);
-        mousetrap.bind(['o'], function displayOriginals() { document.querySelector('#dispOgsBtn').click() });
+        mousetrap.bind(['o o'], function displayOriginals() { document.querySelector('#dispOgsBtn').click() });
 
         mousetrap.bind(['/'], function focusSearchbar(e) { // focus search box
             const searchBar = document.querySelector(Consts.Selectors.searchBox);
@@ -836,13 +829,6 @@ const normalizeUrl = (function () {
 
         document.body.appendChild(keymapTable);
         keymapTable.after(keymapTable.invisibleCover);
-    }
-
-    // attach chgMon to document.body
-    function cleanupSearch() {
-        console.log('cleanupSearch()');
-        const searchBar = document.querySelector(Consts.Selectors.searchBox);
-        searchBar.value = cleanDates(searchBar.value).replace(/\s+|[.\-_]+/g, ' ');
     }
 
     // return true when there will be a change
@@ -1162,7 +1148,7 @@ const normalizeUrl = (function () {
         btn_preload.appendChild(createElement('<span class="preload-progress" style="margin: 5px;">'));
 
         const btn_downloadJson = createGButton('dlJsonBtn', 'Download JSON {}', downloadJSON);
-        const btn_hideNavbar = createGButton('hideNavbarBtn', 'Hide', function () {
+        const btn_hideNavbar = createGButton('hideNavbarBtn', 'X', function () {
             elementReady('#navbar-content').then((navbarContent) => {
                 navbarContent.style.display = 'none';
                 document.querySelector('#showNavbarBtn').style.display = '';
@@ -1175,6 +1161,7 @@ const normalizeUrl = (function () {
             });
         });
         btn_showNavbar.style.display = 'none';
+        btn_showNavbar.style.margin = '0px';
         // const btn_trimSiteLeft = createGButton('trimSiteLeft', '[', siteSearch_TrimLeft);
         const btn_showKeymap = createGButton('showKeymap', '(?) keymap', toggleShowKeymap);
         const btn_download = $(createGButton('downloadBtn', 'Download EVERYTHING ⬇️', downloadImages)).css({
@@ -1441,8 +1428,12 @@ const normalizeUrl = (function () {
                     }
                 };
 
+                // sometimes it still looks like this:
+                // https://www.google.com/imgres?imgurl=https%3A%2F%2Fi2.wp.com%2F38.media.tumblr.com%2F0f811424d67789d2efc270c91e9f1842%2Ftumblr_n71600tZE01tbboovo1_500.gif&imgrefurl=https%3A%2F%2Fdatawav.club%2Fcrazy-eyes-blowjob-pov%2F&tbnid=lAqAlQWCj5mfhM&vet=10CJQBEDMokwFqFwoTCODy0dOD2vgCFQAAAAAdAAAAABAC..i&docid=1a_ZXKdl38h1XM&w=500&h=477&q=site%3Ahttps%3A%2F%2Fdatawav.club%2F%20blowjob&hl=en&ved=0CJQBEDMokwFqFwoTCODy0dOD2vgCFQAAAAAdAAAAABAC
                 function replaceImg() {
-                    showImages.replaceImgSrc(imgBx.img, imgBx.img.closest('a'));
+                    var anchor = imgBx.img.closest('a');
+                    directLinkReplacer.checkNewNodes({target: anchor});
+                    showImages.replaceImgSrc(imgBx.img, anchor);
                 }
 
                 const onMouseUpdate = (e) => {
@@ -2696,7 +2687,7 @@ const normalizeUrl = (function () {
         addCss(`#irc_bg { transition: top 0.5s; }`);
 
 
-        const $navbarContent = $('<div id="navbar-content" style="width: 60%"></div>');
+        const $navbarContent = $('<div id="navbar-content" style="width: 50%"></div>');
         // this will be added later
         const $navbar = $('<div id="navbar"></div>').append($navbarContent).append($('<div id="navbar-hover-sensor" style="height: 30px; display: none;"></div>'));
         const nbarContent = $navbarContent[0];
@@ -3176,7 +3167,7 @@ function clickImagesOneByOne(intervalMs=50) {
             return;
         }
         directLinkReplacer.checkNewNodes(imgs[i]);
-        rightClick(imgs[i]);
+        // rightClick(imgs[i]); // doesn't work
         showOriginals([imgs[i]]);
         
     }, intervalMs);
@@ -3357,23 +3348,6 @@ function updateImageMetas(metasMap) {
         // console.log('added meta data:', meta);
         return img;
     });
-
-    // // this will set the "_meta" attribute for each of the images
-    // Object.entries(metasMap).forEach(([, meta]) => {
-    //     const img = document.querySelector(`[data-tbnid="${meta['id']}"] img.rg_i`);
-    //     if (!img) {
-    //         console.warn('no data-tbnid found for', meta['id'])
-    //         return;
-    //     }
-    //     // if (img._meta) return;
-    //
-    //     img._meta = meta;
-    //
-    //     img.src = meta.ou;
-    //     img.setAttribute('fullres-src', meta.ou);
-    //     img.closest('a').href = meta.ou;
-    //     console.log('added meta data:', meta);
-    // });
 
     return successes;
 }
