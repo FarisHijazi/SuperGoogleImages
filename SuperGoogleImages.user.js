@@ -560,12 +560,16 @@ const normalizeUrl = (function () {
             });
 
             // bind each result to the corresponding number
-            for (let i = 0, results = document.querySelectorAll('div.srg > div'); i < results.length; i++) {
-                mousetrap.bind(String(i + 1), function (e) {
-                    results[i].querySelector('a').click();
+            
+            elementReady("#rso div:nth-child(9) > div >  div > div > div.yuRUbf > a").then(() => {
+                const searchResults = document.querySelectorAll("#rso div > div >  div > div > div.yuRUbf > a");
+                // assert not empty
+                console.assert(searchResults.length > 0, 'searchResults is empty');
+                searchResults.forEach((result, index) => {
+                    mousetrap.bind(String(index + 1), () => result.click());
+                    result.before(createElement(`<strong style="float: left;">${index + 1}</strong>`));
                 });
-                results[i].before(createElement(`<strong style="float: left;">${i + 1}</strong>`));
-            }
+            });
         }
     }
 
