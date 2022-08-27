@@ -561,13 +561,14 @@ const normalizeUrl = (function () {
 
             // bind each result to the corresponding number
             
-            elementReady("#rso div:nth-child(9) > div >  div > div > div.yuRUbf > a").then(() => {
+            elementReady("#rso div:nth-child(9) > div > div > div.Z26q7c.UK95Uc.uUuwM.jGGQ5e").then(() => {
                 const searchResults = document.querySelectorAll("#rso div > div >  div > div > div.yuRUbf > a");
                 // assert not empty
                 console.assert(searchResults.length > 0, 'searchResults is empty');
                 searchResults.forEach((result, index) => {
                     mousetrap.bind(String(index + 1), () => result.click());
-                    result.before(createElement(`<strong style="float: left;">${index + 1}</strong>`));
+                    mousetrap.bind('shift+' + String(index + 1), () => window.open(result.href, '_blank'));
+                    result.querySelector('cite').before(createElement(`<strong style="float: left;">[${index + 1}]</strong>`));
                 });
             });
         }
