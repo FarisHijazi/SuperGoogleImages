@@ -3124,21 +3124,24 @@ function parse_AF_initDataCallback() {
             [rg_meta.tu, rg_meta.th, rg_meta.tw] = meta[2];
             [rg_meta.ou, rg_meta.oh, rg_meta.ow] = meta[3];
 
-            const siteAndNameInfo = meta[9] || meta[11];
-
-            if (siteAndNameInfo[2003]) {
-                rg_meta.pt = siteAndNameInfo[2003][3];
-            } else {
-                rg_meta.pt = siteAndNameInfo[2003][2];
-            }
-
             try {
-                rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
-            } catch (error) {
-                try {
-                    rg_meta.st = siteAndNameInfo[2003][2]; // infolink TODO: doublecheck
-                } catch (error) {
+                const siteAndNameInfo = meta[9] || meta[11] || meta[23];
+                if (siteAndNameInfo[2003]) {
+                    rg_meta.pt = siteAndNameInfo[2003][3];
+                } else {
+                    rg_meta.pt = siteAndNameInfo[2003][2];
                 }
+    
+                try {
+                    rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
+                } catch (error) {
+                    try {
+                        rg_meta.st = siteAndNameInfo[2003][2]; // infolink TODO: doublecheck
+                    } catch (error) {
+                    }
+                }
+            } catch (error) {
+                console.warn(error);
             }
 
             return rg_meta;
