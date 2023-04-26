@@ -2,7 +2,7 @@
 // @name         Super Google Images
 // @namespace    https://github.com/FarisHijazi/SuperGoogleImages
 // @author       Faris Hijazi
-// @version      1.2.8
+// @version      1.2.9
 // @description  Replace thumbnails with original (full resolution) images on Google images
 // @description  Ability to download a zip file of all the images on the page
 // @description  Open google images in page instead of new tab
@@ -13,6 +13,7 @@
 // @grant        GM.setValue
 // @grant        GM_setValue
 // @grant        GM_getValue
+// @grant        GM_registerMenuCommand
 // @grant        unsafeWindow
 // @grant        window.close
 // @require      https://greasyfork.org/scripts/433051-trusted-types-helper/code/Trusted-Types%20Helper.user.js
@@ -504,7 +505,7 @@ const normalizeUrl = (function () {
                 // console.log('close()')
                 // close()
 
-                
+
                 const addedImageBoxes = getImgBoxes(':not(.rg_bx_listed)');
 
                 if (!!document.querySelector('#islmp > div > div > div > div') && isFirstMetaUpdate) {
@@ -1236,7 +1237,7 @@ const normalizeUrl = (function () {
             // :elementReady(img => img && img.matches('img[fullres-src]'))
             //     .then(() => showImages.replaceImgSrc(img))
         );
-        
+
     }
 
     /**
@@ -2900,7 +2901,7 @@ function clickImagesOneByOne(intervalMs=50) {
         directLinkReplacer.checkNewNodes(imgs[i]);
         // rightClick(imgs[i]); // doesn't work
         showOriginals([imgs[i]]);
-        
+
     }, intervalMs);
 }
 
@@ -2921,38 +2922,57 @@ function rightClick(element) {
     }
 }
 
+
+//https://codereview.stackexchange.com/questions/173978/javascript-of-property-path-in-object
+function findObject(root, predicate) {
+    const discoveredObjects = [];
+    const results = [];
+  
+    if (typeof predicate !== "function") {
+      throw new TypeError("Predicate is not a function");
+    }
+  
+    const queue = [{ obj: root, path: [] }];
+  
+    while (queue.length > 0) {
+      const { obj, path } = queue.shift();
+  
+      for (const key of Object.keys(obj)) {
+        const newPath = path.concat(key);
+  
+        if (predicate(key, obj) === true) {
+          results.push({ value: obj[key], path: newPath });
+        }
+  
+        const o = obj[key];
+  
+        if (o && typeof o === "object" && !Array.isArray(o)) {
+          if (!discoveredObjects.find(obj => obj === o)) {
+            discoveredObjects.push(o);
+            queue.push({ obj: o, path: newPath });
+          }
+        }
+      }
+    }
+  
+    return results;
+  }
+
+
+function getObjs(o) {
+    return Object.values(o).filter(v => !!v && typeof (v) === 'object' && !(v instanceof Array));
+}
+
+
 var infoKey = null;
 var metaInfosObj = null;
 function getMetaContainers() {
-    function getObjs(o) {
-        return Object.values(o).filter(v => !!v && typeof (v) === 'object' && !(v instanceof Array));
-    }
     try {
-        //https://codereview.stackexchange.com/questions/173978/javascript-of-property-path-in-object
-        function findObject(root, predicate) {
-            const discoveredObjects = []; // For checking for cyclic object
-            const results = []; // The array of paths that satify the predicate === true
-            if (typeof predicate !== "function") {
-                throw new TypeError("Predicate is not a function");
-            }
-            (function find(obj) {
-                for (const key of Object.keys(obj)) {  // use only enumerable own properties.
-                    if (predicate(key, obj) === true) {     // Found a path
-                        results.push(obj[key]);  // Add the found path to results
-                    }
-                    const o = obj[key];                 // The next object to be searched
-                    if (o && typeof o === "object" && !Array.isArray(o)) {   // check for null then type object
-                        if (!discoveredObjects.find(obj => obj === o)) {  // check for cyclic link
-                            discoveredObjects.push(o);
-                            find(o);
-                        }
-                    }
-                }
-            }(root));
-            return results;
-        }
+        // document.querySelector("#yDmH0d > div.T1diZc.KWE8qe > c-wiz")
+        // document.querySelector('form[action="/search"][role="search"]#sf'); // this is the form at the top
+        //         metaInfosObj = findObject(document.querySelector("#islmp > div > div > div").__jsmodel, (key, obj)=>{
 
-        metaInfosObj = findObject(document.querySelector("#islmp > div > div > div").__jsmodel, (key, obj)=>{
+        metaInfosObj = findObject(document.querySelector("#yDmH0d > div.T1diZc.KWE8qe > c-wiz").__jscontroller, (key, obj)=>{
             try {
                 return !!(obj[key][2][0].length===22);
             } catch(e) {
@@ -3013,7 +3033,7 @@ function extractImageMetas() {
             rg_meta.isu = imgInfoLegacy['2003'][2]; // => https://makeagif.com/gif/metroid-prime-2-echoes-100-walkthrough-part-68-annihilator-beam-GgiQvE
             rg_meta.pt = imgInfoLegacy['2003'][3] || imgInfoLegacy['2008'][1]; // => Metroid Prime 2: Echoes 100% Walkthrough Part 68 - Annihilator ...
             rg_meta.st = imgInfoLegacy['2003'][12]; // => Make A Gif
-            
+
             try {
                 rg_meta.rh = imgInfoLegacy[183836587][0];
             } catch (error) {
@@ -3041,7 +3061,7 @@ function extractImageMetas() {
 
 /**
  * @param {} metasMap (optional): pass it to avoid extractImageMetas()
- * @returns 
+ * @returns
  */
 function updateImageMetas(metasMap) {
     if (!metasMap) {
@@ -3105,7 +3125,11 @@ function parse_AF_initDataCallback() {
         var imgMetas = entry[31][0][12][2].map(meta => meta[1]); // confirmed
     } catch (error) {
         // var imgMetas = entry[56][1][0][0][1][0].map(x => x[0][0]['444383007'][1]);
-        var imgMetas = entry[56][1][0][0][1][0].map(x => Object.values(x[0][0])[0][1]);
+        try {
+            var imgMetas = entry[56][1][0][0][1][0].map(x => Object.values(x[0][0])[0][1]);
+        } catch (error2) {
+            var imgMetas = entry[56][1][0].pop()[1][0].map(x => Object.values(x[0][0])[0][1]);
+        }
     }
 
     var metas = imgMetas.map(meta => {
@@ -3131,7 +3155,7 @@ function parse_AF_initDataCallback() {
                 } else {
                     rg_meta.pt = siteAndNameInfo[2003][2];
                 }
-    
+
                 try {
                     rg_meta.st = siteAndNameInfo[183836587][0]; // infolink TODO: doublecheck
                 } catch (error) {
