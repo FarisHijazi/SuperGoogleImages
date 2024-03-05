@@ -2443,7 +2443,7 @@ const normalizeUrl = (function () {
         };
 
         // make physical div to push elements down
-        const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the bellow content (so the navbar won't cover it)
+        const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the below content (so the navbar won't cover it)
         $navbar.after($physicalDiv);
 
         const searchform = document.querySelector('#searchform, [role="search"]');
@@ -2927,25 +2927,25 @@ function rightClick(element) {
 function findObject(root, predicate) {
     const discoveredObjects = [];
     const results = [];
-  
+
     if (typeof predicate !== "function") {
       throw new TypeError("Predicate is not a function");
     }
-  
+
     const queue = [{ obj: root, path: [] }];
-  
+
     while (queue.length > 0) {
       const { obj, path } = queue.shift();
-  
+
       for (const key of Object.keys(obj)) {
         const newPath = path.concat(key);
-  
+
         if (predicate(key, obj) === true) {
           results.push({ value: obj[key], path: newPath });
         }
-  
+
         const o = obj[key];
-  
+
         if (o && typeof o === "object" && !Array.isArray(o)) {
           if (!discoveredObjects.find(obj => obj === o)) {
             discoveredObjects.push(o);
@@ -2954,7 +2954,7 @@ function findObject(root, predicate) {
         }
       }
     }
-  
+
     return results;
   }
 
