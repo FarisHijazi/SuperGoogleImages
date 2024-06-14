@@ -252,7 +252,7 @@ const normalizeUrl = (function () {
             selectedSearchMode: 'div.hdtb-mitem.hdtb-msel',
             searchBox: 'input[type="text"][title="Search"]',
             googleButtonsContainer: '#hdtb-msb',
-            menuItemsAndButtonsContainer: '#hdtb-msb, .tAcEof',
+            menuItemsAndButtonsContainer: '#hdtb-msb, .tAcEof, #cnt > div.rfiSsc',
             sideViewContainer: '#irc_bg',
             /** the panel element containing the current image [data-ved], so if you observe this element, you can get pretty much get all the data you want.*/
             Panel: {
@@ -404,9 +404,17 @@ const normalizeUrl = (function () {
             elements: els,
         };
         o.__defineGetter__('isOnGoogle', isOnGoogle);
-        o.__defineGetter__('isOnGoogleImages', () =>
-            new URL(location.href).searchParams.get('tbm') === 'isch' // TODO: find a better way of determining whether the page is a Google Image search
-        );
+        o.__defineGetter__('isOnGoogleImages', () => {
+            // TODO: find a better way of determining whether the page is a Google Image search
+            try {
+                return [...document.querySelectorAll('[role="listitem"]')].filter(x=>!x.querySelector('a'))[0].innerText === 'Images' ||
+                    new URL(location.href).searchParams.get('tbm') === 'isch'
+                // || document.querySelectorAll('div > div > div > div > div > div > a > div > span[style*="transform:rotateZ(45deg)"]')[0].parentElement.innerText == "Images"
+            } catch (e) {
+                return false;
+                // return false;
+            }
+        });
         o.__defineGetter__('isOnGoogleImagesPanel', () => {
                 const url1 = new URL(location.href);
                 return url1.searchParams.has('imgrefurl') && url1.pathname.split('/').pop() === 'imgres';
