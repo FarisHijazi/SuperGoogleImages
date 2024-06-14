@@ -429,6 +429,11 @@ const normalizeUrl = (function () {
     })();
     // unsafeWindow.GoogleUtils = GoogleUtils;
 
+    /*
+    // get index of which page item we are on
+    [...document.querySelector('[role="listitem"]').parentElement.childNodes].map(div=>div.matches('[role="listitem"]')).indexOf(true)
+    */
+
     /**
      * the zip file
      * @type {JSZip}
@@ -484,7 +489,7 @@ const normalizeUrl = (function () {
 
     processLocation();
 
-    elementReady('body').then(onload);
+    elementReady('[role="listitem"]', opts={"timeout": 15000}).then(onload);
 
     // click showAllSizes link when it appears
     if (localStorage.getItem('clickShowAllSizes') === 'true') {
@@ -2454,11 +2459,14 @@ const normalizeUrl = (function () {
         const $physicalDiv = $('<div id="navbar-phys" style="position:relative;display:table;height:50px;">'); // this div pushes all the below content (so the navbar won't cover it)
         $navbar.after($physicalDiv);
 
-        const searchform = document.querySelector('#searchform, [role="search"]');
-        const rshdr = document.querySelector('#rshdr, header > div:nth-child(1), c-wiz > div') || searchform.previousElementSibling;
+        const searchform = document.querySelector('[role="search"]');
+        const rshdr = document.querySelector('#rshdr, c-wiz > div, header > div:nth-child(1)') || searchform.previousElementSibling;
 
 
-        rshdr.append($navbar[0], searchform);
+        rshdr.append(
+            $navbar[0],
+            searchform
+        );
 
         function reAdjustTopMargin(e) { // moves the rest of the page down a bit so it won't be covered by the navbar
             nbarContent.timeout = setTimeout(() => nbarContent.setNavbarPos(e, 0, true), Preferences.toolbar.navbarHideDelay);
